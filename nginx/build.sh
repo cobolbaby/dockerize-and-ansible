@@ -1,7 +1,7 @@
 #! /bin/bash
 
 REGISTRY=registry.com:5000
-NAME=binary:super
+NAME=cobol/nginx:latest
 
 docker build -t $NAME .
 docker tag $NAME ${REGISTRY}/$NAME
