@@ -14,7 +14,7 @@ RUN /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 WORKDIR $WORK_DIR
 
 # 拷贝源码至容器中,但会自动忽略.dockerignore中指明的文件以及文件夹
-COPY . $WORK_DIR
+COPY ./src $WORK_DIR
 RUN chmod +x run.sh
 
 # 使用cnpm安装依赖
