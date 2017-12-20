@@ -8,8 +8,8 @@ RUN mkdir -p $WORK_DIR \
 
 WORKDIR $WORK_DIR
 
-COPY /tmp/install_packages/xampp-linux-x64-5.6.32-0-installer.run .
-COPY /tmp/install_packages/redis-3.1.4.tgz .
+COPY ./pkgs/xampp-linux-x64-5.6.32-0-installer.run .
+COPY ./pkgs/redis-3.1.4.tgz .
 
 # 替换镜像源
 # 安装基础工具
@@ -29,7 +29,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && /opt/lampp/bin/phpize \
     && ./configure --with-php-config=/opt/lampp/bin/php-config \
     && make && make install \
-    && rm -rf ../redis-3.1.4*
+    && cd - && rm -rf redis-3.1.4*
 
 # 拷贝配置
 #COPY ./config/httpd.conf /opt/lampp/etc/httpd.conf
