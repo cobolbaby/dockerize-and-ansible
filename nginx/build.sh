@@ -1,8 +1,6 @@
-#! /bin/bash
+#!/bin/bash
+. ./init.sh
 
-REGISTRY=registry.com:5000
-NAME=cobol/nginx:latest
-
-docker build -t $NAME .
-docker tag $NAME ${REGISTRY}/$NAME
-docker push ${REGISTRY}/$NAME
+docker build --rm -f Dockerfile -t $TAGNAME .
+docker tag $TAGNAME ${REGISTRY}/$TAGNAME
+docker push ${REGISTRY}/$TAGNAME
