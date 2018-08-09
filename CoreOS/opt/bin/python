@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec docker run -ti --rm -v "$PWD":"$PWD" -v /data:/data -w "$PWD" python:2.7-slim python "$@"

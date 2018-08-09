@@ -6,11 +6,7 @@ WORKDIR $NODE_DIR
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && yum install -y net-tools wget \
-    # && wget https://nodejs.org/download/release/v6.11.5/node-v6.11.5-linux-x64.tar.xz \
-    # && xz -d node-v6.11.5-linux-x64.tar.xz \
-    # && tar -xvf node-v6.11.5-linux-x64.tar \
-    # && ln -s node-v6.11.5-linux-x64 node \
-    # && rm node-v6.11.5-linux-x64.tar 
+    && yum clean all \
     && wget https://nodejs.org/dist/v8.11.3/node-v8.11.3-linux-x64.tar.xz \
     && xz -d node-v8.11.3-linux-x64.tar.xz \
     && tar -xvf node-v8.11.3-linux-x64.tar \
