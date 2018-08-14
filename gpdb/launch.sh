@@ -1,4 +1,4 @@
 #!/bin/bash
 . ./init.sh
 
-docker run -d --rm --name=gpdb -h gpdb -p 5432:5432 --net=host ${REGISTRY}/${TAGNAME}
+docker run -d --rm --name=gpdb --net=host -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config ${REGISTRY}/${TAGNAME}

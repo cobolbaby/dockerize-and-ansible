@@ -1,36 +1,44 @@
 FROM centos:7
 
-# Argument
-ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
-ARG WORK_DIR=/opt/greenplum
-ARG PKG_DIR=/tmp/pkgs
-
-RUN mkdir -p $WORK_DIR
-WORKDIR $WORK_DIR
-
-COPY pkgs/* $PKG_DIR/
-COPY run.sh .
-
+ENV LANG en_US.UTF-8
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
-    && mv ${PKG_DIR}/CentOS7-Base-163.repo /etc/yum.repos.d/CentOS-Base.repo \
-    && yum install -y net-tools which \
+    && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute \
     && yum clean all
+
+# Argument
+ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
+ARG WORK_DIR=/opt/greenplum
+ARG TMP_DIR=/tmp/greenplum
+ARG MASTER_DATA_PATH=/data/greenplum/master
+ARG PRIMARY_DATA_PATH=/data/greenplum/primary
+ARG MIRROR_DATA_PATH=/data/greenplum/mirror
+
+RUN mkdir -p $WORK_DIR/config
+WORKDIR $WORK_DIR
+
+COPY pkgs/* $TMP_DIR/
+COPY etc/* $TMP_DIR/
+COPY run.sh .
 
 RUN groupadd gpadmin \
     && useradd -g gpadmin -m -d /home/gpadmin -s /bin/bash gpadmin \
     && echo gpadmin:gpadmin | chpasswd \
     && chown -R gpadmin:gpadmin $WORK_DIR \
-    && sed -i s/"more << EOF"/"cat << EOF"/g ${PKG_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
-    && echo -e "yes\n\nyes\nyes\n" | ${PKG_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
-    && rm -rf ${PKG_DIR} \
-    && source /usr/local/greenplum-db/greenplum_path.sh \
+    && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
+    && echo -e "yes\n\nyes\nyes\n" | ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
+    && cat ${TMP_DIR}/etc_sysctl.conf >> /etc/sysctl.conf \
+    && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
+	&& cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
+    && rm -rf ${TMP_DIR} \
+    && mkdir -p $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
     && chmod +x run.sh
-    # && copy optimize configuration
 
-ENV LANG en_US.UTF-8
-ENV MASTER_DATA_DIRECTORY /data/gpdb/master
+RUN echo "source /usr/local/greenplum-db/greenplum_path.sh" >> /home/gpadmin/.bash_profile
+ENV MASTER_DATA_DIRECTORY $MASTER_DATA_PATH
 ENV PGPORT 5432
 ENV PGDATABASE ictlog
 
