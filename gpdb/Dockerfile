@@ -15,7 +15,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && mv ${PKG_DIR}/CentOS7-Base-163.repo /etc/yum.repos.d/CentOS-Base.repo \
-    && yum install -y net-tools \
+    && yum install -y net-tools which \
     && yum clean all
 
 RUN groupadd gpadmin \
@@ -24,13 +24,12 @@ RUN groupadd gpadmin \
     && chown -R gpadmin:gpadmin $WORK_DIR \
     && sed -i s/"more << EOF"/"cat << EOF"/g ${PKG_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && echo -e "yes\n\nyes\nyes\n" | ${PKG_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
-    && rm -f ${PKG_DIR} \
-    && chmod +x run.sh \
-    # && copy optimize configuration \
-    && service ssh start
+    && rm -rf ${PKG_DIR} \
+    && source /usr/local/greenplum-db/greenplum_path.sh \
+    && chmod +x run.sh
+    # && copy optimize configuration
 
 ENV LANG en_US.UTF-8
-RUN source /usr/local/greenplum-db/greenplum_path.sh
 ENV MASTER_DATA_DIRECTORY /data/gpdb/master
 ENV PGPORT 5432
 ENV PGDATABASE ictlog
