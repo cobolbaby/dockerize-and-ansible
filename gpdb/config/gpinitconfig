@@ -11,7 +11,7 @@ declare -a DATA_DIRECTORY=(/disk1/gpdata/gpsegment/primary)
 # Master所在的机器的Hostname
 MASTER_HOSTNAME=ITC180012
 # 指定Master的数据目录
-MASTER_DIRECTORY=/disk1/gpdata/gpmaster
+MASTER_DIRECTORY=/data/greenplum/master
 # Master的端口
 MASTER_PORT=5432
 TRUSTED_SHELL=/usr/bin/ssh
