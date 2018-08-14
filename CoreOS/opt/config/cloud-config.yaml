@@ -1,0 +1,35 @@
+#cloud-config
+hostname: "coreos-demo"
+
+users:  
+  - name: cobol
+    groups:
+      - sudo
+      - docker
+    shell: /bin/sh
+
+networkd:
+  units:
+    - name: 00-eth0.network
+      contents: |
+        [Match]
+        Name=eth0
+
+        [Network]
+        DNS=1.2.3.4
+        Address=10.0.0.101/24
+        Gateway=10.0.0.1
+
+write_files:  
+  - path: /etc/ssh/sshd_config
+    permissions: 0600
+    owner: root
+    content: |
+      # Use most defaults for sshd configuration.
+      UsePrivilegeSeparation sandbox
+      Subsystem sftp internal-sftp
+      ClientAliveInterval 180
+      UseDNS no
+      PermitRootLogin yes //允许root登录，可以留作备用登录方式
+      ChallengeResponseAuthentication no 
+      PasswordAuthentication yes //允许使用口令登录，如果密钥登录验证通过之后，可以关闭此项

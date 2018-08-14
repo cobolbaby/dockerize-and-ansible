@@ -1,6 +1,11 @@
 #! /bin/bash
 docker pull gitlab/gitlab-ce
 
+# 修改默认的SSH端口号,谨防冲突
+# /etc/ssh/sshd_config
+
+# TODO::如何启用LDAP
+
 docker run --detach \
     --name gitlab \
     --hostname git.cobol.com \
