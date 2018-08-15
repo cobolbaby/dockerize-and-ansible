@@ -21,7 +21,7 @@ WORKDIR $WORK_DIR
 
 COPY pkgs/* $TMP_DIR/
 COPY etc/* $TMP_DIR/
-COPY run.sh .
+COPY entrypoint.sh .
 
 RUN groupadd gpadmin \
     && useradd -g gpadmin -m -d /home/gpadmin -s /bin/bash gpadmin \
@@ -29,21 +29,21 @@ RUN groupadd gpadmin \
     && chown -R gpadmin:gpadmin $WORK_DIR \
     && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && echo -e "yes\n\nyes\nyes\n" | ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
-    && cat ${TMP_DIR}/etc_sysctl.conf >> /etc/sysctl.conf \
-    && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
-	&& cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
-    && rm -rf ${TMP_DIR} \
     && mkdir -p $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
     && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
-    && chmod +x run.sh
+    && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key \
+    && ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key \
+    && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key \
+    && cat ${TMP_DIR}/etc_sysctl.conf >> /etc/sysctl.conf \
+    && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
+    && cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
+    && rm -rf ${TMP_DIR} \
+    && chmod +x entrypoint.sh
 
-RUN echo "source /usr/local/greenplum-db/greenplum_path.sh" >> /home/gpadmin/.bash_profile
 ENV MASTER_DATA_DIRECTORY $MASTER_DATA_PATH
 ENV PGPORT 5432
-ENV PGDATABASE ictlog
 
 # 声明镜像内服务所监听的端口，但是此处只是声明，并不会自动完成端口映射
-EXPOSE 5432
+EXPOSE 5432 22
 
-CMD [ "/bin/bash" ]
-ENTRYPOINT [ "./run.sh" ]
+ENTRYPOINT [ "./entrypoint.sh" ]
