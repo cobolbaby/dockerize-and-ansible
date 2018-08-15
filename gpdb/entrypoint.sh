@@ -6,4 +6,6 @@ source /usr/local/greenplum-db/greenplum_path.sh
 /usr/sbin/sshd
 
 # 临时脚本，用于维持容器抓状态
-while true; do echo hello world; sleep 10; done
+while true; do echo 'Greenplum is running'; sleep 60; done
+
+# TODO::主节点每次启动创建互信以及`gpstart -a`

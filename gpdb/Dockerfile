@@ -40,7 +40,7 @@ RUN groupadd gpadmin \
     && rm -rf ${TMP_DIR} \
     && chmod +x entrypoint.sh
 
-ENV MASTER_DATA_DIRECTORY $MASTER_DATA_PATH
+ENV MASTER_DATA_DIRECTORY $MASTER_DATA_PATH/gpseg-1
 ENV PGPORT 5432
 
 # 声明镜像内服务所监听的端口，但是此处只是声明，并不会自动完成端口映射

@@ -53,7 +53,15 @@ ssh: Could not resolve hostname mdw: Name or service not known
 /bin/touch: cannot touch ‘/disk1/gpdata/gpmaster/tmp_file_test’: No such file or directory
 20180814:16:47:20:gpinitsystem:ITC180012:gpadmin-[FATAL]:-Cannot write to /disk1/gpdata/gpmaster on master host  Script Exiting!
 ```
-- `sshd`
+- `ssh_host_rsa_key` not exists
+```
+[root@mdw greenplum]# /usr/sbin/sshd
+Could not load host key: /etc/ssh/ssh_host_rsa_key
+Could not load host key: /etc/ssh/ssh_host_ecdsa_key
+Could not load host key: /etc/ssh/ssh_host_ed25519_key
+sshd: no hostkeys available -- exiting.
+```
+- `sshd` 服务没起
 ```
 [gpadmin@mdw greenplum]$ gpinitsystem -c config/gpinitsystem_config 
 20180815:14:28:55:000070 gpinitsystem:mdw:gpadmin-[INFO]:-Checking configuration parameters, please wait...
@@ -69,14 +77,6 @@ ssh: Could not resolve hostname mdw: Name or service not known
 [FATAL]:-Remote command to host sdw1 failed to get value of hostname
 [FATAL]:-Check to see that you have setup trusted remote ssh on all hosts
 20180815:14:28:55:gpinitsystem:mdw:gpadmin-[FATAL]:-Unable to get hostname output for sdw1 Script Exiting!
-```
-- `ssh_host_rsa_key` not exists
-```
-[root@mdw greenplum]# /usr/sbin/sshd
-Could not load host key: /etc/ssh/ssh_host_rsa_key
-Could not load host key: /etc/ssh/ssh_host_ecdsa_key
-Could not load host key: /etc/ssh/ssh_host_ed25519_key
-sshd: no hostkeys available -- exiting.
 ```
 - 没做互信的下场
 ```
@@ -358,4 +358,11 @@ Y
 20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Refer to the Greenplum Admin support guide which is
 20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-located in the /usr/local/greenplum-db/./docs directory
 20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-------------------------------------------------------
+```
+- `MASTER_DATA_DIRECTORY` 环境变量配置问题
+```
+[gpadmin@mdw opt]$ gpstop -u
+20180815:17:20:16:013888 gpstop:mdw:gpadmin-[INFO]:-Starting gpstop with args: -u
+20180815:17:20:16:013888 gpstop:mdw:gpadmin-[INFO]:-Gathering information and validating the environment...
+20180815:17:20:16:013888 gpstop:mdw:gpadmin-[CRITICAL]:-gpstop failed. (Reason='[Errno 2] No such file or directory: '/data/greenplum/master/postgresql.conf'') exiting...
 ```
