@@ -9,10 +9,11 @@ CoreOS的初始配置走`cloud-init`方式，配置文件在用户目录下的`c
 - **常规方式**
 
 ```
-# sudo vi /etc/systemd/system/sshd.socket.d/10-sshd-listen-ports.conf
+$ sudo mkdir -p /etc/systemd/system/sshd.socket.d/
+$ sudo vi /etc/systemd/system/sshd.socket.d/10-sshd-listen-ports.conf
 [Socket]
 ListenStream=
-ListenStream=2018
+ListenStream=10022
 $ sudo systemctl daemon-reload
 $ sudo systemctl restart sshd.socket
 ```
