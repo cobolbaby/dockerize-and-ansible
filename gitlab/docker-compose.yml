@@ -43,7 +43,7 @@ services:
          port: 389 # or 636
          uid: 'sAMAccountName'
          method: 'plain' # "tls" or "ssl" or "plain"
-         bind_dn: 'CN=Zhang\, Xing-Long (張興龍 ITC),OU=ITC Users,DC=itc,DC=inventec'
+         bind_dn: 'CN=Zhang\, Xing-Long,OU=ITC Users,DC=itc,DC=inventec'
          password: 'Pass@word1'
          # This setting specifies if LDAP server is Active Directory LDAP server.
          # For non AD servers it skips the AD specific queries.
