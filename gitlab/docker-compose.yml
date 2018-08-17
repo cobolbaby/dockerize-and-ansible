@@ -7,7 +7,7 @@ services:
     ports:
       - '80:80'
       - '443:443'
-      - '22:22'
+      - '2222:22'
     volumes:
       - /git-volume/config:/etc/gitlab
       - /git-volume/logs:/var/log/gitlab
@@ -43,8 +43,8 @@ services:
          port: 389 # or 636
          uid: 'sAMAccountName'
          method: 'plain' # "tls" or "ssl" or "plain"
-         bind_dn: 'CN=Zhang\, Xing-Long,OU=ITC Users,DC=itc,DC=inventec'
-         password: 'Pass@word1'
+         bind_dn: 'CN=ITCLDAPReader,OU=ITC Project Accounts(Test),DC=itc,DC=inventec'
+         password: 'Pass@Ad**2018'
          # This setting specifies if LDAP server is Active Directory LDAP server.
          # For non AD servers it skips the AD specific queries.
          # If your LDAP server is not AD, set this to false.
@@ -104,4 +104,3 @@ services:
         # gitlab_rails['gitlab_email_reply_to'] = 'no-reply@tfss.me'
         # gitlab_rails['initial_root_password'] = 'PASSWORD'
         # gitlab_rails['initial_shared_runners_registration_token'] = "iuLaUhGZYyFgTxAyZ6HbdFUZ"
-

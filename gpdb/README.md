@@ -366,3 +366,9 @@ Y
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[INFO]:-Gathering information and validating the environment...
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[CRITICAL]:-gpstop failed. (Reason='[Errno 2] No such file or directory: '/data/greenplum/master/postgresql.conf'') exiting...
 ```
+- `host`模式组网的问题
+一个节点只能起一个容器，因为容器都需要暴露22端口，如果在一个节点上起多个容器的话，会造成宿主机端口冲突
+- `overlay`组网
+```
+
+```
