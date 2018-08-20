@@ -370,7 +370,15 @@ Y
 
 一个节点只能起一个容器，因为容器都需要暴露22端口，如果在一个节点上起多个容器的话，会造成宿主机端口冲突
 
-- `overlay`组网
-```
+- Docker网络创建
 
+```
+root@ITC180012:/media/cobolbaby/data/ubuntu/opt/workspace/git/docker/gpdb/deploy# docker network create --subnet=172.18.0.0/16 gpdb
+Error response from daemon: cannot create network 99815ef13204c8fe827a737ed5119d563cee1b3c407e69785046cdc3c8ab2b7d (br-99815ef13204): conflicts with network a988ac0e9475b17836090feeb5d438e25e4f8a92a4b924271b43e72ae6a1f7d8 (br-a988ac0e9475): networks have overlapping IPv4
+root@ITC180012:/media/cobolbaby/data/ubuntu/opt/workspace/git/docker/gpdb/deploy# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+9208ab340822        bridge              bridge              local
+a988ac0e9475        gitlab_default      bridge              local
+57f2c155865c        host                host                local
+3433ca12b37e        none                null                local
 ```

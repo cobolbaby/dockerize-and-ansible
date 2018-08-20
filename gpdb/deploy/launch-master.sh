@@ -8,3 +8,5 @@ fi
 
 docker pull ${REGISTRY}/$TAGNAME
 docker run -dit --rm --name=gpdb --net=host -h mdw -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${MASTER_DATA_PATH}:/data/greenplum/master ${REGISTRY}/${TAGNAME}
+
+# docker run -dit --rm --name=gpdb --net=gpdb --ip 172.19.0.1 -h mdw -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${MASTER_DATA_PATH}:/data/greenplum/master ${REGISTRY}/${TAGNAME}
