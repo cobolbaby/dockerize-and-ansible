@@ -1,10 +1,26 @@
 #!/bin/bash
 # 启动sshd
-/usr/sbin/sshd
-# 初始化Greenplum的环境变量，以便执行gpstart
-# source /usr/local/greenplum-db/greenplum_path.sh
-# echo "gpstart command path is `which gpstart`"
-# TODO::主节点每次启动创建互信以及`gpstart -a`
+sudo /usr/sbin/sshd
+
+if [ `hostname` == "mdw" ];then
+    echo "NODE is: `hostname`"
+    if [ ! -d $MASTER_DATA_DIRECTORY ];then
+        echo 'Master directory does not exist. Initializing master from gpinitsystem_reflect'
+        gpssh-exkeys -f config/hostlist
+        echo "Key exchange complete"
+        gpinitsystem -a -c config/gpinitsystem_config
+        echo "Master node initialized"
+        # receive connection from anywhere.. This should be changed!!
+        echo "host all all 0.0.0.0/0 md5" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
+        gpstop -u
+    else
+        echo 'Master exists. Restarting gpdb'
+        gpstart -a
+    fi
+else
+    echo "NODE is: `hostname`"
+fi
 
 # 临时脚本，用于维持容器抓状态
 while true; do echo 'Greenplum is running'; sleep 60; done
+# 获取进程状态
