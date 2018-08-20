@@ -19,4 +19,4 @@ ENV PATH /opt/etcd:$PATH
 
 EXPOSE 2379 2380
 
-CMD ["etcd", "--version"]
+ENTRYPOINT [ "etcd" ]

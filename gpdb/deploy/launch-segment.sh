@@ -11,6 +11,6 @@ if [ ! -d $MIRROR_DATA_PATH ];then
 fi
 
 docker pull ${REGISTRY}/$TAGNAME
-docker run -dit --rm --name=gpdb --net=host -h sdw1 -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${PRIMARY_DATA_PATH}:/data/greenplum/primary -v ${MIRROR_DATA_PATH}:/data/greenplum/mirror ${REGISTRY}/${TAGNAME}
+docker run -d --rm --name=gpdb --net=host -h sdw1 -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${PRIMARY_DATA_PATH}:/data/greenplum/primary -v ${MIRROR_DATA_PATH}:/data/greenplum/mirror ${REGISTRY}/${TAGNAME}
 
-# docker run -dit --rm --name=gpdb --net=gpdb --ip 172.19.0.2 -h sdw1 -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${PRIMARY_DATA_PATH}:/data/greenplum/primary -v ${MIRROR_DATA_PATH}:/data/greenplum/mirror ${REGISTRY}/${TAGNAME}
+# docker run -d --rm --name=gpdb --net=gpdb --ip 172.19.0.2 -h sdw1 -v "$PWD"/config/etc_hosts:/etc/hosts -v "$PWD"/config:/opt/greenplum/config -v ${PRIMARY_DATA_PATH}:/data/greenplum/primary -v ${MIRROR_DATA_PATH}:/data/greenplum/mirror ${REGISTRY}/${TAGNAME}
