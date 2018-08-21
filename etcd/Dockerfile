@@ -15,8 +15,11 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && ln -s etcd-${ETCD_VER}-linux-amd64 etcd \
     && rm etcd-${ETCD_VER}-linux-amd64.tar.gz
 
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 ENV PATH /opt/etcd:$PATH
 
 EXPOSE 2379 2380
 
-ENTRYPOINT [ "etcd" ]
+ENTRYPOINT [ "entrypoint.sh" ]

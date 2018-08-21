@@ -1,15 +1,31 @@
 #!/bin/bash
 . ./init.sh
 
+if [ ! -d $MASTER_DATA_PATH ];then
+    mkdir -p $MASTER_DATA_PATH
+    chmod -R 777 $MASTER_DATA_PATH
+fi
+if [ ! -d $PRIMARY_DATA_PATH ];then
+    mkdir -p $PRIMARY_DATA_PATH
+    chmod -R 777 $PRIMARY_DATA_PATH
+fi
+if [ ! -d $MIRROR_DATA_PATH ];then
+    mkdir -p $MIRROR_DATA_PATH
+    chmod -R 777 $MIRROR_DATA_PATH
+fi
+
+# 如何定义初始化函数
+
+sudo docker swarm init --advertise-addr 10.190.5.110
+
+docker swarm join --token SWMTKN-1-44xebmqerko0v8y3mxlaz00xc6supwol8ub4sbs9kvtl1k2rv3-1o9ohpmzpmapl5atgi069w017 10.190.5.110:2377
+
 docker network ls | awk '($2=="gpdb"){print $1}' | wc -l
 
-docker network create -d overlay --subnet=172.18.0.0/16 gpdb
+docker network create --driver overlay gpdb
 
-
-# 【可选】依据etc_hosts生成hostlist以及seg_hosts文件
+docker node 
 
 # 传输deploy目录下的文件至/opt/greenplum
 
-# 依据节点的角色执行启动脚本
-
-# 创建网络Swarm还是
+# 仅在主节点执行运行操作

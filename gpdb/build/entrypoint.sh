@@ -11,7 +11,7 @@ if [ `hostname` == "mdw" ];then
         gpinitsystem -a -c config/gpinitsystem_config
         echo "Master node initialized"
         # receive connection from anywhere.. This should be changed!!
-        echo "host all all 0.0.0.0/0 md5" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
+        echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
         gpstop -u
     else
         echo 'Master exists. Restarting gpdb'
