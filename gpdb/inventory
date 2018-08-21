@@ -1,0 +1,4 @@
+[gpdb-master]
+gpdb-mdw ansible_host=127.0.0.1 ansible_port=22 ansible_user=cobolbaby ansible_ssh_pass=cobolbaby
+[gpdb-segment]
+gpdb-sdw1 ansible_host=cobol.inventec.com ansible_port=22 ansible_user=dev ansible_ssh_pass=cobolbaby

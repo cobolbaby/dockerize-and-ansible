@@ -1,31 +1,36 @@
 #!/bin/bash
-. ./init.sh
 
-if [ ! -d $MASTER_DATA_PATH ];then
-    mkdir -p $MASTER_DATA_PATH
-    chmod -R 777 $MASTER_DATA_PATH
-fi
-if [ ! -d $PRIMARY_DATA_PATH ];then
-    mkdir -p $PRIMARY_DATA_PATH
-    chmod -R 777 $PRIMARY_DATA_PATH
-fi
-if [ ! -d $MIRROR_DATA_PATH ];then
-    mkdir -p $MIRROR_DATA_PATH
-    chmod -R 777 $MIRROR_DATA_PATH
-fi
+INVENTORY=./inventory
 
-# 如何定义初始化函数
+# 可否一次性定义inventory
 
-sudo docker swarm init --advertise-addr 10.190.5.110
+# 初次创建数据目录
+# 确认数据目录的权限？
+# 如果执行过command，如何自动跳过
+# 同步执行指令
+ansible -i $INVENTORY gpdb-master -m file -a "dest=/data/greenplum/master mode=777 state=directory"
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/greenplum/primary mode=777 state=directory"
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/greenplum/mirror mode=777 state=directory"
 
-docker swarm join --token SWMTKN-1-44xebmqerko0v8y3mxlaz00xc6supwol8ub4sbs9kvtl1k2rv3-1o9ohpmzpmapl5atgi069w017 10.190.5.110:2377
+# 初始化Swarm
+# sudo docker swarm init --advertise-addr 10.190.5.110
+ansible -i $INVENTORY gpdb-master -m command -a "docker info"
 
-docker network ls | awk '($2=="gpdb"){print $1}' | wc -l
+# docker swarm join --token SWMTKN-1-44xebmqerko0v8y3mxlaz00xc6supwol8ub4sbs9kvtl1k2rv3-1o9ohpmzpmapl5atgi069w017 10.190.5.110:2377
+ansible -i $INVENTORY gpdb-segment -m command -a "docker info"
 
-docker network create --driver overlay gpdb
+# 初始化网络
+# record=`docker network ls | awk '($2=="gpdb"){print $1}' | wc -l`
+# if [ $record -gt 0 ]; then
+#     docker network rm gpdb
+# fi
+ansible -i $INVENTORY gpdb-master -m command -a "docker info"
+# docker network create --driver overlay gpdb
+ansible -i $INVENTORY gpdb-master -m command -a "docker info"
 
-docker node 
+# 传出配置文件
+# ansible -i $INVENTORY gpdb-master -m copy -a "src='deploy/' dest='/opt/greenplum'"
+# ansible -i $INVENTORY gpdb-segment -m copy -a "src='deploy/config' dest='/opt/greenplum'"
 
-# 传输deploy目录下的文件至/opt/greenplum
-
-# 仅在主节点执行运行操作
+# 执行启动命令
+# ansible -i $INVENTORY gpdb-master -m command -a "/opt/greenplum/start.sh"
