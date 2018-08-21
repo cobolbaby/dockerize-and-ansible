@@ -15,6 +15,8 @@ if [ `hostname` == "mdw" ];then
         gpstop -u
     else
         echo 'Master exists. Restarting gpdb'
+        gpssh-exkeys -f config/hostlist
+        echo "Key exchange complete"
         gpstart -a
     fi
 else

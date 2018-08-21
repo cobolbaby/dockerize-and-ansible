@@ -6,7 +6,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /opt/greenplum/deploy/config:/opt/greenplum/config
+      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata/gpmaster:/data/greenplum/master
     deploy:
       mode: replicated

@@ -17,6 +17,22 @@ services:
       placement:
         constraints: [node.role != manager]
 
+  sdw2:
+    image: harbor.inventec.com/development/gpdb:4.3.25
+    hostname: sdw2
+    volumes:
+      - /opt/greenplum/config:/opt/greenplum/config
+      - /disk3/greenplum/primary:/data/greenplum/primary
+      - /disk3/greenplum/mirror:/data/greenplum/mirror
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: [node.role != manager]
+
 networks:
   default:
     external:
