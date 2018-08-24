@@ -254,3 +254,8 @@ socket.error: [Errno 111] Connection refused
 20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[INFO]:-End Function RUN_COMMAND_REMOTE
 20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[FATAL][1]:-Failed remote copy of segment data directory from sdw2 to sdw1
 ```
+
+- `Failed to get D-Bus connection: Operation not permitted`
+
+```
+```
