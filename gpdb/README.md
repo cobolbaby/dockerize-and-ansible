@@ -78,7 +78,9 @@ sshd: no hostkeys available -- exiting.
 [FATAL]:-Check to see that you have setup trusted remote ssh on all hosts
 20180815:14:28:55:gpinitsystem:mdw:gpadmin-[FATAL]:-Unable to get hostname output for sdw1 Script Exiting!
 ```
+
 - 没做互信的下场
+
 ```
 [gpadmin@mdw greenplum]$ gpinitsystem -c config/gpinitsystem_config 
 20180815:15:17:18:003928 gpinitsystem:mdw:gpadmin-[INFO]:-Checking configuration parameters, please wait...
@@ -206,179 +208,49 @@ Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
 20180815:15:20:53:004491 gpinitsystem:mdw:gpadmin-[INFO]:-End Function BACKOUT_COMMAND
 
 ```
-- 互信
-```
-gpssh-exkeys -f config/hostlist
-```
-- 安装成功提示
-```
-[gpadmin@mdw greenplum]$ gpinitsystem -c config/gpinitsystem_config
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checking configuration parameters, please wait...
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Reading Greenplum configuration file config/gpinitsystem_config
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Locale has not been set in config/gpinitsystem_config, will set to default value
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Locale set to en_US.utf8
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-No DATABASE_NAME set, will exit following template1 updates
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-MASTER_MAX_CONNECT not set, will set to default value 250
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Detected a single host GPDB array build, reducing value of BATCH_DEFAULT from 60 to 4
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checking configuration parameters, Completed
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Commencing multi-home checks, please wait...
-.
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Configuring build for standard array
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Commencing multi-home checks, Completed
-20180815:15:36:31:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Building primary segment instance array, please wait...
-.
-20180815:15:36:32:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checking Master host
-20180815:15:36:32:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checking new segment hosts, please wait...
-.
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checking new segment hosts, Completed
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Greenplum Database Creation Parameters
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:---------------------------------------
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master Configuration
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:---------------------------------------
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master instance name       = Inventec Greenplum
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master hostname            = mdw
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master port                = 5432
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master instance dir        = /data/greenplum/master/gpseg-1
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master LOCALE              = en_US.utf8
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Greenplum segment prefix   = gpseg
-20180815:15:36:33:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master Database            = 
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master connections         = 250
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master buffers             = 128000kB
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Segment connections        = 750
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Segment buffers            = 128000kB
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Checkpoint segments        = 8
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Encoding                   = UNICODE
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Postgres param file        = Off
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Initdb to be used          = /usr/local/greenplum-db/./bin/initdb
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-GP_LIBRARY_PATH is         = /usr/local/greenplum-db/./lib
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Ulimit check               = Passed
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Array host connect type    = Single hostname per node
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master IP address [1]      = ::1
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master IP address [2]      = 10.190.5.110
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master IP address [3]      = 172.17.0.1
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master IP address [4]      = fe80::42:6bff:fe5c:4786
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Master IP address [5]      = fe80::77bb:612e:f06e:62db
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Standby Master             = Not Configured
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Primary segment #          = 1
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Total Database segments    = 1
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Trusted shell              = ssh
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Number segment hosts       = 1
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Mirroring config           = OFF
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:----------------------------------------
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Greenplum Primary Segment Configuration
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:----------------------------------------
-20180815:15:36:34:009096 gpinitsystem:mdw:gpadmin-[INFO]:-sdw1 	/data/greenplum/primary/gpseg0 	20000 	2 	0
-Continue with Greenplum creation Yy/Nn>
-Y
-20180815:15:36:37:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Building the Master instance database, please wait...
-20180815:15:36:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Starting the Master in admin mode
-20180815:15:36:57:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Commencing parallel build of primary segment instances
-20180815:15:36:57:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Spawning parallel processes    batch [1], please wait...
-.
-20180815:15:36:57:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Waiting for parallel processes batch [1], please wait...
-...........................
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:------------------------------------------------
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Parallel process exit status
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:------------------------------------------------
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Total processes marked as completed           = 1
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Total processes marked as killed              = 0
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Total processes marked as failed              = 0
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:------------------------------------------------
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Deleting distributed backout files
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Removing back out file
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-No errors generated from parallel processes
-20180815:15:37:24:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Restarting the Greenplum instance in production mode
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Starting gpstop with args: -a -l /home/gpadmin/gpAdminLogs -i -m -d /data/greenplum/master/gpseg-1
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Gathering information and validating the environment...
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Obtaining Greenplum Master catalog information
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-There are 0 connections to the database
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Commencing Master instance shutdown with mode='immediate'
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Master host=mdw
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Commencing Master instance shutdown with mode=immediate
-20180815:15:37:24:010798 gpstop:mdw:gpadmin-[INFO]:-Master segment instance directory=/data/greenplum/master/gpseg-1
-20180815:15:37:25:010798 gpstop:mdw:gpadmin-[INFO]:-Attempting forceful termination of any leftover master process
-20180815:15:37:25:010798 gpstop:mdw:gpadmin-[INFO]:-Terminating processes for segment /data/greenplum/master/gpseg-1
-20180815:15:37:25:010822 gpstart:mdw:gpadmin-[INFO]:-Starting gpstart with args: -a -l /home/gpadmin/gpAdminLogs -d /data/greenplum/master/gpseg-1
-20180815:15:37:25:010822 gpstart:mdw:gpadmin-[INFO]:-Gathering information and validating the environment...
-20180815:15:37:25:010822 gpstart:mdw:gpadmin-[INFO]:-Greenplum Binary Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
-20180815:15:37:25:010822 gpstart:mdw:gpadmin-[INFO]:-Greenplum Catalog Version: '201310150'
-20180815:15:37:25:010822 gpstart:mdw:gpadmin-[INFO]:-Starting Master instance in admin mode
-20180815:15:37:27:010822 gpstart:mdw:gpadmin-[INFO]:-Obtaining Greenplum Master catalog information
-20180815:15:37:27:010822 gpstart:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
-20180815:15:37:27:010822 gpstart:mdw:gpadmin-[INFO]:-Setting new master era
-20180815:15:37:27:010822 gpstart:mdw:gpadmin-[INFO]:-Master Started...
-20180815:15:37:27:010822 gpstart:mdw:gpadmin-[INFO]:-Shutting down master
-20180815:15:37:28:010822 gpstart:mdw:gpadmin-[INFO]:-Commencing parallel segment instance startup, please wait...
-........ 
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-Process results...
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-----------------------------------------------------
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-   Successful segment starts                                            = 1
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-   Failed segment starts                                                = 0
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-   Skipped segment starts (segments are marked down in configuration)   = 0
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-----------------------------------------------------
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-Successfully started 1 of 1 segment instances 
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-----------------------------------------------------
-20180815:15:37:36:010822 gpstart:mdw:gpadmin-[INFO]:-Starting Master instance mdw directory /data/greenplum/master/gpseg-1 
-20180815:15:37:37:010822 gpstart:mdw:gpadmin-[INFO]:-Command pg_ctl reports Master mdw instance active
-20180815:15:37:37:010822 gpstart:mdw:gpadmin-[INFO]:-No standby master configured.  skipping...
-20180815:15:37:37:010822 gpstart:mdw:gpadmin-[INFO]:-Database successfully started
-20180815:15:37:40:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Completed restart of Greenplum instance in production mode
-20180815:15:37:40:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Loading gp_toolkit...
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Scanning utility log file for any warning messages
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[WARN]:-*******************************************************
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[WARN]:-Scan of log file indicates that some warnings or errors
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[WARN]:-were generated during the array creation
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Please review contents of log file
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-/home/gpadmin/gpAdminLogs/gpinitsystem_20180815.log
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-To determine level of criticality
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-These messages could be from a previous run of the utility
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-that was called today!
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[WARN]:-*******************************************************
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Greenplum Database instance successfully created
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-------------------------------------------------------
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-To complete the environment configuration, please 
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-update gpadmin .bashrc file with the following
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-1. Ensure that the greenplum_path.sh file is sourced
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-2. Add "export MASTER_DATA_DIRECTORY=/data/greenplum/master/gpseg-1"
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-   to access the Greenplum scripts for this instance:
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-   or, use -d /data/greenplum/master/gpseg-1 option for the Greenplum scripts
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-   Example gpstate -d /data/greenplum/master/gpseg-1
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Script log file = /home/gpadmin/gpAdminLogs/gpinitsystem_20180815.log
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-To remove instance, run gpdeletesystem utility
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-To initialize a Standby Master Segment for this Greenplum instance
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Review options for gpinitstandby
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-------------------------------------------------------
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-The Master /data/greenplum/master/gpseg-1/pg_hba.conf post gpinitsystem
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-has been configured to allow all hosts within this new
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-array to intercommunicate. Any hosts external to this
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-new array must be explicitly added to this file
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-Refer to the Greenplum Admin support guide which is
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-located in the /usr/local/greenplum-db/./docs directory
-20180815:15:37:43:009096 gpinitsystem:mdw:gpadmin-[INFO]:-------------------------------------------------------
-```
+
 - `MASTER_DATA_DIRECTORY` 环境变量配置问题
+
 ```
 [gpadmin@mdw opt]$ gpstop -u
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[INFO]:-Starting gpstop with args: -u
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[INFO]:-Gathering information and validating the environment...
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[CRITICAL]:-gpstop failed. (Reason='[Errno 2] No such file or directory: '/data/greenplum/master/postgresql.conf'') exiting...
 ```
-- `host`模式组网的问题
+
+- `host` 模式组网的问题
 
 一个节点只能起一个容器，因为容器都需要暴露22端口，如果在一个节点上起多个容器的话，会造成宿主机端口冲突
 
-- Docker网络创建
+- 数据备份时报错
 
 ```
-root@ITC180012:/media/cobolbaby/data/ubuntu/opt/workspace/git/docker/gpdb/deploy# docker network create --subnet=172.18.0.0/16 gpdb
-Error response from daemon: cannot create network 99815ef13204c8fe827a737ed5119d563cee1b3c407e69785046cdc3c8ab2b7d (br-99815ef13204): conflicts with network a988ac0e9475b17836090feeb5d438e25e4f8a92a4b924271b43e72ae6a1f7d8 (br-a988ac0e9475): networks have overlapping IPv4
-root@ITC180012:/media/cobolbaby/data/ubuntu/opt/workspace/git/docker/gpdb/deploy# docker network ls
-NETWORK ID          NAME                DRIVER              SCOPE
-9208ab340822        bridge              bridge              local
-a988ac0e9475        gitlab_default      bridge              local
-57f2c155865c        host                host                local
-3433ca12b37e        none                null                local
+20180823:15:58:49:002445 gpcreateseg.sh:mdw:gpadmin-[INFO]:-Commencing remote /bin/ssh sdw1 export GPHOME=/usr/local/greenplum-db; . /usr/local/greenplum-db/greenplum_path.sh; /usr/local/greenplum-db/bin/lib/pysync.py -x pg_log -x postgresql.conf -x postmaster.pid /data/greenplum/primary/gpseg0 \[sdw2\]:/data/greenplum/mirror/gpseg0
+20180823:15:58:49:002458 gpcreateseg.sh:mdw:gpadmin-[INFO]:-Commencing remote /bin/ssh sdw2 export GPHOME=/usr/local/greenplum-db; . /usr/local/greenplum-db/greenplum_path.sh; /usr/local/greenplum-db/bin/lib/pysync.py -x pg_log -x postgresql.conf -x postmaster.pid /data/greenplum/primary/gpseg1 \[sdw1\]:/data/greenplum/mirror/gpseg1
+Killed by signal 1.^M
+Traceback (most recent call last):
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 669, in <module>
+    sys.exit(LocalPysync(sys.argv, progressTimestamp=True).run())
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 647, in run
+    code = self.work()
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 611, in work
+    self.socket.connect(self.connectAddress)
+  File "<string>", line 1, in connect
+socket.error: [Errno 111] Connection refused
+Killed by signal 1.^M
+Traceback (most recent call last):
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 669, in <module>
+    sys.exit(LocalPysync(sys.argv, progressTimestamp=True).run())
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 647, in run
+    code = self.work()
+  File "/usr/local/greenplum-db/bin/lib/pysync.py", line 611, in work
+    self.socket.connect(self.connectAddress)
+  File "<string>", line 1, in connect
+socket.error: [Errno 111] Connection refused
+20180823:15:58:52:002445 gpcreateseg.sh:mdw:gpadmin-[FATAL]:- Command export GPHOME=/usr/local/greenplum-db; . /usr/local/greenplum-db/greenplum_path.sh; /usr/local/greenplum-db/bin/lib/pysync.py -x pg_log -x postgresql.conf -x postmaster.pid /data/greenplum/primary/gpseg0 \[sdw2\]:/data/greenplum/mirror/gpseg0 on sdw1 failed with error status 1
+20180823:15:58:52:002445 gpcreateseg.sh:mdw:gpadmin-[INFO]:-End Function RUN_COMMAND_REMOTE
+20180823:15:58:52:002445 gpcreateseg.sh:mdw:gpadmin-[FATAL][0]:-Failed remote copy of segment data directory from sdw1 to sdw2
+20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[FATAL]:- Command export GPHOME=/usr/local/greenplum-db; . /usr/local/greenplum-db/greenplum_path.sh; /usr/local/greenplum-db/bin/lib/pysync.py -x pg_log -x postgresql.conf -x postmaster.pid /data/greenplum/primary/gpseg1 \[sdw1\]:/data/greenplum/mirror/gpseg1 on sdw2 failed with error status 1
+20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[INFO]:-End Function RUN_COMMAND_REMOTE
+20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[FATAL][1]:-Failed remote copy of segment data directory from sdw2 to sdw1
 ```

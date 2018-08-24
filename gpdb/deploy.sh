@@ -7,11 +7,11 @@ INVENTORY=./inventory
 # 确认数据目录的权限？
 # 如果执行过command，如何自动跳过
 # 同步执行指令
-# ansible -i $INVENTORY gpdb-master -m file -a "dest=/disk1/gpdata/gpmaster mode=777 state=directory"
-# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk2/greenplum/primary mode=777 state=directory" -f 5 -b
-# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk2/greenplum/mirror mode=777 state=directory" -f 5 -b
-# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/greenplum/primary mode=777 state=directory" -f 5 -b
-# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/greenplum/mirror mode=777 state=directory" -f 5 -b
+ansible -i $INVENTORY gpdb-master -m file -a "dest=/disk1/gpdata/gpmaster mode=777 state=directory" -b
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk2/greenplum/primary mode=777 state=directory" -f 5 -b
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk2/greenplum/mirror mode=777 state=directory" -f 5 -b
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/greenplum/primary mode=777 state=directory" -f 5 -b
+ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/greenplum/mirror mode=777 state=directory" -f 5 -b
 
 # 初始化Swarm
 # sudo docker swarm init --advertise-addr 10.190.5.110

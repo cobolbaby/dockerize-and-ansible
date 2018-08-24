@@ -49,21 +49,21 @@ ENCODING=UNICODE
 
 #### Base number by which mirror segment port numbers
 #### are calculated.
-#MIRROR_PORT_BASE=21000
+MIRROR_PORT_BASE=21000
 
 #### Base number by which primary file replication port
 #### numbers are calculated.
-#REPLICATION_PORT_BASE=22000
+REPLICATION_PORT_BASE=22000
 
 #### Base number by which mirror file replication port
 #### numbers are calculated.
-#MIRROR_REPLICATION_PORT_BASE=23000
+MIRROR_REPLICATION_PORT_BASE=23000
 
 #### File system location(s) where mirror segment data directories
 #### will be created. The number of mirror locations must equal the
 #### number of primary locations as specified in the
 #### DATA_DIRECTORY parameter.
-#declare -a MIRROR_DATA_DIRECTORY=(/data/greenplum/mirror)
+declare -a MIRROR_DATA_DIRECTORY=(/data/greenplum/mirror)
 
 
 ################################################
