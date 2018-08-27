@@ -1,4 +1,6 @@
 #!/bin/bash
+# set -e
+
 # 启动sshd
 sudo /usr/sbin/sshd
 

@@ -1,4 +1,4 @@
 #! /bin/bash
 REGISTRY=harbor.inventec.com
-TAGNAME=development/gpdb:4.3.25
+TAGNAME=development/gpdb:dev
 PROXY=http://10.190.40.39:18118/

@@ -2,7 +2,7 @@ version: "3"
 services:
 
   sdw1:
-    image: harbor.inventec.com/development/gpdb:4.3.25
+    image: harbor.inventec.com/development/gpdb:dev
     hostname: sdw1
     volumes:
       - /opt/greenplum/config:/opt/greenplum/config
@@ -18,7 +18,7 @@ services:
         constraints: [node.role != manager]
 
   sdw2:
-    image: harbor.inventec.com/development/gpdb:4.3.25
+    image: harbor.inventec.com/development/gpdb:dev
     hostname: sdw2
     volumes:
       - /opt/greenplum/config:/opt/greenplum/config

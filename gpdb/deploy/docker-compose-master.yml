@@ -1,7 +1,7 @@
 version: "3"
 services:
   mdw:
-    image: harbor.inventec.com/development/gpdb:4.3.25
+    image: harbor.inventec.com/development/gpdb:dev
     hostname: mdw
     ports:
       - "5432:5432"
