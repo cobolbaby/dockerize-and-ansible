@@ -1,4 +1,5 @@
 #!/bin/bash
+. ./init.sh
 
 # 可否一次性定义inventory
 INVENTORY=./inventory
@@ -34,4 +35,4 @@ ansible -i $INVENTORY gpdb-master -m copy -a "src='deploy/' dest='/opt/greenplum
 ansible -i $INVENTORY gpdb-segment -m copy -a "src='deploy/config' dest='/opt/greenplum'" -b
 
 # 执行启动命令
-ansible -i $INVENTORY gpdb-master -m command -a "/opt/greenplum/start.sh" -b
+ansible -i $INVENTORY gpdb-master -m command -a "/opt/greenplum/start.sh ${REGISTRY} ${TAGNAME}" -b

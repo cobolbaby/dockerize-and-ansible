@@ -1,7 +1,7 @@
 version: "3"
 services:
   mdw:
-    image: harbor.inventec.com/development/gpdb:dev
+    image: ${REGISTRY}/${TAGNAME}
     hostname: mdw
     ports:
       - "5432:5432"
@@ -24,7 +24,7 @@ services:
           - node.role == manager
 
   visualizer:
-    image: harbor.inventec.com/development/visualizer:180821
+    image: ${REGISTRY}/development/visualizer:180821
     ports:
       - "8080:8080"
     volumes:

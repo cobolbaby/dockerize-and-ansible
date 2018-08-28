@@ -1,7 +1,8 @@
 FROM centos:7
 
 # Argument
-ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
+# ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
+ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/data/greenplum/master
@@ -45,7 +46,9 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
     && cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
     && rm -rf ${TMP_DIR} \
-    && chmod +x entrypoint.sh
+    && chmod +x entrypoint.sh \
+    && sed -i 's/ss\.bind(self\.options\.addrinfo\[4\])/ss.bind(("", self.options.addrinfo[4][1]))/g' /usr/local/greenplum-db/bin/lib/pysync_remote.py \
+    && sed -i 's/self\.socket\.connect(self\.connectAddress)/self.socket.connect((self.options.addrinfo[4][0], self.connectAddress[1]))/g'  /usr/local/greenplum-db/bin/lib/pysync.py
     
 USER gpadmin
 
