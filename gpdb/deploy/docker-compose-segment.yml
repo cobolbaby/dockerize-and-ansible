@@ -1,4 +1,4 @@
-version: "3"
+version: "3.3"
 services:
 
   sdw1:
@@ -16,6 +16,7 @@ services:
         max_attempts: 3
       placement:
         constraints: [node.role != manager]
+      endpoint_mode: dnsrr
 
   sdw2:
     image: ${REGISTRY}/${TAGNAME}
@@ -32,6 +33,7 @@ services:
         max_attempts: 3
       placement:
         constraints: [node.role != manager]
+      endpoint_mode: dnsrr
 
 networks:
   default:

@@ -222,7 +222,7 @@ Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
 
 一个节点只能起一个容器，因为容器都需要暴露22端口，如果在一个节点上起多个容器的话，会造成宿主机端口冲突
 
-- 数据备份时报错
+- `Docker Swarm Service Connection Refused`
 
 ```
 20180823:15:58:49:002445 gpcreateseg.sh:mdw:gpadmin-[INFO]:-Commencing remote /bin/ssh sdw1 export GPHOME=/usr/local/greenplum-db; . /usr/local/greenplum-db/greenplum_path.sh; /usr/local/greenplum-db/bin/lib/pysync.py -x pg_log -x postgresql.conf -x postmaster.pid /data/greenplum/primary/gpseg0 \[sdw2\]:/data/greenplum/mirror/gpseg0
@@ -255,7 +255,9 @@ socket.error: [Errno 111] Connection refused
 20180823:15:58:52:002458 gpcreateseg.sh:mdw:gpadmin-[FATAL][1]:-Failed remote copy of segment data directory from sdw2 to sdw1
 ```
 
-- `Failed to get D-Bus connection: Operation not permitted`
+- `--cluster-store and --cluster-advertise daemon configurations`
 
 ```
+bigdatauser@CP70-bigdata-005:~$ docker swarm init --advertise-addr 10.99.170.58
+Error response from daemon: --cluster-store and --cluster-advertise daemon configurations are incompatible with swarm mode
 ```

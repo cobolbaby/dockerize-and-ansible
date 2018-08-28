@@ -46,9 +46,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
     && cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
     && rm -rf ${TMP_DIR} \
-    && chmod +x entrypoint.sh \
-    && sed -i 's/ss\.bind(self\.options\.addrinfo\[4\])/ss.bind(("", self.options.addrinfo[4][1]))/g' /usr/local/greenplum-db/bin/lib/pysync_remote.py \
-    && sed -i 's/self\.socket\.connect(self\.connectAddress)/self.socket.connect((self.options.addrinfo[4][0], self.connectAddress[1]))/g'  /usr/local/greenplum-db/bin/lib/pysync.py
+    && chmod +x entrypoint.sh
     
 USER gpadmin
 
