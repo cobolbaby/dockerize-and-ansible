@@ -5,7 +5,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw1
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata:/disk1/gpdata
       - /disk2/gpdata:/disk2/gpdata
       - /disk3/gpdata:/disk3/gpdata
@@ -23,7 +22,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw2
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata:/disk1/gpdata
       - /disk2/gpdata:/disk2/gpdata
       - /disk3/gpdata:/disk3/gpdata
@@ -41,7 +39,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw3
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata:/disk1/gpdata
       - /disk2/gpdata:/disk2/gpdata
       - /disk3/gpdata:/disk3/gpdata
@@ -59,7 +56,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw4
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata:/disk1/gpdata
       - /disk2/gpdata:/disk2/gpdata
       - /disk3/gpdata:/disk3/gpdata
@@ -77,7 +73,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw5
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata:/disk1/gpdata
       - /disk2/gpdata:/disk2/gpdata
       - /disk3/gpdata:/disk3/gpdata

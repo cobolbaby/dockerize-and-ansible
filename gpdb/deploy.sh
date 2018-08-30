@@ -2,7 +2,7 @@
 . ./init.sh
 
 # 可否一次性定义inventory
-INVENTORY=./inventory
+INVENTORY=./inventory.prod
 
 # 添加私有仓库地址
 # ansible -i $INVENTORY all -m shell -a "echo '10.99.170.92    harbor.remote.inventec.com' >> /etc/hosts" -b
@@ -33,7 +33,7 @@ ansible -i $INVENTORY gpdb-master  -m file -a "path=/disk1/greenplum state=absen
 ansible -i $INVENTORY gpdb-segment -m file -a "path=/disk1/greenplum state=absent" -f 5
 ansible -i $INVENTORY gpdb-segment -m file -a "path=/disk2/greenplum state=absent" -f 5
 ansible -i $INVENTORY gpdb-segment -m file -a "path=/disk3/greenplum state=absent" -f 5
-# 沿用之前的数据目录或创建新目录
+# 沿用之前的数据目录
 # ansible -i $INVENTORY gpdb-master  -m file -a "dest=/disk1/gpdata/gpmaster mode=777 state=directory"
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk1/gpdata/gpsegment/primary mode=777 state=directory" -f 5
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk1/gpdata/gpsegment/mirror mode=777 state=directory" -f 5
@@ -43,8 +43,8 @@ ansible -i $INVENTORY gpdb-segment -m file -a "path=/disk3/greenplum state=absen
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/gpdata/gpsegment/mirror mode=777 state=directory" -f 5
 
 # 同步配置文件
-# ansible -i $INVENTORY gpdb-master -m copy -a "src='deploy/' dest='/opt/greenplum'"
-# ansible -i $INVENTORY gpdb-segment -m copy -a "src='deploy/config' dest='/opt/greenplum'" -f 5
+ansible -i $INVENTORY gpdb-master -m copy -a "src=deploy/ dest=/opt/greenplum" -b
+ansible -i $INVENTORY gpdb-segment -m file -a "path=/opt/greenplum state=absent" -b -f 5
 
 # 执行启动命令
 REGISTRY=harbor.remote.inventec.com
