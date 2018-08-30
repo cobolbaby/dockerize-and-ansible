@@ -6,12 +6,9 @@ ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
-ARG PRIMARY_DATA_PATH1=/disk1/gpdata/gpsegment/primary
-ARG MIRROR_DATA_PATH1=/disk1/gpdata/gpsegment/mirror
-ARG PRIMARY_DATA_PATH2=/disk2/gpdata/gpsegment/primary
-ARG MIRROR_DATA_PATH2=/disk2/gpdata/gpsegment/mirror
-ARG PRIMARY_DATA_PATH3=/disk3/gpdata/gpsegment/primary
-ARG MIRROR_DATA_PATH3=/disk3/gpdata/gpsegment/mirror
+ARG SEGMENT_DATA_PATH1=/disk1/gpdata/gpsegment
+ARG SEGMENT_DATA_PATH2=/disk2/gpdata/gpsegment
+ARG SEGMENT_DATA_PATH3=/disk3/gpdata/gpsegment
 
 RUN mkdir -p $WORK_DIR/config
 WORKDIR $WORK_DIR
@@ -34,8 +31,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && echo -e "yes\n\nyes\nyes\n" | ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-db* \
-    && mkdir -p $MASTER_DATA_PATH $PRIMARY_DATA_PATH1 $MIRROR_DATA_PATH1 $PRIMARY_DATA_PATH2 $MIRROR_DATA_PATH2 $PRIMARY_DATA_PATH3 $MIRROR_DATA_PATH3 \
-    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $PRIMARY_DATA_PATH1 $MIRROR_DATA_PATH1 $PRIMARY_DATA_PATH2 $MIRROR_DATA_PATH2 $PRIMARY_DATA_PATH3 $MIRROR_DATA_PATH3 \
+    && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 \
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 \
     && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key \
     && ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key \
     && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key \
