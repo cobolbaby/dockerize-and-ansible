@@ -26,7 +26,7 @@ ansible -i $INVENTORY all -m copy -a "src=../docker-daemon.json dest=/etc/docker
 # if [ $record -gt 0 ]; then
 #     docker network rm gpdb
 # fi
-# ansible -i $INVENTORY gpdb-master -m command -a "docker network create --driver overlay gpdb" -b
+# ansible -i $INVENTORY gpdb-master -m command -a "docker network create --driver overlay --subnet=10.11.0.0/16 --attachable gpdb" -b
 
 # 移除历史目录
 ansible -i $INVENTORY gpdb-master  -m file -a "path=/disk1/greenplum state=absent"
