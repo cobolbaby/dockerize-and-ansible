@@ -1,4 +1,8 @@
 [gpdb-master]
-gpdb-mdw ansible_host=127.0.0.1 ansible_port=22 ansible_user=cobolbaby ansible_ssh_pass=cobolbaby ansible_sudo_pass=cobolbaby
+gpdb-master-node1 ansible_host=10.99.170.58 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
 [gpdb-segment]
-gpdb-sdw1 ansible_host=cobol.inventec.com ansible_port=22 ansible_user=dev ansible_ssh_pass=cobolbaby ansible_sudo_pass=cobolbaby
+gpdb-segment-node1 ansible_host=10.99.170.60 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
+gpdb-segment-node2 ansible_host=10.99.170.62 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
+gpdb-segment-node3 ansible_host=10.99.170.64 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
+gpdb-segment-node4 ansible_host=10.99.170.66 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
+gpdb-segment-node5 ansible_host=10.99.170.68 ansible_port=22 ansible_user=bigdatauser ansible_ssh_pass=Bigdata2018 ansible_sudo_pass=Bigdata2018
