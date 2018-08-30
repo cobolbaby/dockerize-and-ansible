@@ -10,7 +10,7 @@ if [ `hostname` == "mdw" ];then
         echo 'Master directory does not exist. Initializing master from gpinitsystem_reflect'
         gpssh-exkeys -f config/hostlist
         echo "Key exchange complete"
-        gpinitsystem -a -c config/gpinitsystem_config
+        gpinitsystem -a -c config/gpinitsystem_config -s sdw1
         echo "Master node initialized"
         # receive connection from anywhere.. This should be changed!!
         echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
