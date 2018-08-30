@@ -2,7 +2,7 @@
 . ./init.sh
 
 # 可否一次性定义inventory
-INVENTORY=./inventory
+INVENTORY=./inventory.dev
 
 # 初次创建数据目录
 # 确认数据目录的权限？

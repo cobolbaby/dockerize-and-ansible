@@ -1,8 +1,8 @@
 #!/bin/bash
-. ./init.online.sh
+. ./init.prod.sh
 
 # 可否一次性定义inventory
-INVENTORY=./inventory.online
+INVENTORY=./inventory.prod
 
 # 添加私有仓库地址
 # ansible -i $INVENTORY all -m shell -a "echo '10.99.170.92    harbor.remote.inventec.com' >> /etc/hosts" -b
@@ -43,8 +43,8 @@ ansible -i $INVENTORY all -m copy -a "src=../docker-daemon.json dest=/etc/docker
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/disk3/greenplum/mirror mode=777 state=directory" -f 5
 
 # 同步配置文件
-# ansible -i $INVENTORY gpdb-master -m copy -a "src='deploy.online/' dest='/opt/greenplum'"
-# ansible -i $INVENTORY gpdb-segment -m copy -a "src='deploy.online/config' dest='/opt/greenplum'" -f 5
+# ansible -i $INVENTORY gpdb-master -m copy -a "src='deploy.prod/' dest='/opt/greenplum'"
+# ansible -i $INVENTORY gpdb-segment -m copy -a "src='deploy.prod/config' dest='/opt/greenplum'" -f 5
 
 # 执行启动命令
 ansible -i $INVENTORY all -m command -a "docker pull ${REGISTRY}/${TAGNAME}" -b -f 5
