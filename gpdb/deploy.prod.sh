@@ -7,7 +7,7 @@ INVENTORY=./inventory.prod
 # 添加私有仓库地址
 # ansible -i $INVENTORY all -m shell -a "echo '10.99.170.92    harbor.remote.inventec.com' >> /etc/hosts" -b
 ansible -i $INVENTORY all -m copy -a "src=../docker-daemon.json dest=/etc/docker/daemon.json" -b
-# ansible -i $INVENTORY all -m service -a "name=docker state=restarted" -d
+# ansible -i $INVENTORY all -m service -a "name=docker state=restarted" -b
 
 # 初始化 Swarm
 # ansible -i $INVENTORY gpdb-master -m command -a "sudo docker swarm init --advertise-addr 10.99.170.58" -b

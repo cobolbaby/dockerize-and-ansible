@@ -5,7 +5,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw1
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/greenplum/primary:/data/greenplum/primary
       - /disk1/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -22,7 +21,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw2
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/greenplum/primary:/data/greenplum/primary
       - /disk1/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -39,7 +37,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw3
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/greenplum/primary:/data/greenplum/primary
       - /disk1/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -56,7 +53,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw4
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/greenplum/primary:/data/greenplum/primary
       - /disk1/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -73,7 +69,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw5
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/greenplum/primary:/data/greenplum/primary
       - /disk1/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -90,7 +85,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw6
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -107,7 +101,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw7
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -124,7 +117,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw8
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -141,7 +133,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw9
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -158,7 +149,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw10
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -175,7 +165,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw11
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -192,7 +181,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw12
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -209,7 +197,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw13
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -226,7 +213,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw14
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -243,7 +229,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw15
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:

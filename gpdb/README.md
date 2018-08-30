@@ -261,3 +261,18 @@ socket.error: [Errno 111] Connection refused
 bigdatauser@CP70-bigdata-005:~$ docker swarm init --advertise-addr 10.99.170.58
 Error response from daemon: --cluster-store and --cluster-advertise daemon configurations are incompatible with swarm mode
 ```
+
+- `Swarm Service Name not known`
+
+```
+[gpadmin@mdw greenplum]$ ping sdw1
+ping: sdw1: Name or service not known
+[gpadmin@mdw greenplum]$ ping sdw2
+ping: sdw2: Name or service not known
+```
+
+- `gpstart error: Catalog Versions are incompatible`
+
+```
+
+```

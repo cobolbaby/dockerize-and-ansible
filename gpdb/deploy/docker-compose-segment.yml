@@ -5,7 +5,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw1
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
@@ -22,7 +21,6 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw2
     volumes:
-      - /opt/greenplum/config:/opt/greenplum/config
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
