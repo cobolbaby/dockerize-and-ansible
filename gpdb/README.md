@@ -261,3 +261,9 @@ socket.error: [Errno 111] Connection refused
 bigdatauser@CP70-bigdata-005:~$ docker swarm init --advertise-addr 10.99.170.58
 Error response from daemon: --cluster-store and --cluster-advertise daemon configurations are incompatible with swarm mode
 ```
+
+- `Data Permission denied`
+
+```
+[CRITICAL]:-gpstart failed. (Reason='[Errno 13] Permission denied: '/disk1/gpdata/gpmaster/gpseg-1/postgresql.conf'')
+```

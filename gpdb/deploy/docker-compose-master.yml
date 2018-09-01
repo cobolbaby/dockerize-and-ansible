@@ -7,7 +7,7 @@ services:
       - "5432:5432"
     volumes:
       - /opt/greenplum/config:/opt/greenplum/config
-      - /disk1/gpdata:/disk1/gpdata
+      - /disk1:/disk1
     deploy:
       mode: replicated
       replicas: 1

@@ -1,8 +1,8 @@
 FROM centos:7
 
 # Argument
-# ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
-ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
+ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
+# ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
@@ -24,8 +24,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo telnet telnet-server \
     && yum clean all \
     && echo root:inventec | chpasswd \
-    && groupadd gpadmin \
-    && useradd -g gpadmin -m -d /home/gpadmin -s /bin/bash gpadmin \
+    && groupadd -g 530 gpadmin \
+    && useradd -g 530 -u 530 -m -d /home/gpadmin -s /bin/bash gpadmin \
     && echo gpadmin:gpadmin | chpasswd \
     && chown -R gpadmin:gpadmin $WORK_DIR \
     && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \

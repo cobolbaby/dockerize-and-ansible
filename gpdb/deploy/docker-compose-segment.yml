@@ -4,10 +4,12 @@ services:
   sdw1:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw1
+    ports:
+      - "5432:5432"
     volumes:
-      - /disk1/gpdata:/disk1/gpdata
-      - /disk2/gpdata:/disk2/gpdata
-      - /disk3/gpdata:/disk3/gpdata
+      - /disk1:/disk1
+      - /disk2:/disk2
+      - /disk3:/disk3
     deploy:
       replicas: 1
       restart_policy:
@@ -22,9 +24,9 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw2
     volumes:
-      - /disk1/gpdata:/disk1/gpdata
-      - /disk2/gpdata:/disk2/gpdata
-      - /disk3/gpdata:/disk3/gpdata
+      - /disk1:/disk1
+      - /disk2:/disk2
+      - /disk3:/disk3
     deploy:
       replicas: 1
       restart_policy:
@@ -39,9 +41,9 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw3
     volumes:
-      - /disk1/gpdata:/disk1/gpdata
-      - /disk2/gpdata:/disk2/gpdata
-      - /disk3/gpdata:/disk3/gpdata
+      - /disk1:/disk1
+      - /disk2:/disk2
+      - /disk3:/disk3
     deploy:
       replicas: 1
       restart_policy:
@@ -56,9 +58,9 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw4
     volumes:
-      - /disk1/gpdata:/disk1/gpdata
-      - /disk2/gpdata:/disk2/gpdata
-      - /disk3/gpdata:/disk3/gpdata
+      - /disk1:/disk1
+      - /disk2:/disk2
+      - /disk3:/disk3
     deploy:
       replicas: 1
       restart_policy:
@@ -73,9 +75,9 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw5
     volumes:
-      - /disk1/gpdata:/disk1/gpdata
-      - /disk2/gpdata:/disk2/gpdata
-      - /disk3/gpdata:/disk3/gpdata
+      - /disk1:/disk1
+      - /disk2:/disk2
+      - /disk3:/disk3
     deploy:
       replicas: 1
       restart_policy:
