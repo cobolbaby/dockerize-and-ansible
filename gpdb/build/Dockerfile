@@ -9,7 +9,6 @@ ARG MASTER_DATA_PATH=/data/greenplum/master
 ARG PRIMARY_DATA_PATH=/data/greenplum/primary
 ARG MIRROR_DATA_PATH=/data/greenplum/mirror
 
-RUN mkdir -p $WORK_DIR/config
 WORKDIR $WORK_DIR
 
 COPY pkgs/* $TMP_DIR/
@@ -20,7 +19,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo telnet telnet-server \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo \
     && yum clean all \
     && echo root:inventec | chpasswd \
     && groupadd gpadmin \
