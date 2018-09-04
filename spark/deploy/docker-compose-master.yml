@@ -8,12 +8,6 @@ services:
       - 6066:6066
       - 7077:7077
       - 8080:8080
-    volumes:
-      - /opt/spark/config/slaves:/opt/spark/conf/slaves
-    # environment:
-    #   MASTER: spark://master:7077
-    #   SPARK_MASTER_OPTS: "-Dspark.eventLog.dir=hdfs://namenode:9000/user/spark/history"
-    #   SPARK_PUBLIC_DNS: master
     deploy:
       mode: replicated
       replicas: 1

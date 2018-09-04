@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-CONTAINERID="d17ff275d28a"
+echo "Getting container ID of the Spark master..."
+CONTAINERID="eba80a9027bf"
+
+
 
 docker cp ./tasks ${CONTAINERID}:/opt/
 

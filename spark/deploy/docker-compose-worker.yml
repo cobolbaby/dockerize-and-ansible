@@ -1,12 +1,10 @@
 version: "3.3"
 services:
-  sparkworker1:
+  sparkworker:
     image: ${REGISTRY}/${TAGNAME}
-    hostname: sparkworker1
-    # ports:
-    #   - 8081:8081
-    # volumes:
-    #   - /opt/spark/config:/opt/spark/conf
+    hostname: sparkworker
+    ports:
+      - 8081:8081
     # environment:
     #   SPARK_WORKER_CORES: 1
     #   SPARK_WORKER_MEMORY: 1g
@@ -14,60 +12,13 @@ services:
     #   SPARK_WORKER_WEBUI_PORT: 8081
     #   SPARK_PUBLIC_DNS: master
     deploy:
-      replicas: 1
+      replicas: 3
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
       placement:
         constraints: [node.role != manager]
-      endpoint_mode: dnsrr
-
-  sparkworker2:
-    image: ${REGISTRY}/${TAGNAME}
-    hostname: sparkworker2
-    # ports:
-    #   - 8082:8081
-    # volumes:
-    #   - /opt/spark/config:/opt/spark/conf
-    # environment:
-    #   SPARK_WORKER_CORES: 1
-    #   SPARK_WORKER_MEMORY: 1g
-    #   SPARK_WORKER_PORT: 8881
-    #   SPARK_WORKER_WEBUI_PORT: 8081
-    #   SPARK_PUBLIC_DNS: master
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      placement:
-        constraints: [node.role != manager]
-      endpoint_mode: dnsrr
-
-  sparkworker3:
-    image: ${REGISTRY}/${TAGNAME}
-    hostname: sparkworker3
-    # ports:
-    #   - 8082:8081
-    # volumes:
-    #   - /opt/spark/config:/opt/spark/conf
-    # environment:
-    #   SPARK_WORKER_CORES: 1
-    #   SPARK_WORKER_MEMORY: 1g
-    #   SPARK_WORKER_PORT: 8881
-    #   SPARK_WORKER_WEBUI_PORT: 8081
-    #   SPARK_PUBLIC_DNS: master
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      placement:
-        constraints: [node.role != manager]
-      endpoint_mode: dnsrr
 
 networks:
   default:

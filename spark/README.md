@@ -10,14 +10,20 @@ sparkworker:   JAVA_HOME is not set
 sparkworker: full log in /opt/spark/logs/spark-root-org.apache.spark.deploy.worker.Worker-1-sparkworker.out
 ```
 
-- `port published with ingress mode can't be used with dnsrr mode`
-
-```
-Error response from daemon: rpc error: code = InvalidArgument desc = EndpointSpec: port published with ingress mode can't be used with dnsrr mode
-```
-
 - `Initial job has not accepted any resources`
 
 ```
 2018-09-04 17:07:27 WARN  TaskSchedulerImpl:66 - Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
+```
+
+- 获取container的ID
+
+```
+
+```
+
+- spark使用swarm启动以后监控面板无法显示记录
+
+```
+
 ```

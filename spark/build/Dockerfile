@@ -2,7 +2,6 @@ FROM centos:7
 
 ARG TMP_DIR=/tmp/spark
 COPY pkgs/* ${TMP_DIR}/
-COPY etc/* ${TMP_DIR}/
 
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
@@ -13,7 +12,6 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && mkdir -p /opt/jdk /opt/spark \
     && tar -zxvf ${TMP_DIR}/jdk-8u171-linux-x64.tar.gz -C /opt/jdk --strip-components=1 \
     && tar -zxvf ${TMP_DIR}/spark-2.3.0-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1 \
-    && cp ${TMP_DIR}/spark-env.sh /opt/spark/conf/spark-env.sh \
     && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key \
     && ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key \
     && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key \
@@ -33,6 +31,6 @@ WORKDIR /opt/spark
 COPY entrypoint.sh .
 COPY jars/*.jar ./jars/
 
-EXPOSE 6066 7077 8080
+EXPOSE 4040 6066 7077 8080 8081
 ENTRYPOINT [ "./entrypoint.sh" ]
 CMD ["/bin/bash"]
