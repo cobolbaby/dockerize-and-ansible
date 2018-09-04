@@ -1,0 +1,29 @@
+version: "3.3"
+services:
+  sparkmaster:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkmaster
+    ports:
+      - 4040:4040
+      - 6066:6066
+      - 7077:7077
+      - 8080:8080
+    deploy:
+      mode: replicated
+      replicas: 1
+      # resources:
+      #   limits:
+      #     cpus: "0.1"
+      #     memory: 50M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: 
+          - node.role == manager
+
+networks:
+  default:
+    external:
+      name: gpdb
