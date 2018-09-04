@@ -1,5 +1,4 @@
 #! /bin/bash
-REGISTRY=harbor.inventec.com
 
 if [ -n "$1" ]; then
     BRANCH=$1
@@ -9,3 +8,9 @@ fi
 
 TAGNAME=development/spark:${BRANCH}
 PROXY=http://10.190.40.39:18118/
+
+# DEPLOY_MODE=dev
+# DEPLOY_MODE=prod
+
+INVENTORY_FILE=../inventory.dev
+REGISTRY=harbor.inventec.com

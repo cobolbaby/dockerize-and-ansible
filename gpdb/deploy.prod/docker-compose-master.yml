@@ -22,7 +22,6 @@ services:
       placement:
         constraints: 
           - node.role == manager
-
   visualizer:
     image: ${REGISTRY}/development/visualizer:180821
     ports:
