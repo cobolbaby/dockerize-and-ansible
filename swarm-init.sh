@@ -1,5 +1,5 @@
 #!/bin/bash
-# INVENTORY=../inventory.prod
+# INVENTORY=./inventory.prod
 # INVENTORY=./inventory.dev
 
 # TODO::判断是否安装了docker
