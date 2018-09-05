@@ -8,5 +8,4 @@ echo "Copying count.py script to the Spark master..."
 docker cp ./tasks ${CONTAINERID}:/opt/
 
 echo "Running Spark job..."
-docker exec -ti ${CONTAINERID} spark-submit /opt/tasks/python/pi.py
-# docker exec -ti ${CONTAINERID} spark-submit --master spark://sparkmaster:7077 /opt/tasks/pi.py
+docker exec -ti ${CONTAINERID} spark-submit --master spark://sparkmaster:7077 /opt/tasks/python/pi.py
