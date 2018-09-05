@@ -1,15 +1,42 @@
 version: "3.3"
 services:
-  sparkworker:
+  sparkw1:
     image: ${REGISTRY}/${TAGNAME}
-    hostname: sparkworker
+    hostname: sparkw1
     ports:
-      - 8081:8081
+      - 18081:18081
+      - 18082:18082
     environment:
+      SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 1
       SPARK_WORKER_MEMORY: 1g
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_WORKER_WEBUI_PORT: 18081
     deploy:
-      replicas: 3
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: [node.role != manager]
+  
+  sparkw2:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw2
+    ports:
+      - 28081:28081
+      - 28082:28082
+    environment:
+      SPARK_WORKER_INSTANCES: 2
+      SPARK_WORKER_CORES: 1
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_WORKER_WEBUI_PORT: 28081
+    deploy:
+      mode: replicated
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s

@@ -15,9 +15,3 @@ sparkworker: full log in /opt/spark/logs/spark-root-org.apache.spark.deploy.work
 ```
 2018-09-04 17:07:27 WARN  TaskSchedulerImpl:66 - Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
 ```
-
-- spark使用swarm启动以后监控面板无法显示记录
-
-```
-
-```

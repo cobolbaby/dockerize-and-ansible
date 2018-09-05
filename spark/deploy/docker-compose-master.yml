@@ -8,6 +8,8 @@ services:
       - 6066:6066
       - 7077:7077
       - 8080:8080
+    environment:
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
     deploy:
       mode: replicated
       replicas: 1
