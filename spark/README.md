@@ -32,3 +32,9 @@ Pi is roughly 3.140840
 
 ```
 ```
+
+- `docker the input device is not a TTY`
+
+```
+去掉docker exec命令后面的-ti即可
+```
