@@ -30,11 +30,8 @@ Pi is roughly 3.140840
 
 - 使用`Swarm`启动以后`Executor`的监控面板无法显示
 
-```
-```
+在编排文件中定义`SPARK_PUBLIC_DNS`以及`SPARK_WORKER_WEBUI_PORT`
 
 - `docker the input device is not a TTY`
 
-```
 去掉docker exec命令后面的-ti即可
-```
