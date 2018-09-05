@@ -16,8 +16,19 @@ sparkworker: full log in /opt/spark/logs/spark-root-org.apache.spark.deploy.work
 2018-09-04 17:07:27 WARN  TaskSchedulerImpl:66 - Initial job has not accepted any resources; check your cluster UI to ensure that workers are registered and have sufficient resources
 ```
 
-- spark使用swarm启动以后监控面板无法显示记录
+- `spark-submit command not found`
 
 ```
+bigdatauser@CP70-bigdata-005:/opt/sparkv2$ docker exec -ti 5c8326d66d30 spark-submit --master spark://10.99.170.58:7077 /opt/tasks/python/pi.py
+rpc error: code = 2 desc = oci runtime error: exec failed: container_linux.go:262: starting container process caused "exec: \"spark-submit\": executable file not found in $PATH"
 
+bigdatauser@CP70-bigdata-005:~$ docker exec -ti 5c8326d66d30 /opt/spark/bin/spark-submit --master spark://10.99.170.58:7077 /opt/tasks/python/pi.py
+18/09/05 03:13:40 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+18/09/05 03:13:44 WARN TaskSetManager: Stage 0 contains a task of very large size (371 KB). The maximum recommended task size is 100 KB.
+Pi is roughly 3.140840
+```
+
+- 使用`Swarm`启动以后`Executor`的监控面板无法显示
+
+```
 ```
