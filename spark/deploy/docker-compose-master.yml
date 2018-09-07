@@ -7,9 +7,13 @@ services:
       - 4040:4040
       - 6066:6066
       - 7077:7077
-      - 8080:8080
+      - 8081:8081
+    volumes:
+      - /opt/sparkv2/tasks:/opt/tasks
+      - /disk6/spark/spark-events:/tmp/spark-events
     environment:
       SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_MASTER_WEBUI_PORT: 8081
     deploy:
       mode: replicated
       replicas: 1

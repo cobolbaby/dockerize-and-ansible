@@ -8,8 +8,8 @@ services:
       - 18082:18082
     environment:
       SPARK_WORKER_INSTANCES: 2
-      SPARK_WORKER_CORES: 1
-      SPARK_WORKER_MEMORY: 1g
+      SPARK_WORKER_CORES: 8
+      SPARK_WORKER_MEMORY: 64g
       SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
       SPARK_WORKER_WEBUI_PORT: 18081
     deploy:
@@ -20,7 +20,7 @@ services:
         delay: 5s
         max_attempts: 3
       placement:
-        constraints: [node.role != manager]
+        constraints: [node.labels.alias == node60]
   
   sparkw2:
     image: ${REGISTRY}/${TAGNAME}
@@ -30,8 +30,8 @@ services:
       - 28082:28082
     environment:
       SPARK_WORKER_INSTANCES: 2
-      SPARK_WORKER_CORES: 1
-      SPARK_WORKER_MEMORY: 1g
+      SPARK_WORKER_CORES: 8
+      SPARK_WORKER_MEMORY: 64g
       SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
       SPARK_WORKER_WEBUI_PORT: 28081
     deploy:
@@ -42,7 +42,73 @@ services:
         delay: 5s
         max_attempts: 3
       placement:
-        constraints: [node.role != manager]
+        constraints: [node.labels.alias == node62]
+
+  sparkw3:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw3
+    ports:
+      - 38081:38081
+      - 38082:38082
+    environment:
+      SPARK_WORKER_INSTANCES: 2
+      SPARK_WORKER_CORES: 8
+      SPARK_WORKER_MEMORY: 64g
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_WORKER_WEBUI_PORT: 38081
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: [node.labels.alias == node64]
+
+  sparkw4:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw4
+    ports:
+      - 48081:48081
+      - 48082:48082
+    environment:
+      SPARK_WORKER_INSTANCES: 2
+      SPARK_WORKER_CORES: 8
+      SPARK_WORKER_MEMORY: 64g
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_WORKER_WEBUI_PORT: 48081
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: [node.labels.alias == node66]
+
+  sparkw5:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw5
+    ports:
+      - 58081:58081
+      - 58082:58082
+    environment:
+      SPARK_WORKER_INSTANCES: 2
+      SPARK_WORKER_CORES: 8
+      SPARK_WORKER_MEMORY: 64g
+      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_WORKER_WEBUI_PORT: 58081
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints: [node.labels.alias == node68]
 
 networks:
   default:
