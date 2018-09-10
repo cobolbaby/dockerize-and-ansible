@@ -6,7 +6,7 @@ cd /opt/sparkv2
 echo "启动参数: $*"
 export REGISTRY="$1"
 export TAGNAME="$2"
-export EXTERNAL_IP="10.99.170.58"
+export EXTERNAL_IP=`hostname -I | cut -d " " -f 1`
 
 docker stack rm spark_worker
 docker stack rm spark_master
