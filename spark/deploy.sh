@@ -1,7 +1,14 @@
 #!/bin/bash
 . ./init.sh
 
-# 传出配置文件
+# 判断是否存在Ansible
+_=`command -v ansible`
+if [ $? -ne 0 ]; then
+  printf "You don\'t seem to install %s.\n" Ansible
+  exit
+fi
+
+# 传输文件
 ansible -i $INVENTORY_FILE master -m copy -a "src=deploy/ dest=/opt/sparkv2" -b
 
 # 执行启动命令
