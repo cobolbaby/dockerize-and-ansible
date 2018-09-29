@@ -276,3 +276,274 @@ ping: sdw2: Name or service not known
 ```
 
 ```
+
+- ``
+
+```
+[gpadmin@mdw gpAdminLogs]$ gpconfig -c max_connections -v 2000 -m 500
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw2
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw1
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw1
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw3
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: mdw
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw5
+20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw4
+20180929:14:28:52:054690 gpconfig:mdw:gpadmin-[ERROR]:-finished with errors, parameter string '-c max_connections -v 2000 -m 500'
+```
+
+- 恢复宕掉的数据节点
+
+```
+[gpadmin@mdw tmp]$ gprecoverseg -o ./recov
+20180929:15:13:31:052921 gprecoverseg:mdw:gpadmin-[INFO]:-Starting gprecoverseg with args: -o recov
+20180929:15:13:31:052921 gprecoverseg:mdw:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
+20180929:15:13:31:052921 gprecoverseg:mdw:gpadmin-[INFO]:-master Greenplum Version: 'PostgreSQL 8.2.15 (Greenplum Database 4.3.25.1 build 1) on x86_64-unknown-linux-gnu, compiled by GCC gcc (GCC) 4.4.2 compiled on May 11 2018 00:42:53'
+20180929:15:13:31:052921 gprecoverseg:mdw:gpadmin-[INFO]:-Checking if segments are ready to connect
+20180929:15:13:31:052921 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:13:32:052921 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:13:34:052921 gprecoverseg:mdw:gpadmin-[INFO]:-Configuration file output to recov successfully.
+[gpadmin@mdw tmp]$ ll
+total 8
+-rwx------ 1 root    root    836 Aug  5 06:05 ks-script-Lu6hIQ
+-rw-rw-r-- 1 gpadmin gpadmin 464 Sep 29 15:13 recov
+-rw------- 1 root    root      0 Aug  5 06:04 yum.log
+[gpadmin@mdw tmp]$ more recov 
+filespaceOrder=
+sdw1:40000:/disk1/gpdata/gpsegment/primary/gpseg0
+sdw1:40001:/disk2/gpdata/gpsegment/primary/gpseg1
+sdw1:40002:/disk3/gpdata/gpsegment/primary/gpseg2
+sdw3:50000:/disk1/gpdata/gpsegment/mirror/gpseg3
+sdw2:40001:/disk2/gpdata/gpsegment/primary/gpseg4
+sdw3:50002:/disk3/gpdata/gpsegment/mirror/gpseg5
+sdw1:50000:/disk1/gpdata/gpsegment/mirror/gpseg12
+sdw1:50001:/disk2/gpdata/gpsegment/mirror/gpseg13
+sdw1:50002:/disk3/gpdata/gpsegment/mirror/gpseg14
+[gpadmin@mdw tmp]$ cat recov  | wc -l
+10
+[gpadmin@mdw tmp]$  gprecoverseg -i ./recov
+20180929:15:15:00:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Starting gprecoverseg with args: -i ./recov
+20180929:15:15:01:053080 gprecoverseg:mdw:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
+20180929:15:15:01:053080 gprecoverseg:mdw:gpadmin-[INFO]:-master Greenplum Version: 'PostgreSQL 8.2.15 (Greenplum Database 4.3.25.1 build 1) on x86_64-unknown-linux-gnu, compiled by GCC gcc (GCC) 4.4.2 compiled on May 11 2018 00:42:53'
+20180929:15:15:01:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Checking if segments are ready to connect
+20180929:15:15:01:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:15:01:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery from configuration -i option supplied
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery 1 of 9
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Synchronization mode                        = Incremental
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance host                        = sdw1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance address                     = sdw1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance directory                   = /disk1/gpdata/gpsegment/primary/gpseg0
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance port                        = 40000
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance replication port            = 41000
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance host               = sdw2
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance address            = sdw2
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance directory          = /disk1/gpdata/gpsegment/mirror/gpseg0
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance port               = 50000
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance replication port   = 51000
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Target                             = in-place
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery 2 of 9
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Synchronization mode                        = Incremental
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance host                        = sdw1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance address                     = sdw1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance directory                   = /disk2/gpdata/gpsegment/primary/gpseg1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance port                        = 40001
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance replication port            = 41001
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance host               = sdw2
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance address            = sdw2
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance directory          = /disk2/gpdata/gpsegment/mirror/gpseg1
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance port               = 50001
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance replication port   = 51001
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Target                             = in-place
+20180929:15:15:03:053080 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+
+Continue with segment recovery procedure Yy|Nn (default=N):
+> Y
+20180929:15:16:11:053080 gprecoverseg:mdw:gpadmin-[INFO]:-9 segment(s) to recover
+20180929:15:16:11:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Ensuring 9 failed segment(s) are stopped
+ 
+20180929:15:16:15:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Ensuring that shared memory is cleaned up for stopped segments
+20180929:15:16:20:053080 gprecoverseg:mdw:gpadmin-[ERROR]:-Unable to clean up shared memory for segment: (ipcrm: invalid id (229377)
+)
+Traceback (most recent call last):
+  File "/usr/local/greenplum-db/lib/python/gppylib/commands/base.py", line 235, in run
+    self.cmd.run()
+  File "/usr/local/greenplum-db/lib/python/gppylib/operations/__init__.py", line 53, in run
+    self.ret = self.execute()
+  File "/usr/local/greenplum-db/lib/python/gppylib/operations/utils.py", line 52, in execute
+    raise ret
+Exception: Unable to clean up shared memory for segment: (ipcrm: invalid id (229377)
+)
+20180929:15:16:21:053080 gprecoverseg:mdw:gpadmin-[ERROR]:-Unable to clean up shared memory for segment: (ipcrm: invalid id (131076)
+)
+Traceback (most recent call last):
+  File "/usr/local/greenplum-db/lib/python/gppylib/commands/base.py", line 235, in run
+    self.cmd.run()
+  File "/usr/local/greenplum-db/lib/python/gppylib/operations/__init__.py", line 53, in run
+    self.ret = self.execute()
+  File "/usr/local/greenplum-db/lib/python/gppylib/operations/utils.py", line 52, in execute
+    raise ret
+Exception: Unable to clean up shared memory for segment: (ipcrm: invalid id (131076)
+)
+20180929:15:16:21:053080 gprecoverseg:mdw:gpadmin-[WARNING]:-Unable to clean up shared memory for stopped segments on host (sdw1)
+20180929:15:16:21:053080 gprecoverseg:mdw:gpadmin-[WARNING]:-Unable to clean up shared memory for stopped segments on host (sdw3)
+updating flat files
+20180929:15:16:21:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Updating configuration with new mirrors
+20180929:15:16:21:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Updating mirrors
+...... 
+20180929:15:16:27:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Starting mirrors
+20180929:15:16:27:053080 gprecoverseg:mdw:gpadmin-[INFO]:-era is 067a8655633ca921_180929144926
+20180929:15:16:27:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Commencing parallel primary and mirror segment instance startup, please wait...
+.......... 
+20180929:15:16:37:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Process results...
+20180929:15:16:37:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Updating configuration to mark mirrors up
+20180929:15:16:37:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Updating primaries
+20180929:15:16:37:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Commencing parallel primary conversion of 9 segments, please wait...
+....................................................... 
+20180929:15:17:32:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Process results...
+20180929:15:17:32:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Done updating primaries
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Updating segments for resynchronization is completed.
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-For segments updated successfully, resynchronization will continue in the background.
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-Use  gpstate -s  to check the resynchronization progress.
+20180929:15:17:33:053080 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+[gpadmin@mdw tmp]$ gpstate -b
+20180929:15:17:52:056971 gpstate:mdw:gpadmin-[INFO]:-Starting gpstate with args: -b
+20180929:15:17:52:056971 gpstate:mdw:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
+20180929:15:17:52:056971 gpstate:mdw:gpadmin-[INFO]:-master Greenplum Version: 'PostgreSQL 8.2.15 (Greenplum Database 4.3.25.1 build 1) on x86_64-unknown-linux-gnu, compiled by GCC gcc (GCC) 4.4.2 compiled on May 11 2018 00:42:53'
+20180929:15:17:52:056971 gpstate:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:17:52:056971 gpstate:mdw:gpadmin-[INFO]:-Gathering data from segments...
+. 
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-Greenplum instance status summary
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Master instance                                           = Active
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Master standby                                            = sdw1
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Standby master state                                      = Standby host passive
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total segment instance count from metadata                = 30
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Primary Segment Status
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total primary segments                                    = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total primary segment valid (at master)                   = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total primary segment failures (at master)                = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid files missing              = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid files found                = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid PIDs missing               = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid PIDs found                 = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of /tmp lock files missing                   = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of /tmp lock files found                     = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number postmaster processes missing                 = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number postmaster processes found                   = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Mirror Segment Status
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total mirror segments                                     = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total mirror segment valid (at master)                    = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total mirror segment failures (at master)                 = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid files missing              = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid files found                = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid PIDs missing               = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of postmaster.pid PIDs found                 = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of /tmp lock files missing                   = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number of /tmp lock files found                     = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number postmaster processes missing                 = 0
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number postmaster processes found                   = 15
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[WARNING]:-Total number mirror segments acting as primary segments   = 4                      <<<<<<<<
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-   Total number mirror segments acting as mirror segments    = 11
+20180929:15:17:53:056971 gpstate:mdw:gpadmin-[INFO]:-----------------------------------------------------
+[gpadmin@mdw tmp]$ gprecoverseg -r
+20180929:15:28:28:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Starting gprecoverseg with args: -r
+20180929:15:28:28:041514 gprecoverseg:mdw:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
+20180929:15:28:28:041514 gprecoverseg:mdw:gpadmin-[INFO]:-master Greenplum Version: 'PostgreSQL 8.2.15 (Greenplum Database 4.3.25.1 build 1) on x86_64-unknown-linux-gnu, compiled by GCC gcc (GCC) 4.4.2 compiled on May 11 2018 00:42:53'
+20180929:15:28:28:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Checking if segments are ready to connect
+20180929:15:28:28:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery type              = Rebalance
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Unbalanced segment 1 of 8
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Unbalanced instance host               = sdw2
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Unbalanced instance address            = sdw2
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Unbalanced instance directory          = /disk1/gpdata/gpsegment/mirror/gpseg0
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Unbalanced instance port               = 50000
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Unbalanced instance replication port   = 51000
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Balanced role                          = Mirror
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Current role                           = Primary
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[WARNING]:-This operation will cancel queries that are currently executing.
+20180929:15:28:29:041514 gprecoverseg:mdw:gpadmin-[WARNING]:-Connections to the database however will not be interrupted.
+
+Continue with segment rebalance procedure Yy|Nn (default=N):
+> Y
+20180929:15:28:33:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Getting unbalanced segments
+20180929:15:28:33:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Stopping unbalanced primary segments...
+........ 
+20180929:15:28:41:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Triggering segment reconfiguration
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Starting segment synchronization
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-=============================START ANOTHER RECOVER=========================================
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 4.3.25.1 build 1'
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-master Greenplum Version: 'PostgreSQL 8.2.15 (Greenplum Database 4.3.25.1 build 1) on x86_64-unknown-linux-gnu, compiled by GCC gcc (GCC) 4.4.2 compiled on May 11 2018 00:42:53'
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Checking if segments are ready to connect
+20180929:15:28:45:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:28:46:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Obtaining Segment details from master...
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery type              = Standard
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Recovery 1 of 4
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Synchronization mode                        = Incremental
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance host                        = sdw2
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance address                     = sdw2
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance directory                   = /disk1/gpdata/gpsegment/mirror/gpseg0
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance port                        = 50000
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Failed instance replication port            = 51000
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance host               = sdw1
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance address            = sdw1
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance directory          = /disk1/gpdata/gpsegment/primary/gpseg0
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance port               = 40000
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Source instance replication port   = 41000
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-   Recovery Target                             = in-place
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:----------------------------------------------------------
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-4 segment(s) to recover
+20180929:15:28:48:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Ensuring 4 failed segment(s) are stopped
+ 
+20180929:15:28:49:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Ensuring that shared memory is cleaned up for stopped segments
+updating flat files
+20180929:15:28:55:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Updating configuration with new mirrors
+20180929:15:28:56:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Updating mirrors
+...... 
+20180929:15:29:02:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Starting mirrors
+20180929:15:29:02:041514 gprecoverseg:mdw:gpadmin-[INFO]:-era is 067a8655633ca921_180929144926
+20180929:15:29:02:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Commencing parallel primary and mirror segment instance startup, please wait...
+........ 
+20180929:15:29:10:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Process results...
+20180929:15:29:10:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Updating configuration to mark mirrors up
+20180929:15:29:10:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Updating primaries
+20180929:15:29:10:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Commencing parallel primary conversion of 4 segments, please wait...
+...... 
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Process results...
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Done updating primaries
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Updating segments for resynchronization is completed.
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-For segments updated successfully, resynchronization will continue in the background.
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Use  gpstate -s  to check the resynchronization progress.
+20180929:15:29:16:041514 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+20180929:15:29:20:041514 gprecoverseg:mdw:gpadmin-[INFO]:-==============================END ANOTHER RECOVER==========================================
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-The rebalance operation has completed successfully.
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-There is a resynchronization running in the background to bring all
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-segments in sync.
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-Use gpstate -e to check the resynchronization progress.
+20180929:15:29:25:041514 gprecoverseg:mdw:gpadmin-[INFO]:-******************************************************************
+```

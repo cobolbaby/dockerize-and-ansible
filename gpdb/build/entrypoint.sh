@@ -15,6 +15,10 @@ if [ `hostname` == "mdw" ];then
         # receive connection from anywhere.. This should be changed!!
         echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
         gpstop -u
+        # change the client max connections and reload the configuration
+        # gpconfig -c max_connections -v 1000 -m 512
+        # gpstop -M fast -a
+        # gpstart -a
     else
         echo 'Master exists. Restarting gpdb'
         gpssh-exkeys -f config/hostlist
