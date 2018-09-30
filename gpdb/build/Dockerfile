@@ -19,7 +19,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl \
     && yum clean all \
     && echo root:inventec | chpasswd \
     && groupadd gpadmin \

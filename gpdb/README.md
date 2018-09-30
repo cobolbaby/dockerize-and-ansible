@@ -273,22 +273,22 @@ ping: sdw2: Name or service not known
 
 - `gpstart error: Catalog Versions are incompatible`
 
-```
+
+- `Command perl not found`
 
 ```
-
-- ``
-
-```
-[gpadmin@mdw gpAdminLogs]$ gpconfig -c max_connections -v 2000 -m 500
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw2
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw1
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw1
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw3
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: mdw
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw5
-20180929:14:28:47:054690 gpconfig:mdw:gpadmin-[ERROR]:-failed updating the postgresql.conf files on host: sdw4
-20180929:14:28:52:054690 gpconfig:mdw:gpadmin-[ERROR]:-finished with errors, parameter string '-c max_connections -v 2000 -m 500'
+[gpadmin@mdw gpAdminLogs]$ gpconfig -c max_connections -v 2000 -m 500 --debug
+  stdout='20180930:11:01:42:023730 gpaddconfig.py:default-[CRITICAL]:-Command perl not found
+'
+  stderr='Traceback (most recent call last):
+  File "/usr/local/greenplum-db/sbin/gpaddconfig.py", line 88, in <module>
+    cmd=InlinePerlReplace(name, fromString, toString, f)
+  File "/usr/local/greenplum-db/lib/python/gppylib/commands/unix.py", line 534, in __init__
+    cmdStr="%s -pi.bak -e's/%s/%s/g' %s" % (findCmdInPath('perl'), fromStr, toStr, file)
+  File "/usr/local/greenplum-db/lib/python/gppylib/commands/unix.py", line 80, in findCmdInPath
+    raise CommandNotFoundException(cmd,search_path)
+gppylib.commands.unix.CommandNotFoundException: Could not locate command: 'perl' in this set of paths: ['/usr/kerberos/bin', '/usr/sfw/bin', '/opt/sfw/bin', '/bin', '/usr/local/bin', '/usr/bin', '/sbin', '/usr/sbin', '/usr/ucb', '/sw/bin', '/opt/Navisphere/bin', '/usr/local/greenplum-db/.']
+'
 ```
 
 - 恢复宕掉的数据节点

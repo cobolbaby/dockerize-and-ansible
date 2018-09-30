@@ -16,9 +16,11 @@ if [ `hostname` == "mdw" ];then
         echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
         gpstop -u
         # change the client max connections and reload the configuration
-        # gpconfig -c max_connections -v 1000 -m 512
-        # gpstop -M fast -a
-        # gpstart -a
+        # The value on the segments must be greater than the value on the master. 
+        # The recommended value of max_connections on segments is 5-10 times the value on the master.
+        gpconfig -c max_connections -v 1024 -m 256 --debug
+        gpstop -r
+        gpconfig -s max_connections
     else
         echo 'Master exists. Restarting gpdb'
         gpssh-exkeys -f config/hostlist
