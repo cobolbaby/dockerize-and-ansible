@@ -10,7 +10,6 @@ ARG SEGMENT_DATA_PATH1=/disk1/gpdata/gpsegment
 ARG SEGMENT_DATA_PATH2=/disk2/gpdata/gpsegment
 ARG SEGMENT_DATA_PATH3=/disk3/gpdata/gpsegment
 
-RUN mkdir -p $WORK_DIR/config
 WORKDIR $WORK_DIR
 
 COPY pkgs/* $TMP_DIR/
@@ -21,7 +20,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo telnet telnet-server \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl \
     && yum clean all \
     && echo root:inventec | chpasswd \
     && groupadd -g 530 gpadmin \
