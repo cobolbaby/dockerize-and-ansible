@@ -30,6 +30,7 @@ ENV PATH ${PATH}:${JAVA_HOME}/bin:${SPARK_HOME}/bin
 WORKDIR /opt/spark
 COPY entrypoint.sh .
 COPY jars/*.jar ./jars/
+COPY conf/* ./conf/
 
 EXPOSE 4040 6066 7077 8080 8081
 ENTRYPOINT [ "./entrypoint.sh" ]
