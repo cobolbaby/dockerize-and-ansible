@@ -14,13 +14,20 @@ if [ `hostname` == "mdw" ];then
         echo "Master node initialized"
         # receive connection from anywhere.. This should be changed!!
         echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
-        gpstop -u
+        # 之后一便重启
+        # gpstop -u
+
         # change the client max connections and reload the configuration
         # The value on the segments must be greater than the value on the master. 
         # The recommended value of max_connections on segments is 5-10 times the value on the master.
         gpconfig -c max_connections -v 1024 -m 256 --debug
-        gpstop -r
+        gpconfig -c max_prepared_transactions -v 1024 -m 256 --debug
+        # [ERROR]:-gpstop error: Active connections. Aborting shutdown...
+        # gpstop -r
+        gpstop -M fast -a
+        gpstart -a
         gpconfig -s max_connections
+        gpconfig -s max_prepared_transactions
     else
         echo 'Master exists. Restarting gpdb'
         gpssh-exkeys -f config/hostlist
