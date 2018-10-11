@@ -40,9 +40,9 @@ Pi is roughly 3.140840
 
 - `PySpark fail with random "Socket is closed" error`
 
-> https://blog.csdn.net/liyongqi_/article/details/52198795
+> http://lonelycoding.com/why-does-pyspark-fail-with-random-socket-is-closed-error/
 
-- `Table "public"."spark_xxx"`
+- `[Greenplum-Spark Connector]Table "public"."spark_xxx"`
 
 > https://greenplum-spark.docs.pivotal.io/140/install_cfg.html
 
