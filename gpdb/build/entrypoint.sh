@@ -17,11 +17,15 @@ if [ `hostname` == "mdw" ];then
         # 之后一便重启
         # gpstop -u
 
+        # Ps: 修改配置需要处于服务启动的情况下
+        # [fix] too many clients already
         # change the client max connections and reload the configuration
         # The value on the segments must be greater than the value on the master. 
         # The recommended value of max_connections on segments is 5-10 times the value on the master.
-        gpconfig -c max_connections -v 1024 -m 256 --debug
-        gpconfig -c max_prepared_transactions -v 1024 -m 256 --debug
+        echo -e "Y\n" | gpconfig -c max_connections -v 5000 -m 1000
+        # [fix] the limit of distributed transactions has been reached
+        # max_prepared_transactions max_val: 1000 
+        echo -e "Y\n" | gpconfig -c max_prepared_transactions -v 1000 -m 1000
         # [ERROR]:-gpstop error: Active connections. Aborting shutdown...
         # gpstop -r
         gpstop -M fast -a

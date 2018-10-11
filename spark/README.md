@@ -24,58 +24,36 @@ Pi is roughly 3.140840
 
 - 使用`Swarm`启动以后`Executor`的监控面板无法显示
 
-    在编排文件中定义`SPARK_PUBLIC_DNS`以及`SPARK_WORKER_WEBUI_PORT`
+在编排文件中定义`SPARK_PUBLIC_DNS`以及`SPARK_WORKER_WEBUI_PORT`
 
 - `docker the input device is not a TTY`
 
-    去掉docker exec命令后面的-ti即可
+去掉`docker exec`命令后面的`-ti`即可
 
-- `CoarseGrainedExecutorBackend`
+- `ERROR CoarseGrainedExecutorBackend: RECEIVED SIGNAL TERM`
 
-```
-18/09/29 13:29:37 WARN Utils: Service 'SparkUI' could not bind on port 4040. Attempting port 4041.
-18/09/29 13:29:37 WARN Utils: Service 'SparkUI' could not bind on port 4041. Attempting port 4042.
-18/09/29 13:29:37 WARN Utils: Service 'SparkUI' could not bind on port 4042. Attempting port 4043.
-18/09/29 13:29:37 WARN Utils: Service 'SparkUI' could not bind on port 4043. Attempting port 4044.
-18/09/29 13:29:37 WARN Utils: Service 'SparkUI' could not bind on port 4044. Attempting port 4045.
-18/09/29 13:29:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-18/09/29 13:29:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-18/09/29 13:29:43 ERROR CoarseGrainedExecutorBackend: RECEIVED SIGNAL TERM
-```
+内存的问题，增加`driver.memory`以后不再出现该问题
 
 - `[Greenplum]sorry, too many clients already`
 
+增大`max_connections`的值也可能会会出现该异常，此时请查看一下是否有`Down`的节点
+
+- `PySpark fail with random "Socket is closed" error`
+
+> https://blog.csdn.net/liyongqi_/article/details/52198795
+
+- `Table "public"."spark_xxx"`
+
+> https://greenplum-spark.docs.pivotal.io/140/install_cfg.html
+
+- `[Greenplum]the limit of distributed transactions has been reached`
+
 ```
-18/09/29 13:46:39 ERROR Executor: Exception in task 49.0 in stage 733.0 (TID 889)
-java.sql.SQLException: [Pivotal][Greenplum JDBC Driver][Greenplum]sorry, too many clients already. 
-	at com.pivotal.jdbc.greenplumbase.ddcd.b(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.ddcd.a(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.ddcc.b(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.ddcc.a(Unknown Source)
-	at com.pivotal.jdbc.greenplum.wp.dde.l(Unknown Source)
-	at com.pivotal.jdbc.greenplum.wp.dde.i(Unknown Source)
-	at com.pivotal.jdbc.greenplum.GreenplumImplConnection.a4(Unknown Source)
-	at com.pivotal.jdbc.greenplum.GreenplumImplConnection.c(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.BaseConnection.b(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.BaseConnection.k(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.BaseConnection.b(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.BaseConnection.a(Unknown Source)
-	at com.pivotal.jdbc.greenplumbase.BaseDriver.connect(Unknown Source)
-	at org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils$$anonfun$createConnectionFactory$1.apply(JdbcUtils.scala:63)
-	at org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils$$anonfun$createConnectionFactory$1.apply(JdbcUtils.scala:54)
-	at org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils$.savePartition(JdbcUtils.scala:600)
-	at org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils$$anonfun$saveTable$1.apply(JdbcUtils.scala:821)
-	at org.apache.spark.sql.execution.datasources.jdbc.JdbcUtils$$anonfun$saveTable$1.apply(JdbcUtils.scala:821)
-	at org.apache.spark.rdd.RDD$$anonfun$foreachPartition$1$$anonfun$apply$29.apply(RDD.scala:929)
-	at org.apache.spark.rdd.RDD$$anonfun$foreachPartition$1$$anonfun$apply$29.apply(RDD.scala:929)
-	at org.apache.spark.SparkContext$$anonfun$runJob$5.apply(SparkContext.scala:2067)
-	at org.apache.spark.SparkContext$$anonfun$runJob$5.apply(SparkContext.scala:2067)
-	at org.apache.spark.scheduler.ResultTask.runTask(ResultTask.scala:87)
-	at org.apache.spark.scheduler.Task.run(Task.scala:109)
-	at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:345)
-	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
-	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
-	at java.lang.Thread.run(Thread.java:748)
+java.sql.SQLException: [Pivotal][Greenplum JDBC Driver][Greenplum]the limit of 512 distributed transactions has been reached. (cdbtm.c:2713). 
 ```
 
-- 如何配置默认
+- `failed to create thread`
+
+```
+Master unable to connect to seg2 sdw1:40002 with options FATAL:  InitMotionLayerIPC: failed to create thread (ic_udpifc.c:1462)
+```
