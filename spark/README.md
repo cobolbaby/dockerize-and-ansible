@@ -52,7 +52,7 @@ Pi is roughly 3.140840
 java.sql.SQLException: [Pivotal][Greenplum JDBC Driver][Greenplum]the limit of 512 distributed transactions has been reached. (cdbtm.c:2713). 
 ```
 
-- `failed to create thread`
+- `[Greenplum]failed to create thread`
 
 ```
 Master unable to connect to seg2 sdw1:40002 with options FATAL:  InitMotionLayerIPC: failed to create thread (ic_udpifc.c:1462)
