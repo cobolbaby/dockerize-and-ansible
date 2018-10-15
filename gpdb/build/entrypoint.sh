@@ -14,7 +14,13 @@ if [ `hostname` == "mdw" ];then
         echo "Master node initialized"
         # receive connection from anywhere.. This should be changed!!
         echo "host all all 0.0.0.0/0 trust" >> $MASTER_DATA_DIRECTORY/pg_hba.conf
-        # 之后一便重启
+        # Restart Later
+        # gpstop -u
+
+        # Limit Pivotal Greenplum Logging Information
+        # Ref: https://community.pivotal.io/s/article/How-to-Limit-Pivotal-Greenplum-Logging-Information
+        echo -e "Y\n" | gpconfig -c log_min_messages -v warning
+        echo -e "Y\n" | gpconfig -c log_statement -v none
         # gpstop -u
 
         # Ps: 修改配置需要处于服务启动的情况下
