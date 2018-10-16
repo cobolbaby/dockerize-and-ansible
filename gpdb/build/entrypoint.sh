@@ -20,7 +20,7 @@ if [ `hostname` == "mdw" ];then
         # Limit Pivotal Greenplum Logging Information
         # Ref: https://community.pivotal.io/s/article/How-to-Limit-Pivotal-Greenplum-Logging-Information
         echo -e "Y\n" | gpconfig -c log_min_messages -v warning
-        echo -e "Y\n" | gpconfig -c log_statement -v none
+        echo -e "Y\n" | gpconfig -c log_statement -v dll
         # gpstop -u
 
         # Ps: 修改配置需要处于服务启动的情况下

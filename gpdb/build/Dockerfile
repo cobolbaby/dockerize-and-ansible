@@ -1,8 +1,8 @@
 FROM centos:7
 
 # Argument
-# ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
-ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
+ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
+# ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/data/greenplum/master
@@ -43,6 +43,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && chmod 600 /home/gpadmin/.ssh/authorized_keys \
     && cat ${TMP_DIR}/etc_sysctl.conf >> /etc/sysctl.conf \
     && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
+    && echo '* soft nproc 131072' >> /etc/security/limits.d/90-nproc.conf \
     && cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
     && rm -rf ${TMP_DIR} \
     && chmod +x entrypoint.sh

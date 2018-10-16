@@ -1,2 +1,1 @@
 SELINUX=disabled
-SELINUXTYPE=targeted
