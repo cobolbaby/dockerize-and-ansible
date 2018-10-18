@@ -4,8 +4,6 @@ services:
   sdw1:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sdw1
-    ports:
-      - "5432:5432"
     volumes:
       - /disk1:/disk1
       - /disk2:/disk2
