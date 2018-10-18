@@ -6,6 +6,8 @@ services:
     ports:
       - 18081:18081
       - 18082:18082
+    volumes:
+      - /disk6/spark:/tmp
     environment:
       SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 8
@@ -28,6 +30,8 @@ services:
     ports:
       - 28081:28081
       - 28082:28082
+    volumes:
+      - /disk6/spark:/tmp
     environment:
       SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 8
@@ -50,6 +54,8 @@ services:
     ports:
       - 38081:38081
       - 38082:38082
+    volumes:
+      - /disk6/spark:/tmp
     environment:
       SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 8
@@ -72,6 +78,8 @@ services:
     ports:
       - 48081:48081
       - 48082:48082
+    volumes:
+      - /disk6/spark:/tmp
     environment:
       SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 8
@@ -94,6 +102,8 @@ services:
     ports:
       - 58081:58081
       - 58082:58082
+    volumes:
+      - /disk6/spark:/tmp
     environment:
       SPARK_WORKER_INSTANCES: 2
       SPARK_WORKER_CORES: 8
