@@ -1,4 +1,4 @@
-- `http_proxy`
+- `yum install`超时问题
 ```
 Timeout on http://mirrorlist.centos.org/?release=7&arch=x86_64&repo=os&infra=container: (28, 'Resolving timedout after 30546 milliseconds')
 ```
@@ -11,18 +11,14 @@ Error: sed was not found in your path.
        Exiting installer.
 ********************************************************************************
 ```
-- `systemctl`
-```
-Failed to get D-Bus connection: Operation not permitted
-```
-- `source` command don't work
-```
-环境变量未生效，写入`/etc/profile`
-```
 - `ssh`,`scp`,`ip`,`less` command not found
 ```
 [root@ITC180012 greenplum]# gpinitsystem -c config/gp_config
 /usr/local/greenplum-db/./bin/lib/gp_bash_functions.sh: line 75: return: Problem in gp_bash_functions, command 'ssh' not found in COMMAND path. 
+```
+- `source` command don't work
+```
+环境变量未生效，写入`/etc/profile`
 ```
 - `Unable to run as root`
 ```
