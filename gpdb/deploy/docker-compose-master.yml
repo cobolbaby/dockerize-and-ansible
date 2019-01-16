@@ -24,7 +24,7 @@ services:
           - node.role == manager
 
   visualizer:
-    image: ${REGISTRY}/development/visualizer:180821
+    image: dockersamples/visualizer:stable
     ports:
       - "8080:8080"
     volumes:
