@@ -4,13 +4,14 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: mdw
     ports:
-      - "5432:5432"
+      - target: 5432
+        published: 5432
+        protocol: tcp
+        mode: host
     volumes:
       - /opt/greenplum/config:/opt/greenplum/config
       - /disk1/gpdata/gpmaster:/data/greenplum/master
     deploy:
-      mode: replicated
-      replicas: 1
       # resources:
       #   limits:
       #     cpus: "0.1"
@@ -26,12 +27,13 @@ services:
   visualizer:
     image: dockersamples/visualizer:stable
     ports:
-      - "8080:8080"
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     deploy:
-      mode: replicated
-      replicas: 1
       placement:
         constraints: 
           - node.role == manager

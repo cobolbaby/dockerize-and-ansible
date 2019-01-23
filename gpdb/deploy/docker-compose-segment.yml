@@ -8,7 +8,6 @@ services:
       - /disk2/greenplum/primary:/data/greenplum/primary
       - /disk2/greenplum/mirror:/data/greenplum/mirror
     deploy:
-      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -24,7 +23,6 @@ services:
       - /disk3/greenplum/primary:/data/greenplum/primary
       - /disk3/greenplum/mirror:/data/greenplum/mirror
     deploy:
-      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
