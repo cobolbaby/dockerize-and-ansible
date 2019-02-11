@@ -4,26 +4,33 @@ services:
     image: ${REGISTRY}/${TAGNAME}
     hostname: sparkmaster
     ports:
-      - 4040:4040
-      - 6066:6066
-      - 7077:7077
-      - 8080:8080
+      - target: 4040
+        published: 4040
+        protocol: tcp
+        mode: host
+      - target: 6066
+        published: 6066
+        protocol: tcp
+        mode: host
+      - target: 7077
+        published: 7077
+        protocol: tcp
+        mode: host
+      - target: 8081
+        published: 8081
+        protocol: tcp
+        mode: host
+    volumes:
+      - /opt/sparkv2/tasks:/opt/tasks
     environment:
-      SPARK_PUBLIC_DNS: ${EXTERNAL_IP}
+      SPARK_PUBLIC_DNS: 10.99.170.58
+      SPARK_MASTER_WEBUI_PORT: 8081
     deploy:
-      mode: replicated
-      replicas: 1
-      # resources:
-      #   limits:
-      #     cpus: "0.1"
-      #     memory: 50M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
       placement:
         constraints: 
-          - node.role == manager
+          - node.labels.alias == node58
 
 networks:
   default:
