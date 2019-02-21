@@ -1,36 +1,36 @@
 FROM centos:7
+LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-# Argument
-ARG GPDB_VERSION_FULL="4.3.25.1-rhel5-x86_64"
-# ARG GPDB_VERSION_FULL="5.10.2-rhel7-x86_64"
+ARG GPDB_VERSION_FULL="5.15.1-rhel7-x86_64"
+ARG GPCC_VERSION_FULL="4.5.1-LINUX-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
-ARG MASTER_DATA_PATH=/data/greenplum/master
-ARG PRIMARY_DATA_PATH=/data/greenplum/primary
-ARG MIRROR_DATA_PATH=/data/greenplum/mirror
+ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
+ARG SEGMENT_DATA_PATH1=/disk1/gpdata/gpsegment
+ARG SEGMENT_DATA_PATH2=/disk2/gpdata/gpsegment
+ARG SEGMENT_DATA_PATH3=/disk3/gpdata/gpsegment
 
 WORKDIR $WORK_DIR
 
 COPY pkgs/* $TMP_DIR/
 COPY etc/* $TMP_DIR/
-COPY entrypoint.sh .
+# COPY entrypoint.sh .
 
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl unzip \
     && yum clean all \
     && echo root:inventec | chpasswd \
-    && groupadd gpadmin \
-    && useradd -g gpadmin -m -d /home/gpadmin -s /bin/bash gpadmin \
+    && groupadd -g 530 gpadmin \
+    && useradd -g 530 -u 530 -m -d /home/gpadmin -s /bin/bash gpadmin \
     && echo gpadmin:gpadmin | chpasswd \
-    && chown -R gpadmin:gpadmin $WORK_DIR \
     && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && echo -e "yes\n\nyes\nyes\n" | ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-db* \
-    && mkdir -p $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
-    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $PRIMARY_DATA_PATH $MIRROR_DATA_PATH \
+    && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 \
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 \
     && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key \
     && ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key \
     && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key \
@@ -45,24 +45,28 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && cat ${TMP_DIR}/etc_security_limits.conf >> /etc/security/limits.conf \
     && echo '* soft nproc 131072' >> /etc/security/limits.d/90-nproc.conf \
     && cat ${TMP_DIR}/etc_selinux_config >> /etc/selinux/config \
-    && rm -rf ${TMP_DIR} \
-    && chmod +x entrypoint.sh
-    
-USER gpadmin
+    && cat ${TMP_DIR}/.bashrc >> /home/gpadmin/.bashrc \
+    && echo "*:5432:gpperfmon:gpmon:gpmon" > /home/gpadmin/.pgpass \
+    && chown -R gpadmin:gpadmin /home/gpadmin/.pgpass \
+    && chmod 600 /home/gpadmin/.pgpass \
+    && mkdir -p /usr/local/greenplum-cc-web-${GPCC_VERSION_FULL%%-*} \
+    && ln -s /usr/local/greenplum-cc-web-${GPCC_VERSION_FULL%%-*} /usr/local/greenplum-cc-web \
+    && chown -R gpadmin:gpadmin /usr/local/greenplum-cc* \
+    && mv ${TMP_DIR}/greenplum-cc-web-${GPCC_VERSION_FULL}.zip $WORK_DIR \
+    # && chmod +x entrypoint.sh \
+    && rm -rf ${TMP_DIR}
 
-ENV LANG en_US.UTF-8
-# fix: No such file or directory: '/data/greenplum/master/postgresql.conf
-ENV MASTER_DATA_DIRECTORY $MASTER_DATA_PATH/gpseg-1
-ENV PGPORT 5432
-# fix: 通过`source /usr/local/greenplum-db/greenplum_path.sh`无法使环境变量生效
-ENV GPHOME /usr/local/greenplum-db
-ENV PYTHONHOME $GPHOME/ext/python
-ENV PYTHONPATH $GPHOME/lib/python
-ENV PATH $GPHOME/bin:$PYTHONHOME/bin:$PATH
-ENV LD_LIBRARY_PATH $GPHOME/lib:$PYTHONHOME/lib:$LD_LIBRARY_PATH
-ENV OPENSSL_CONF $GPHOME/etc/openssl.cnf
+COPY entrypoint.sh .
+RUN chown -R gpadmin:gpadmin $WORK_DIR \
+    && chmod +x entrypoint.sh
+
+USER gpadmin
 # fix: Environment Variable LOGNAME or USER not set
+ENV LOGNAME gpadmin
 ENV USER gpadmin
+
+# 设置默认编码
+ENV LANG en_US.UTF-8
 
 # 声明镜像内服务所监听的端口，但是此处只是声明，并不会自动完成端口映射
 EXPOSE 5432 22
