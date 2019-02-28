@@ -16,10 +16,6 @@ Error: sed was not found in your path.
 [root@ITC180012 greenplum]# gpinitsystem -c config/gp_config
 /usr/local/greenplum-db/./bin/lib/gp_bash_functions.sh: line 75: return: Problem in gp_bash_functions, command 'ssh' not found in COMMAND path. 
 ```
-- `source` command don't work
-```
-环境变量未生效，写入`/etc/profile`
-```
 - `Unable to run as root`
 ```
 [root@ITC180012 greenplum]# gpinitsystem -c config/gp_config
@@ -214,10 +210,6 @@ Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
 20180815:17:20:16:013888 gpstop:mdw:gpadmin-[CRITICAL]:-gpstop failed. (Reason='[Errno 2] No such file or directory: '/data/greenplum/master/postgresql.conf'') exiting...
 ```
 
-- `host` 模式组网的问题
-
-一个节点只能起一个容器，因为容器都需要暴露22端口，如果在一个节点上起多个容器的话，会造成宿主机端口冲突
-
 - `Docker Swarm Service Connection Refused`
 
 ```
@@ -256,15 +248,6 @@ socket.error: [Errno 111] Connection refused
 ```
 bigdatauser@CP70-bigdata-005:~$ docker swarm init --advertise-addr 10.99.170.58
 Error response from daemon: --cluster-store and --cluster-advertise daemon configurations are incompatible with swarm mode
-```
-
-- `Swarm Service Name not known`
-
-```
-[gpadmin@mdw greenplum]$ ping sdw1
-ping: sdw1: Name or service not known
-[gpadmin@mdw greenplum]$ ping sdw2
-ping: sdw2: Name or service not known
 ```
 
 - `gpstart error: Catalog Versions are incompatible`
