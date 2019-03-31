@@ -1,4 +1,4 @@
-- 检查`LDAP`相关配置
+- 检查LDAP配置是否正确
 
 ```
 root@gitlab:/# gitlab-rake gitlab:ldap:check
@@ -18,13 +18,36 @@ Checking LDAP ... Finished
 
 > https://github.com/sameersbn/docker-gitlab/issues/1305
 
-- 域账号密码过期或变更诱发的问题
+- 检查Microsoft Exchange配置是否正确
 
 ```
-root@gitlab:/# gitlab-rake gitlab:ldap:check
-Checking LDAP ...
+root@gitlab:/# gitlab-rails console
+-------------------------------------------------------------------------------------
+ GitLab:       11.1.4 (63daf37)
+ GitLab Shell: 7.1.4
+ postgresql:   9.6.8
+-------------------------------------------------------------------------------------
+Loading production environment (Rails 4.2.10)
+irb(main):001:0> Notify.test_email('Zhang.Xing-Long@inventec.com', 'Message Subject', 'Message Body').deliver_now
+```
 
-Server: ldapmain
-rake aborted!
-Errno::ECONNRESET: Connection reset by peer @ io_fillbuf - fd:14
+- 检查GitLab服务是否正常
+
+```
+root@gitlab:/# gitlab-ctl status
+run: alertmanager: (pid 1359) 328s; run: log: (pid 1378) 328s
+run: gitaly: (pid 1146) 333s; run: log: (pid 1181) 333s
+run: gitlab-monitor: (pid 1283) 331s; run: log: (pid 1293) 331s
+run: gitlab-workhorse: (pid 1114) 335s; run: log: (pid 1128) 334s
+run: logrotate: (pid 714) 360s; run: log: (pid 1138) 334s
+run: nginx: (pid 699) 361s; run: log: (pid 1133) 334s
+run: node-exporter: (pid 1190) 332s; run: log: (pid 1200) 332s
+run: postgres-exporter: (pid 1385) 327s; run: log: (pid 1397) 327s
+run: postgresql: (pid 482) 400s; run: log: (pid 1096) 336s
+run: prometheus: (pid 1317) 330s; run: log: (pid 1352) 329s
+run: redis: (pid 447) 401s; run: log: (pid 1092) 337s
+run: redis-exporter: (pid 1300) 331s; run: log: (pid 1310) 330s
+run: sidekiq: (pid 677) 363s; run: log: (pid 1105) 335s
+run: sshd: (pid 26) 412s; run: log: (pid 25) 412s
+run: unicorn: (pid 644) 369s; run: log: (pid 1101) 336s
 ```

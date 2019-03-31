@@ -1,7 +1,7 @@
 version: '2'
 services:
   gitlab:
-    image: 'gitlab/gitlab-ce'
+    image: 'gitlab/gitlab-ce:11.7.7-ce.0'
     container_name: gitlab
     hostname: 'gitlab'
     ports:
@@ -15,7 +15,7 @@ services:
     restart: always
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://git.cobol.com/'
+        external_url 'http://itc-gitlab.itc.inventec/'
         # 如果您需要使用非默认（443）的HTTPS端口，只需将其指定为external_url的一部分即可。
         # external_url "https://gitlab.example.com:2443"
         # 将所有HTTP流量重定向到HTTPS
@@ -42,9 +42,9 @@ services:
          host: '10.190.1.15'
          port: 389 # or 636
          uid: 'sAMAccountName'
-         method: 'plain' # "tls" or "ssl" or "plain"
          bind_dn: 'CN=ITCLDAPReader,OU=ITC Project Accounts(Test),DC=itc,DC=inventec'
          password: 'Pass@Ad**2018'
+         encryption: 'plain' # "start_tls" or "simple_tls" or "plain"
          # This setting specifies if LDAP server is Active Directory LDAP server.
          # For non AD servers it skips the AD specific queries.
          # If your LDAP server is not AD, set this to false.
@@ -89,18 +89,15 @@ services:
         # nginx['logrotate_size'] = "200M"
         # You can also disable the built-in logrotate service if you want
         # logrotate['enable'] = false
-        # gitlab_rails['smtp_enable'] = true
-        # gitlab_rails['smtp_address'] = "mail.tfss.me"
-        # gitlab_rails['smtp_port'] = 25
-        # gitlab_rails['smtp_user_name'] = "no-reply@tfss.me"
-        # gitlab_rails['smtp_password'] = "PASSWORD"
-        # gitlab_rails['smtp_domain'] = "tfss.me"
-        # gitlab_rails['smtp_authentication'] = "login"
-        # gitlab_rails['smtp_enable_starttls_auto'] = true
-        # gitlab_rails['smtp_openssl_verify_mode'] = 'peer'
+        gitlab_rails['smtp_enable'] = true
+        gitlab_rails['smtp_address'] = "10.190.254.80"
+        gitlab_rails['smtp_port'] = 25
+        gitlab_rails['smtp_domain'] = "10.190.254.80"
+        gitlab_rails['smtp_authentication'] = false
+        gitlab_rails['smtp_enable_starttls_auto'] = true
         # If your SMTP server does not like the default 'From: gitlab@localhost' you
         # can change the 'From' with this setting.
-        # gitlab_rails['gitlab_email_from'] = 'gitlab@tfss.me'
-        # gitlab_rails['gitlab_email_reply_to'] = 'no-reply@tfss.me'
+        gitlab_rails['gitlab_email_from'] = 'no-reply@itc-gitlab.itc.inventec'
+        gitlab_rails['gitlab_email_reply_to'] = 'no-reply@itc-gitlab.itc.inventec'
         # gitlab_rails['initial_root_password'] = 'PASSWORD'
         # gitlab_rails['initial_shared_runners_registration_token'] = "iuLaUhGZYyFgTxAyZ6HbdFUZ"
