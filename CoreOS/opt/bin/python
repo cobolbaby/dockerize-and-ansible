@@ -1,14 +1,20 @@
 #!/bin/sh
 
+# 支持Greenplum5部署
+# -v /opt/greenplum5:/opt/greenplum5
+# 支持输出生成的数据
+# -v /data:/data
+# 支持Python容器内执行Docker命令
+# -v /usr/bin/docker:/usr/bin/docker:ro \
+# -v /var/run/docker.sock:/var/run/docker.sock \
+# -v /opt/bin/docker-compose:/opt/bin/docker-compose:ro \
+
 exec docker run -ti --rm \
-                # 支持Greenplum5部署
                 -v /opt/greenplum5:/opt/greenplum5 \
-                # 支持输出生成的数据
                 -v /data:/data \
-                # 支持Python容器内执行Docker命令
                 -v /usr/bin/docker:/usr/bin/docker:ro \
                 -v /var/run/docker.sock:/var/run/docker.sock \
-                -v /opt/bin/docker-compose:/opt/bin/docker-compose \
+                -v /opt/bin/docker-compose:/opt/bin/docker-compose:ro \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
                 registry.inventec/development/python:2.7-slim \
