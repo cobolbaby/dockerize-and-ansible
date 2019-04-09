@@ -1,5 +1,5 @@
 #!/bin/bash
-. ./init.sh
+. ./init.dev.sh
 
 # 停止运行中的容器
 querynum1=`docker ps | grep $TAGNAME | awk '{print $1}' | wc -l`

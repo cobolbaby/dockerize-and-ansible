@@ -1,5 +1,8 @@
 #!/bin/bash
-. ./init.sh
+set -e
+cd `dirname $0`
+
+. ./init.dev.sh
 . ./clean.sh
 
 cd build

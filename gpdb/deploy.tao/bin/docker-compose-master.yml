@@ -1,0 +1,22 @@
+version: "2.3"
+services:
+  
+  mdw:
+    image: ${REGISTRY}/${TAGNAME}
+    container_name: mdw
+    hostname: mdw
+    volumes:
+      - /opt/greenplum5/config:/opt/greenplum/config
+      - /data/hdd/disk1/gp5data:/disk1/gpdata
+      - /data/hdd/disk6/gp5data:/disk6/gpdata
+    restart: always
+    privileged: true
+    network_mode: host
+    extra_hosts:
+      - "mdw:10.3.205.94"
+      - "smdw:10.3.205.95"
+      - "sdw1:10.3.205.91"
+      - "sdw2:10.3.205.92"
+      - "sdw3:10.3.205.93"
+    environment:
+      MIRROR_STRATEGY: Spread

@@ -1,0 +1,21 @@
+version: "2.3"
+services:
+
+  sdw1:
+    image: ${REGISTRY}/${TAGNAME}
+    container_name: sdw1
+    hostname: sdw1
+    volumes:
+      - /data/hdd/disk1/gp5data:/disk1/gpdata
+      - /data/hdd/disk2/gp5data:/disk2/gpdata
+      - /data/hdd/disk6/gp5data:/disk6/gpdata
+      - /data/ssd/gp5space01:/gp5space01
+    restart: always
+    privileged: true
+    network_mode: host
+    extra_hosts:
+      - "mdw:10.3.205.94"
+      - "smdw:10.3.205.95"
+      - "sdw1:10.3.205.91"
+      - "sdw2:10.3.205.92"
+      - "sdw3:10.3.205.93"

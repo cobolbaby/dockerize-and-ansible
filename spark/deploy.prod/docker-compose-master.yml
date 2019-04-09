@@ -1,0 +1,32 @@
+version: "3.3"
+services:
+
+  sparkmaster:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkmaster
+    volumes:
+      - /opt/spark/tasks:/opt/tasks
+      - /disk6/spark:/tmp
+    environment:
+      SPARK_PUBLIC_DNS: 10.99.170.64
+      SPARK_MASTER_WEBUI_PORT: 18081
+      SPARK_LOCAL_DIRS: /tmp
+    networks:
+      hostnet: {}
+    extra_hosts:
+      - "sparkmaster:10.99.170.64"
+      - "sparkw1:10.99.170.60"
+      - "sparkw2:10.99.170.62"
+      - "sparkw3:10.99.170.66"
+      - "sparkw4:10.99.170.68"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == node64
+
+networks:
+  hostnet:
+    external:
+      name: host

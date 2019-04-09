@@ -14,7 +14,7 @@ SEG_PREFIX=gpseg
 
 #### Base number by which primary segment port numbers
 #### are calculated.
-PORT_BASE=20000
+PORT_BASE=40000
 
 #### File system location(s) where primary segment data directories
 #### will be created. The number of locations in the list dictate
@@ -22,14 +22,14 @@ PORT_BASE=20000
 #### physical host (if multiple addresses for a host are listed in
 #### the hostfile, the number of segments will be spread evenly across
 #### the specified interface addresses).
-declare -a DATA_DIRECTORY=(/data/greenplum/primary)
+declare -a DATA_DIRECTORY=(/disk1/gpdata/gpsegment/primary /disk2/gpdata/gpsegment/primary)
 
 #### OS-configured hostname or IP address of the master host.
 MASTER_HOSTNAME=mdw
 
 #### File system location where the master data directory
 #### will be created.
-MASTER_DIRECTORY=/data/greenplum/master
+MASTER_DIRECTORY=/disk1/gpdata/gpmaster
 
 #### Port number for the master instance.
 MASTER_PORT=5432
@@ -38,7 +38,7 @@ MASTER_PORT=5432
 TRUSTED_SHELL=ssh
 
 #### Maximum log file segments between automatic WAL checkpoints.
-CHECK_POINT_SEGMENTS=8
+CHECK_POINT_SEGMENTS=24
 
 #### Default server-side character set encoding.
 ENCODING=UNICODE
@@ -49,21 +49,21 @@ ENCODING=UNICODE
 
 #### Base number by which mirror segment port numbers
 #### are calculated.
-MIRROR_PORT_BASE=21000
+MIRROR_PORT_BASE=50000
 
 #### Base number by which primary file replication port
 #### numbers are calculated.
-REPLICATION_PORT_BASE=22000
+REPLICATION_PORT_BASE=41000
 
 #### Base number by which mirror file replication port
 #### numbers are calculated.
-MIRROR_REPLICATION_PORT_BASE=23000
+MIRROR_REPLICATION_PORT_BASE=51000
 
 #### File system location(s) where mirror segment data directories
 #### will be created. The number of mirror locations must equal the
 #### number of primary locations as specified in the
 #### DATA_DIRECTORY parameter.
-declare -a MIRROR_DATA_DIRECTORY=(/data/greenplum/mirror)
+declare -a MIRROR_DATA_DIRECTORY=(/disk1/gpdata/gpsegment/mirror /disk2/gpdata/gpsegment/mirror)
 
 
 ################################################
