@@ -70,7 +70,7 @@ _main() {
     # Can be replaced with any operation, such as SMS, slack, wechat, etc...
     ###########################################################################
     MAIL_CONTENT="<table bgcolor=\"#FFFFFF\" border=\"2\"><tr><th>Key</th><th>Value</th></tr><tr><td>RULEDESCRIPTION</td><td>$RULEDESCRIPTION</td></tr><tr><td>LOGID</td><td>$LOGID</td></tr><tr><td>ALERTDATE</td><td>$ALERTDATE</td></tr><tr><td>ALERTTIME</td><td>$ALERTTIME</td></tr><tr><td>SERVERNAME</td><td>$SERVERNAME</td></tr><tr><td>LINK</td><td>$LINK</td></tr><tr><td>QUERYID</td><td>$QUERYID</td></tr><tr><td>QUERYTEXT</td><td>$QUERYTEXT</td></tr><tr><td>ACTIVERULENAME</td><td>$ACTIVERULENAME</td></tr></table>"
-    LOG_PATH="/opt/greenplum/alert.log"
+    LOG_PATH="/opt/greenplum/stdout"
 
     echo "======【`date`】========" >> $LOG_PATH
     # Shell中输出一个含有符号'*'的变量，要留意转义问题，一定要加引号

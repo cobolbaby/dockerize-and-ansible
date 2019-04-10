@@ -98,4 +98,6 @@ if [[ $CHECK_GPMMON -ne 0 && -f /home/gpadmin/.pgpass ]]; then
     cp /opt/greenplum/config/send_alert.sh $MASTER_DATA_DIRECTORY/gpmetrics/send_alert.sh
 fi
 
-tail -f /home/gpadmin/gpAdminLogs/*
+echo "Greenplum container is healthy" > /opt/greenplum/stdout
+tail -f /opt/greenplum/stdout
+
