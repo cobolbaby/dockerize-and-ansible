@@ -3,6 +3,6 @@
 exec docker run -ti --rm \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
-                --entrypoint smbget
+                --entrypoint smbget \
                 registry.inventec/hub/kfaughnan/smbclient:latest \
                 "$@"
