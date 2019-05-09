@@ -1,0 +1,13 @@
+version: '3'
+services:
+  gitlab:
+    image: verdaccio/verdaccio:3.11.6
+    container_name: verdaccio
+    hostname: verdaccio
+    ports:
+      - "4873:4873"
+    volumes:
+      - "./conf:/verdaccio/conf"
+      - "./storage:/verdaccio/storage"
+      - "./plugins:/verdaccio/plugins"
+    restart: always
