@@ -70,7 +70,7 @@ if [ `hostname` == "mdw" ];then
         echo "Key exchange complete"
         # [fix] ExecutionError: 'non-zero rc: 1' occured.  Details: 'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 sdw4 ". /usr/local/greenplum-db/./greenplum_path.sh; $GPHOME/sbin/gpoperation.py"'  cmd had rc=1 completed=True halted=False
         # OSError: [Errno 17] File exists: '/home/gpadmin/gpAdminLogs'
-        rm -rf /home/gpadmin/gpAdminLogs
+        # Deploy again...
         gpstart -a
     fi
 else

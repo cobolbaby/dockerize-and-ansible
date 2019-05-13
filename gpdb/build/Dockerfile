@@ -13,9 +13,8 @@ ARG SEGMENT_DATA_PATH4=/disk4/gpdata/gpsegment
 
 WORKDIR $WORK_DIR
 
-COPY pkgs/* $TMP_DIR/
-COPY etc/* $TMP_DIR/
-# COPY entrypoint.sh .
+COPY pkgs $TMP_DIR
+COPY etc $TMP_DIR
 
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
@@ -27,8 +26,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && groupadd -g 530 gpadmin \
     && useradd -g 530 -u 530 -m -d /home/gpadmin -s /bin/bash gpadmin \
     && echo gpadmin:gpadmin | chpasswd \
-    && sed -i s/"more << EOF"/"cat << EOF"/g ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
-    && echo -e "yes\n\nyes\nyes\n" | ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.bin \
+    && rpm -ivh ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.rpm \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-db* \
     && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 $SEGMENT_DATA_PATH4 \
     && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 $SEGMENT_DATA_PATH4 \
@@ -55,7 +53,6 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && ln -s /usr/local/greenplum-cc-web-${GPCC_VERSION_FULL%%-*} /usr/local/greenplum-cc-web \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-cc* \
     && mv ${TMP_DIR}/greenplum-cc-web-${GPCC_VERSION_FULL}.zip $WORK_DIR \
-    # && chmod +x entrypoint.sh \
     && rm -rf ${TMP_DIR}
 
 COPY entrypoint.sh .
@@ -64,8 +61,7 @@ RUN chown -R gpadmin:gpadmin $WORK_DIR \
 
 USER gpadmin
 # fix: Environment Variable LOGNAME or USER not set
-ENV LOGNAME gpadmin
-ENV USER gpadmin
+ENV LOGNAME=gpadmin USER=gpadmin
 
 # 设置默认编码
 ENV LANG en_US.UTF-8

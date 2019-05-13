@@ -31,18 +31,18 @@ auth:
 uplinks:
   npmjs:
     url: https://registry.npmjs.org/
-    maxage: 1d
+    maxage: 7d
 
   cnpmjs:
     url: https://registry.npm.taobao.org/
-    maxage: 1d
+    maxage: 7d
 
 packages:
   '@*/*':
     # scoped packages
     access: $all
     publish: $authenticated
-    proxy: cnpmjs
+    proxy: npmjs
 
   '**':
     # allow all users (including non-authenticated users) to read and
@@ -57,7 +57,7 @@ packages:
     publish: $authenticated
 
     # if package is not available locally, proxy requests to 'npmjs' registry
-    proxy: cnpmjs
+    proxy: npmjs
 
 # To use `npm audit` uncomment the following section
 middlewares:
