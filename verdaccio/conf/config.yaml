@@ -70,5 +70,5 @@ logs:
   #- {type: file, path: verdaccio.log, level: info}
 
 # Proxies are special-purpose HTTP servers designed to transfer data from remote servers to local clients.
-http_proxy: http://10.190.40.39:18118/
-https_proxy: http://10.190.40.39:18118/
+http_proxy: http://10.190.40.39:12306/
+https_proxy: http://10.190.40.39:12306/
