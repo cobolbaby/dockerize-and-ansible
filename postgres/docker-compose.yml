@@ -1,0 +1,12 @@
+version: '3.3'
+services:
+  postgres:
+    image: harbor.inventec.com/hub/postgres:11.3-alpine
+    container_name: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - /disk/art/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+    restart: always
