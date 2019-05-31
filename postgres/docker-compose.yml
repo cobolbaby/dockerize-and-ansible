@@ -1,12 +1,16 @@
-version: '3.3'
+version: '2.3'
 services:
   postgres:
-    image: harbor.inventec.com/hub/postgres:11.3-alpine
+    image: registry.inventec/hub/postgres:11.3-alpine
     container_name: postgres
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - /disk/art/postgres:/var/lib/postgresql/data
+      - /data/ssd/postgres:/var/lib/postgresql/data
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data
     restart: always
+    cpu_count: 4
+    mem_limit: 8g
