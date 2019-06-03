@@ -1,0 +1,108 @@
+version: '3.3'
+services:
+  
+  zookeeper:
+    image: harbor.inventec.com/hub/zookeeper:3.5.5
+    ports:
+      - "2181:2181"
+  
+  kafka01:
+    image: harbor.inventec.com/hub/wurstmeister/kafka:2.12-2.0.1
+    ports:
+      - target: 9092
+        published: 9092
+        protocol: tcp
+        mode: host
+    volumes:
+      - /disk/kafka:/kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG_DIRS: /kafka/kafka-logs-01
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.191.5.218:9092
+      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 21474836480
+      # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc01.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4g
+
+  kafka02:
+    image: harbor.inventec.com/hub/wurstmeister/kafka:2.12-2.0.1
+    ports:
+      - target: 9092
+        published: 9092
+        protocol: tcp
+        mode: host
+    volumes:
+      - /disk/kafka:/kafka
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_LOG_DIRS: /kafka/kafka-logs-02
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.191.5.233:9092
+      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 21474836480
+      # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4g
+
+  kafka03:
+    image: harbor.inventec.com/hub/wurstmeister/kafka:2.12-2.0.1
+    ports:
+      - target: 9092
+        published: 9092
+        protocol: tcp
+        mode: host
+    volumes:
+      - /disk/kafka:/kafka
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_LOG_DIRS: /kafka/kafka-logs-03
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.191.4.54:9092
+      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 21474836480
+      # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc04.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4g
+
+networks:
+  default:
+    external:
+      name: gpdb5
