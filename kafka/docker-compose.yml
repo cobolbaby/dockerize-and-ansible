@@ -26,7 +26,9 @@ services:
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
       KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xmx2g -Xms2g
     deploy:
       restart_policy:
         condition: on-failure
@@ -36,7 +38,7 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 2g
 
   kafka02:
     image: harbor.inventec.com/hub/wurstmeister/kafka:2.12-2.0.1
@@ -58,7 +60,9 @@ services:
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
       KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xmx2g -Xms2g
     deploy:
       restart_policy:
         condition: on-failure
@@ -68,7 +72,7 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 2g
 
   kafka03:
     image: harbor.inventec.com/hub/wurstmeister/kafka:2.12-2.0.1
@@ -90,7 +94,9 @@ services:
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       # KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
       KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xmx2g -Xms2g
     deploy:
       restart_policy:
         condition: on-failure
@@ -100,7 +106,15 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 2g
+
+  kafka-manager:
+    image: harbor.inventec.com/hub/hlebalbau/kafka-manager:2.0.0.2
+    ports:
+      - "9000:9000"
+    environment:
+      ZK_HOSTS: zookeeper:2181
+    command: -Dpidfile.path=/dev/null
 
 networks:
   default:
