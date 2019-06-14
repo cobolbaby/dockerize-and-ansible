@@ -116,47 +116,47 @@ services:
       ZK_HOSTS: zookeeper:2181
     command: -Dpidfile.path=/dev/null
 
-  # cassandra-sink-connector:
-  #   image: harbor.inventec.com/hub/streamreactor/cassandra:1.2.1
-  #   ports:
-  #     - "8083:8083"
-  #   environment:
-  #     CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
-  #     CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
-  #     CONNECT_STATUS_STORAGE_TOPIC: connect-status
-  #     CONNECT_BOOTSTRAP_SERVERS: kafka01:9092,kafka02:9092,kafka03:9092
-  #     CONNECT_GROUP_ID: spi_test_gp
-  #     CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-  #     CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-  #     CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-  #     CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-  #     CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-  #     CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-  #     CONNECT_REST_ADVERTISED_HOST_NAME: cassandra-sink-connector
-  #     CONNECT_REST_PORT: 8083
-  #     CONNECTOR_NAME: cassandra-sink-f6-spi
-  #     CONNECTOR_CONNECTOR_CLASS: com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
-  #     CONNECTOR_TASKS_MAX: 1
-  #     CONNECTOR_TOPICS: f6-spilog
-  #     CONNECTOR_CONNECT_CASSANDRA_KCQL: INSERT INTO spi_test SELECT * FROM f6-spilog
-  #     CONNECTOR_CONNECT_CASSANDRA_CONTACT_POINTS: 10.191.6.44,10.191.5.238
-  #     CONNECTOR_CONNECT_CASSANDRA_PORT: 9042
-  #     CONNECTOR_CONNECT_CASSANDRA_KEY_SPACE: spi_f6
-  #     CONNECTOR_CONNECT_CASSANDRA_CONSISTENCY_LEVEL: QUORUM
-  #     CONNECTOR_CONNECT_CASSANDRA_ERROR_POLICY: THROW
-  #     SECRETS_PROVIDER: env
-  #     SECRET_CONNECT_CASSANDRA_PASSORD: ""
-  #   deploy:
-  #     replicas: 1
-  #     placement:
-  #       constraints: 
-  #         - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
-  #     restart_policy:
-  #       condition: on-failure
-  #     resources:
-  #       limits:
-  #         cpus: "2"
-  #         memory: 2g
+  cassandra-sink-connector:
+    image: harbor.inventec.com/hub/streamreactor/cassandra:1.2.0
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_BOOTSTRAP_SERVERS: kafka01:9092,kafka02:9092,kafka03:9092
+      CONNECT_GROUP_ID: spi_test_gp
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: cassandra-sink-connector
+      CONNECT_REST_PORT: 8083
+      CONNECTOR_NAME: cassandra-sink-f6-spi
+      CONNECTOR_CONNECTOR_CLASS: com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
+      CONNECTOR_TASKS_MAX: 1
+      CONNECTOR_TOPICS: f6-spilog
+      CONNECTOR_CONNECT_CASSANDRA_KCQL: INSERT INTO spi_test SELECT * FROM f6-spilog
+      CONNECTOR_CONNECT_CASSANDRA_CONTACT_POINTS: 10.191.6.44,10.191.5.238
+      CONNECTOR_CONNECT_CASSANDRA_PORT: 9042
+      CONNECTOR_CONNECT_CASSANDRA_KEY_SPACE: spi_f6
+      CONNECTOR_CONNECT_CASSANDRA_CONSISTENCY_LEVEL: QUORUM
+      CONNECTOR_CONNECT_CASSANDRA_ERROR_POLICY: THROW
+      SECRETS_PROVIDER: env
+      SECRET_CONNECT_CASSANDRA_PASSORD: ""
+    deploy:
+      replicas: 1
+      placement:
+        constraints: 
+          - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
 
 networks:
   default:
