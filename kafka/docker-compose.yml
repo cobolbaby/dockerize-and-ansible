@@ -119,7 +119,7 @@ services:
   cassandra-sink-connector:
     image: harbor.inventec.com/hub/streamreactor/cassandra:1.2.0
     ports:
-      - "8083:8083"
+      - "8083"
     environment:
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
@@ -148,9 +148,9 @@ services:
       SECRET_CONNECT_CASSANDRA_PASSORD: ""
     deploy:
       replicas: 1
-      placement:
-        constraints: 
-          - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
+      # placement:
+      #   constraints: 
+      #     - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
       restart_policy:
         condition: on-failure
       resources:
