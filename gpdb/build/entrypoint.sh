@@ -4,16 +4,6 @@
 # 启动SSH
 sudo /usr/sbin/sshd
 
-# 启动cgroups服务
-# Ref: https://pvtl.force.com/s/article/FATAL--cgroup-Is-Not-Properly-Configured-Gives-The-Error-can-not-find-cgroup-mount-point
-sudo cgconfigparser -l /etc/cgconfig.d/gpdb.conf 
-# Identify the cgroup directory mount point for the node
-grep cgroup /proc/mounts
-# Verify that you set up the Greenplum Database cgroups configuration correctly by running the following commands. 
-# Replace <cgroup_mount_point> with the mount point that you identified in the previous step
-ls -l /sys/fs/cgroup/cpu/gpdb
-ls -l /sys/fs/cgroup/cpuacct/gpdb
-
 # [fix] Variables in "/etc/sysctl.conf" not work
 # [fix] OCI runtime create failed: sysctl "vm.overcommit_memory " is not in a separate kernel namespace: unknown
 # [fix] Command "sysctl -w vm.overcommit_ratio=95" execute failed: bash: fork: Cannot allocate memory
@@ -24,10 +14,22 @@ ls -l /sys/fs/cgroup/cpuacct/gpdb
 source /home/gpadmin/.bashrc
 which gpstart
 
+if [ "$ENABLE_RESOURCE_GROUPS" == true ]; then
+    # 启动cgroups服务
+    # Ref: https://pvtl.force.com/s/article/FATAL--cgroup-Is-Not-Properly-Configured-Gives-The-Error-can-not-find-cgroup-mount-point
+    sudo cgconfigparser -l /etc/cgconfig.d/gpdb.conf 
+    # Identify the cgroup directory mount point for the node
+    grep cgroup /proc/mounts
+    # Verify that you set up the Greenplum Database cgroups configuration correctly by running the following commands. 
+    # Replace <cgroup_mount_point> with the mount point that you identified in the previous step
+    ls -l /sys/fs/cgroup/cpu/gpdb
+    ls -l /sys/fs/cgroup/cpuacct/gpdb
+fi
+
 # 启动GPDB
-if [ `hostname` == "mdw" ];then
+if [ `hostname` == "mdw" ]; then
     echo "NODE is: `hostname`"
-    if [ ! -d $MASTER_DATA_DIRECTORY ];then
+    if [ ! -d $MASTER_DATA_DIRECTORY ]; then
         echo 'Master directory does not exist. Initializing master from gpinitsystem_reflect'
         gpssh-exkeys -f config/hostlist
         echo "Key exchange complete"
@@ -89,15 +91,39 @@ CHECK_GPMMON=`ps -ef | grep gpmmon | grep -v grep | wc -l`
 if [[ $CHECK_GPMMON -ne 0 && -f /home/gpadmin/.pgpass ]]; then
     echo "Install GPCC..."
     # Ref: http://gpcc.docs.pivotal.io/450/topics/install.html
-    unzip greenplum-cc-web-4.6.1-LINUX-x86_64.zip
-    # ./greenplum-cc-web-4.6.1-LINUX-x86_64/gpccinstall-4.6.1 -c config/gpccinstall_config
-    # source /usr/local/greenplum-cc-web/gpcc_path.sh
+    unzip greenplum-cc-web-4.7.0-LINUX-x86_64.zip
+    # ./greenplum-cc-web-4.7.0-LINUX-x86_64/gpccinstall-4.7.0 -c config/gpccinstall_config
+    # v4.7支持了auto参数配置，用于自动化安装
+    ./greenplum-cc-web-4.7.0-LINUX-x86_64/gpccinstall-4.7.0 -auto
+    # Do you agree to the Pivotal Greenplum Command Center End User License Agreement? Yy/Nn (Default=Y)
+    # Y
+    # Where would you like to install Greenplum Command Center? (Default=/usr/local)
+    # /usr/local
+    # What would you like to name this installation of Greenplum Command Center? (Default=gpcc)
+    # gpcc
+    # What port would you like gpcc webserver to use? (Default=28080)
+    # 28080
+    # Would you like to enable kerberos? Yy/Nn (Default=N)
+    # N
+    # Would you like enable SSL? Yy/Nn (Default=N)
+    # N
+    # Please choose a display language (Default=English)
+    # 1.  English
+    # 2.  Chinese
+    # 3.  Korean
+    # 1
+    # Installation in progress...
+    # Successfully installed Greenplum Command Center.
+    source /usr/local/greenplum-cc-web/gpcc_path.sh
     # [fix] pq: no pg_hba.conf entry for host "10.3.205.94", user "gpmon", database "gpperfmon", SSL off
-    # gpcc start
-    # echo "source /usr/local/greenplum-cc-web/gpcc_path.sh" >> /home/gpadmin/.bashrc
+    gpcc start
+    echo "source /usr/local/greenplum-cc-web/gpcc_path.sh" >> /home/gpadmin/.bashrc
     cp /opt/greenplum/config/send_alert.sh $MASTER_DATA_DIRECTORY/gpmetrics/send_alert.sh
 fi
 
-echo "Greenplum container is healthy" > /opt/greenplum/stdout
-tail -f /opt/greenplum/stdout
-
+if [ -z "$1" ]; then
+    echo "Greenplum container is healthy" > /opt/greenplum/stdout
+    tail -f /opt/greenplum/stdout
+else
+    "$@"
+fi
