@@ -42,8 +42,8 @@ services:
          host: '10.190.1.15'
          port: 389 # or 636
          uid: 'sAMAccountName'
-         bind_dn: 'CN=ITCLDAPReader,OU=ITC Project Accounts(Test),DC=itc,DC=inventec'
-         password: 'Pass@Ad**2018'
+         bind_dn: 'CN=<USERNAME>,OU=ITC Project Accounts(Test),DC=itc,DC=inventec'
+         password: '<PASSWORD>'
          encryption: 'plain' # "start_tls" or "simple_tls" or "plain"
          # This setting specifies if LDAP server is Active Directory LDAP server.
          # For non AD servers it skips the AD specific queries.
