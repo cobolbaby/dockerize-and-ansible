@@ -1,35 +1,56 @@
 #cloud-config
-hostname: "coreos-demo"
+hostname: 'gitlab.test.tj.itc.inventec'
 
-users:  
-  - name: cobol
+users:
+  - name: 'prod'
     groups:
-      - sudo
-      - docker
-    shell: /bin/sh
+      - 'sudo'
+      - 'docker'
 
-networkd:
+coreos:
   units:
-    - name: 00-eth0.network
-      contents: |
-        [Match]
-        Name=eth0
+    - name: docker.service
+      command: start
+      enable: true
+    - name: update-engine.service
+      command: stop
+    - name: locksmithd.service
+      command: stop
+  update:
+    reboot-strategy: off
 
-        [Network]
-        DNS=1.2.3.4
-        Address=10.0.0.101/24
-        Gateway=10.0.0.1
-
-write_files:  
-  - path: /etc/ssh/sshd_config
-    permissions: 0600
-    owner: root
+write-files:
+  - path: '/etc/systemd/system/sshd.socket.d/10-sshd-port.conf'
+    permissions: '0644'
+    owner: 'root'
     content: |
-      # Use most defaults for sshd configuration.
-      UsePrivilegeSeparation sandbox
-      Subsystem sftp internal-sftp
-      ClientAliveInterval 180
-      UseDNS no
-      PermitRootLogin yes //允许root登录，可以留作备用登录方式
-      ChallengeResponseAuthentication no 
-      PasswordAuthentication yes //允许使用口令登录，如果密钥登录验证通过之后，可以关闭此项
+      [Socket]
+      ListenStream=
+      ListenStream=23
+
+  - path: '/etc/timezone'
+    content: |
+      Asia/Shanghai
+
+  - path: '/etc/systemd/timesyncd.conf'
+    content: |
+      [Time]
+      NTP=10.190.1.10 10.190.1.15
+
+  - path: '/etc/systemd/system/docker.service.d/http-proxy.conf'
+    content: |
+      [Service]
+      Environment=
+
+  - path: '/etc/hosts'
+    content: |
+      127.0.0.1       localhost
+      ::1             localhost
+      10.190.81.222   registry.inventec
+
+  - path: '/etc/docker/daemon.json'
+    content: |
+      {
+        "live-restore": true,
+        "insecure-registries" : ["registry.inventec"]
+      }
