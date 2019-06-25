@@ -1,0 +1,47 @@
+version: '2.3'
+services:
+  telegraf:
+    image: registry.inventec/hub/telegraf:1.9.5-alpine
+    container_name: inf-docker-metric
+    restart: always
+    cpu_count: 4
+    mem_limit: 512m
+    memswap_limit: 512m
+    privileged: true
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 10m
+    extra_hosts:
+      - 'influxdb:${HOST_INFLUXDB}'
+    environment:
+      - HOST_MOUNT_PREFIX=/hostfs
+      - HOST_ETC=/hostfs/etc
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+    hostname: ${DOCKER_HOSTNAME}
+    networks:
+      - net
+    ports:
+      - 8094:8094/udp #dev
+    volumes:
+      - ./volume/metric-docker.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/utmp:/var/run/utmp:ro
+      - /run/udev:/run/udev:ro
+      - /:/hostfs:ro
+
+networks:
+  net:
+    # driver: bridge
+    external:
+      name: infra
+
+# f3
+# echo -e "DOCKER_HOSTNAME=$(hostname)\nHOST_INFLUXDB=192.168.1.230" > .env
+
+# f6
+# echo -e "DOCKER_HOSTNAME=$(hostname)\nHOST_INFLUXDB=192.168.1.170" > .env
+
+# docker-compose -p inf up -d
+
