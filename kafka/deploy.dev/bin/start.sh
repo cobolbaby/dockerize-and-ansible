@@ -21,5 +21,10 @@ echo "Harbor仓库地址: ${REGISTRY}"
 echo "KAFKA集群IP为: $BROKER_NODE1_IP, $BROKER_NODE2_IP, $BROKER_NODE3_IP"
 echo "KAFKA版本为: $BROKER_VERSION"
 
-docker stack deploy -c docker-compose-zookeeper.yml zookeeper
+# Ref: https://stackoverflow.com/questions/45804955/zookeeper-refuses-kafka-connection-from-an-old-client
+# 确保容器重新创建
+docker stack rm kafka
+# docker stack rm zookeeper
+
 docker stack deploy -c docker-compose-kafka.yml kafka
+# docker stack deploy -c docker-compose-zookeeper.yml zookeeper

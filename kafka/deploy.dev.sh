@@ -15,4 +15,4 @@ ansible -i $INVENTORY_FILE broker1 -m copy -a "src=deploy.dev/ dest=/opt/kafka" 
 # ansible -i $INVENTORY_FILE kafka -m file -a "dest=/disk/kafka mode=777 state=directory" -f 5 -b
 
 # 执行启动命令
-ansible -i $INVENTORY_FILE broker1 -m shell -a "chmod +x /opt/kafka/bin/start.sh && /opt/kafka/bin/start.sh" -b
+ansible -i $INVENTORY_FILE broker1 -m shell -a "/opt/kafka/bin/start.sh" -b
