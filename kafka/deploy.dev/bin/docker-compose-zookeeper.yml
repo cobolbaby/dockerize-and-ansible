@@ -1,0 +1,12 @@
+version: '3.4'
+services:
+  
+  zookeeper:
+    image: ${REGISTRY}/hub/zookeeper:3.4.13
+    ports:
+      - "2181:2181"
+
+networks:
+  default:
+    external:
+      name: gpdb5
