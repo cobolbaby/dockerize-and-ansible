@@ -10,6 +10,7 @@
 INVENTORY_FILE=../inventory.dev
 
 # 传出配置文件
+ansible -i $INVENTORY_FILE kafka -m copy -a "src=jmx_exporter dest=/opt/kafka" -b
 ansible -i $INVENTORY_FILE broker1 -m copy -a "src=deploy.dev/ dest=/opt/kafka" -b
 # ansible -i $INVENTORY_FILE kafka -m file -a "path=/disk/kafka state=absent" -f 5 -b
 # ansible -i $INVENTORY_FILE kafka -m file -a "dest=/disk/kafka mode=777 state=directory" -f 5 -b
