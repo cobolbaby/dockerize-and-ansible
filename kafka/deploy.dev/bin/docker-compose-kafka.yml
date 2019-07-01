@@ -197,13 +197,29 @@ services:
       ZK_HOSTS: zookeeper:2181
     command: -Dpidfile.path=/dev/null
     deploy:
-      replicas: 1
       restart_policy:
         condition: on-failure
       resources:
         limits:
           cpus: "1"
           memory: 2g
+
+  kafka-exporter:
+    image: ${REGISTRY}/hub/danielqsj/kafka-exporter:v1.2.0
+    ports:
+      # Following the scheme, https://github.com/prometheus/prometheus/wiki/Default-port-allocations
+      - "9308:9308"
+    command: --kafka.server=broker1:9092 --kafka.server=broker2:9092 --kafka.server=broker3:9092
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1"
+          memory: 128M
+        reservations:
+          cpus: "1"
+          memory: 64M
 
 networks:
   default:
