@@ -13,6 +13,10 @@ services:
         published: 9990
         protocol: tcp
         mode: host
+      - target: 9999
+        published: 9999
+        protocol: tcp
+        mode: host
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
@@ -31,6 +35,7 @@ services:
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE1_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
       JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
     deploy:
@@ -56,6 +61,10 @@ services:
         published: 9990
         protocol: tcp
         mode: host
+      - target: 9999
+        published: 9999
+        protocol: tcp
+        mode: host
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
@@ -74,6 +83,7 @@ services:
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE2_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
       JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
     deploy:
@@ -99,6 +109,10 @@ services:
         published: 9990
         protocol: tcp
         mode: host
+      - target: 9999
+        published: 9999
+        protocol: tcp
+        mode: host
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
@@ -117,6 +131,7 @@ services:
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE3_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
       JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
     deploy:
