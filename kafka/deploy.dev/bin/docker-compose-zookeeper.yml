@@ -1,10 +1,27 @@
 version: '3.4'
 services:
   
-  zookeeper:
+  zoo1:
     image: ${REGISTRY}/hub/zookeeper:3.4.13
+    hostname: zoo1
     ports:
-      - "2181:2181"
+      - target: 2181
+        published: 2181
+        protocol: tcp
+        mode: host
+    volumes:
+      - /disk/zookeeper/data:/data
+      - /disk/zookeeper/datalog:/datalog
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4g
 
 networks:
   default:
