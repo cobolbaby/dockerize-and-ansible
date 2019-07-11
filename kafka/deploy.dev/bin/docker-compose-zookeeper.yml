@@ -12,6 +12,7 @@ services:
     volumes:
       - /disk/zookeeper/data:/data
       - /disk/zookeeper/datalog:/datalog
+      - /etc/localtime:/etc/localtime:ro
     deploy:
       restart_policy:
         condition: on-failure

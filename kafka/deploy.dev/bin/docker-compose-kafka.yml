@@ -20,6 +20,7 @@ services:
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
+      - /etc/localtime:/etc/localtime:ro
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker1
@@ -69,6 +70,7 @@ services:
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
+      - /etc/localtime:/etc/localtime:ro
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker2
@@ -118,6 +120,7 @@ services:
     volumes:
       - /disk/kafka:/kafka
       - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
+      - /etc/localtime:/etc/localtime:ro
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker3
@@ -153,6 +156,8 @@ services:
     hostname: kafka-connector
     ports:
       - "8083:8083"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     environment:
       CONNECT_BOOTSTRAP_SERVERS: broker1:9092,broker2:9092,broker3:9092
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter

@@ -2,11 +2,14 @@
 
 # 支持Greenplum5.x部署
 # -v /opt/greenplum:/opt/greenplum
+# 支持Kafka部署
+# -v /opt/kafka:/opt/kafka
 # 支持输出生成的数据
 # -v /data:/data
 
 exec docker run -ti --rm \
                 -v /opt/greenplum5:/opt/greenplum5 \
+                -v /opt/kafka:/opt/kafka \
                 -v /data:/data \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
