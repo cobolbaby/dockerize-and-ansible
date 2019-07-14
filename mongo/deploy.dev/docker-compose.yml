@@ -7,11 +7,10 @@ services:
     hostname: mongo
     volumes:
       - /disk/mongo/data:/data/db
+      - /disk/mongo/configdb:/data/configdb"
       - /etc/localtime:/etc/localtime:ro
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: DoNotPeek
-    command: --port 27017
+      - ./setup/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    command: --auth --port 27017 --dbpath /data/db
     restart: always
     network_mode: host
     cpu_count: 2
