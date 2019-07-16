@@ -1,7 +1,7 @@
 version: '3'
 services:
   verdaccio:
-    image: verdaccio/verdaccio:4.0.0-beta.8
+    image: verdaccio/verdaccio:4.1.0
     container_name: verdaccio
     hostname: verdaccio
     ports:
@@ -9,5 +9,5 @@ services:
     volumes:
       - "./conf:/verdaccio/conf"
       - "./storage:/verdaccio/storage"
-      - "./plugins:/verdaccio/plugins"
+      # - "./plugins:/verdaccio/plugins"
     restart: always

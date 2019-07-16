@@ -2,7 +2,7 @@
 
 cd `dirname $0`
 
-sudo mkdir -p conf storage plugins
-sudo chmod -R 777 conf storage plugins
+sudo mkdir -p storage
+sudo chown -R 10001:root storage
 
-sudo docker-compose up -d
+docker-compose up -d
