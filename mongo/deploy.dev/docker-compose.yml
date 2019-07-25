@@ -9,7 +9,7 @@ services:
       - /disk/mongo/data:/data/db
       - /disk/mongo/configdb:/data/configdb"
       - /etc/localtime:/etc/localtime:ro
-      - ./setup/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./setup:/docker-entrypoint-initdb.d
     command: --auth --port 27017 --dbpath /data/db
     restart: always
     network_mode: host
