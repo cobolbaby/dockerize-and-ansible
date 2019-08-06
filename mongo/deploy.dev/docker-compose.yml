@@ -6,8 +6,7 @@ services:
     container_name: mongo
     hostname: mongo
     volumes:
-      - /disk/mongo/data:/data/db
-      - /disk/mongo/configdb:/data/configdb
+      - /data/ssd1/mongo:/data
       - /etc/localtime:/etc/localtime:ro
       - ./setup:/docker-entrypoint-initdb.d
     command: --auth --port 27017 --dbpath /data/db

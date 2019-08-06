@@ -6,25 +6,27 @@ services:
     hostname: sparkmaster
     volumes:
       - /opt/spark/tasks:/opt/tasks
-      - /disk6/spark:/tmp
+      - /data/ssd0/spark/spark-events:/tmp/spark-events
     environment:
-      SPARK_PUBLIC_DNS: 10.99.170.64
+      SPARK_PUBLIC_DNS: 10.99.170.13
       SPARK_MASTER_WEBUI_PORT: 18081
       SPARK_LOCAL_DIRS: /tmp
     networks:
       hostnet: {}
     extra_hosts:
-      - "sparkmaster:10.99.170.64"
-      - "sparkw1:10.99.170.60"
-      - "sparkw2:10.99.170.62"
-      - "sparkw3:10.99.170.66"
-      - "sparkw4:10.99.170.68"
+      - "sparkmaster:10.99.170.13"
+      - "sparkw1:10.99.170.14"
+      - "sparkw2:10.99.170.15"
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: 
-          - node.labels.alias == node64
+          - node.labels.alias == bdc03.infra.prod.f3.itc.inventec
+      resources:
+        limits:
+          cpus: "8"
+          memory: 8g
 
 networks:
   hostnet:

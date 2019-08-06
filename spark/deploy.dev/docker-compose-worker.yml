@@ -1,0 +1,65 @@
+version: "3.3"
+services:
+
+  sparkw1:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw1
+    volumes:
+      - /data/ssd0/spark/spark-events:/tmp/spark-events
+      - /data/ssd0/spark/work:/opt/spark/work
+    environment:
+      SPARK_WORKER_CORES: 20
+      SPARK_WORKER_MEMORY: 20g
+      SPARK_PUBLIC_DNS: 10.99.170.14
+      SPARK_WORKER_WEBUI_PORT: 18081
+      SPARK_LOCAL_DIRS: /tmp
+    networks:
+      hostnet: {}
+    extra_hosts:
+      - "sparkmaster:10.99.170.13"
+      - "sparkw1:10.99.170.14"
+      - "sparkw2:10.99.170.15"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc04.infra.prod.f3.itc.inventec
+      resources:
+        limits:
+          cpus: "24"
+          memory: 24g
+  
+  sparkw2:
+    image: ${REGISTRY}/${TAGNAME}
+    hostname: sparkw2
+    volumes:
+      - /data/ssd0/spark/spark-events:/tmp/spark-events
+      - /data/ssd0/spark/work:/opt/spark/work
+    environment:
+      SPARK_WORKER_CORES: 20
+      SPARK_WORKER_MEMORY: 20g
+      SPARK_PUBLIC_DNS: 10.99.170.15
+      SPARK_WORKER_WEBUI_PORT: 18081
+      SPARK_LOCAL_DIRS: /tmp
+    networks:
+      hostnet: {}
+    extra_hosts:
+      - "sparkmaster:10.99.170.13"
+      - "sparkw1:10.99.170.14"
+      - "sparkw2:10.99.170.15"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc05.infra.prod.f3.itc.inventec
+      resources:
+        limits:
+          cpus: "24"
+          memory: 24g
+
+networks:
+  hostnet:
+    external:
+      name: host
