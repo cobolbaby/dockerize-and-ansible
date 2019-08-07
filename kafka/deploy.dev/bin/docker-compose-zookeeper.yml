@@ -12,6 +12,7 @@ services:
     volumes:
       - /disk/zookeeper/data:/data
       - /disk/zookeeper/datalog:/datalog
+      - /disk/zookeeper/logs:/logs
       - /etc/localtime:/etc/localtime:ro
     deploy:
       restart_policy:

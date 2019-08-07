@@ -6,10 +6,12 @@ services:
     container_name: mongo
     hostname: mongo
     volumes:
-      - /data/ssd1/mongo:/data
+      - /data/ssd1/mongo/configdb:/data/configdb
+      - /data/ssd1/mongo/db:/data/db
+      - /data/ssd1/mongo/logs:/data/logs
       - /etc/localtime:/etc/localtime:ro
       - ./setup:/docker-entrypoint-initdb.d
-    command: --auth --port 27017 --dbpath /data/db
+    command: --port 27017 --dbpath /data/db --logpath /data/logs/mongod.log --auth
     restart: always
     network_mode: host
     cpu_count: 2
