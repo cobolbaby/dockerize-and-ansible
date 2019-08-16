@@ -18,19 +18,18 @@ ENV LANG en_US.UTF-8
 ENV PATH /bin:/usr/sbin:/usr/local/sbin:/usr/local/share/bin:/opt/node/bin:$PATH
 ENV NODE_ENV production
 
-# FROM harbor.chart2.com/development/node:8.11
 ARG WORK_DIR=/opt/genesis
 RUN mkdir -p $WORK_DIR
 WORKDIR $WORK_DIR
 
-# 使用cnpm安装依赖
-COPY package.json $WORK_DIR
+# 使用taobao npm安装依赖
+COPY package.json .
 RUN npm config set registry https://registry.npm.taobao.org \
     && npm install --production \
     && npm cache clean --force
 
 # 拷贝源码至容器中,但会自动忽略.dockerignore中指明的文件以及文件夹
-COPY ./dist $WORK_DIR
+COPY ./dist .
 RUN chmod +x run.sh
 
 # 声明镜像内服务所监听的端口，但是此处只是声明，并不会自动完成端口映射
