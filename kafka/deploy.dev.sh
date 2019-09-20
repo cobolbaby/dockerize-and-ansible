@@ -7,7 +7,7 @@
 # mkdir /disk/kafka && chmod -R 777 /disk/kafka
 
 # 推送启动脚本至部署目录
-INVENTORY_FILE=../../inventory.dev
+INVENTORY_FILE=../inventory.dev
 
 # 传出配置文件
 ansible -i $INVENTORY_FILE kafka -m copy -a "src=jmx_exporter dest=/opt/kafka" -b

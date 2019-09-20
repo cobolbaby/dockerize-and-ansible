@@ -53,7 +53,7 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 6g
 
   broker2:
     image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
@@ -104,7 +104,7 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 6g
 
   broker3:
     image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
@@ -155,7 +155,7 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4g
+          memory: 6g
 
   kafka-connector:
     image: ${REGISTRY}/development/cp-kafka-connect:${BROKER_VERSION}

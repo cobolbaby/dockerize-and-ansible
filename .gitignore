@@ -1,5 +1,4 @@
-*/pkgs/*
-*/*/pkgs/*
-*/*/jars/*
-*/inventory*
+pkgs
+jars
 inventory*
+.vscode
