@@ -6,7 +6,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /data/ssd/postgres:/var/lib/postgresql/data
+      - /data/ssd0/pg11/data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
