@@ -1,8 +1,8 @@
 FROM centos:7
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-ARG GPDB_VERSION_FULL="5.19.0-rhel7-x86_64"
-ARG GPCC_VERSION_FULL="4.7.0-LINUX-x86_64"
+ARG GPDB_VERSION_FULL="5.21.5-rhel7-x86_64"
+ARG GPCC_VERSION_FULL="4.8.0-LINUX-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
@@ -20,7 +20,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     # && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     # && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl unzip libcgroup-tools \
+    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl unzip libcgroup-tools java-1.8.0-openjdk-1.8.0* \
     && yum clean all \
     && echo root:inventec | chpasswd \
     && groupadd -g 530 gpadmin \

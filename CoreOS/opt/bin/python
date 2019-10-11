@@ -6,6 +6,10 @@
 # -v /opt/spark:/opt/spark
 # 支持Kafka部署
 # -v /opt/kafka:/opt/kafka
+# 支持Mongo部署
+# -v /opt/mongo:/opt/mongo
+# 支持PG HA部署
+# -v /opt/patroni:/opt/patroni
 # 支持输出生成的数据
 # -v /data:/data
 
@@ -13,6 +17,8 @@ exec docker run -ti --rm \
                 -v /opt/greenplum5:/opt/greenplum5 \
                 -v /opt/spark:/opt/spark \
                 -v /opt/kafka:/opt/kafka \
+                -v /opt/mongo:/opt/mongo \
+                -v /opt/patroni:/opt/patroni \
                 -v /data:/data \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \

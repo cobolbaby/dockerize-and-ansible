@@ -1,0 +1,117 @@
+version: '3.4'
+
+x-patroni:
+  &patroni_env
+  PATRONI_SCOPE: pgcluster_tao
+  PATRONI_ETCD_HOSTS: "'etcd1:8917','etcd2:8917','etcd3:8917'"
+  PATRONI_RESTAPI_USERNAME: admin
+  PATRONI_RESTAPI_PASSWORD: admin
+  ETCDCTL_ENDPOINTS: http://etcd1:8917,http://etcd2:8917,http://etcd3:8917
+  PATRONI_SUPERUSER_USERNAME: postgres
+  PATRONI_SUPERUSER_PASSWORD: pg10@2019
+  PATRONI_REPLICATION_USERNAME: replicator
+  PATRONI_REPLICATION_PASSWORD: replicate
+  PATRONI_admin_PASSWORD: admin
+  PATRONI_admin_OPTIONS: createdb,createrole
+
+x-default:
+  &default_cfg
+  extra_hosts:
+    - 'etcd1:10.3.205.79'
+    - 'etcd2:10.3.205.89'
+    - 'etcd3:10.3.205.99'
+  logging:
+      driver: 'json-file'
+      options:
+        max-size: 10m
+
+services:
+  
+  haproxy:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.5.6-p1
+    hostname: haproxy
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      << : *patroni_env
+    command: haproxy
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2g
+
+  pg01:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.5.6-p1
+    hostname: pg01
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/ssd/postgres/10.9/data:/home/postgres/data
+    environment:
+      PATRONI_NAME: pg01
+      << : *patroni_env
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc01.infra.prod.tao.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+  pg02:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.5.6-p1
+    hostname: pg02
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/ssd/postgres/10.9/data:/home/postgres/data
+    environment:
+      PATRONI_NAME: pg02
+      << : *patroni_env
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc02.infra.prod.tao.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+  pg03:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.5.6-p1
+    hostname: pg03
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/ssd/postgres/10.9/data:/home/postgres/data
+    environment:
+      << : *patroni_env
+      PATRONI_NAME: pg03
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc03.infra.prod.tao.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+networks:
+  default:
+    external:
+      name: bdc

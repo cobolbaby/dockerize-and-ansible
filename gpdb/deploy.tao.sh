@@ -11,10 +11,7 @@ fi
 if [ -n "$1" ]; then
   BRANCH=$1
 else
-  # BRANCH=4.3.30.4
-  # BRANCH=5.15.1
-  # BRANCH=gpcc
-  BRANCH=5.17.0
+  BRANCH=5.18.0
 fi
 TAGNAME=development/gpdb:${BRANCH}
 REGISTRY=registry.inventec
@@ -53,7 +50,7 @@ ansible -i $INVENTORY gpdb-smdw -m raw -a "cd /opt/greenplum5/bin && /opt/bin/do
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/hdd/disk2/gp5data/gpsegment/primary mode=777 state=directory" -f 5 -b
 # ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/hdd/disk2/gp5data/gpsegment/mirror mode=777 state=directory" -f 5 -b
 # ansible -i $INVENTORY gpdb -m file -a "dest=/data/hdd/disk6/gp5data mode=777 state=directory" -f 5 -b
-# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/ssd/gp5space01 mode=777 state=directory" -f 5 -b
+# ansible -i $INVENTORY gpdb-segment -m file -a "dest=/data/ssd/gp5space mode=777 state=directory" -f 5 -b
 
 # 同步配置文件
 # ansible -i $INVENTORY all -m file -a "path=/opt/greenplum5 state=absent" -b -f 5

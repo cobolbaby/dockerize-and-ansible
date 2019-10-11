@@ -15,10 +15,10 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && tar -zxvf ${TMP_DIR}/spark-2.3.3-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1 \
     && rm -rf ${TMP_DIR}
 
-ENV LANG en_US.UTF-8
-ENV JAVA_HOME /opt/jdk
-ENV SPARK_HOME /opt/spark
-ENV PATH ${PATH}:${JAVA_HOME}/bin:${SPARK_HOME}/bin
+ENV LANG=en_US.UTF-8 \
+    JAVA_HOME=/opt/jdk \
+    SPARK_HOME=/opt/spark \
+    PATH=${PATH}:${JAVA_HOME}/bin:${SPARK_HOME}/bin
 
 WORKDIR /opt/spark
 COPY entrypoint.sh .

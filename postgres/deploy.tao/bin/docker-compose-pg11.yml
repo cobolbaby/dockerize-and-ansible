@@ -12,5 +12,5 @@ services:
       POSTGRES_PASSWORD: postgres
       PGDATA: /var/lib/postgresql/data
     restart: always
-    cpu_count: 4
-    mem_limit: 8g
+    cpu_count: 2
+    mem_limit: 4g
