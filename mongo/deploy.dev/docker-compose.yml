@@ -5,6 +5,9 @@ services:
     image: mongo:4.0.10
     container_name: mongo
     hostname: mongo
+    # network_mode: host
+    ports:
+      - "27017:27017"
     volumes:
       - /data/ssd1/mongo/configdb:/data/configdb
       - /data/ssd1/mongo/db:/data/db
@@ -13,6 +16,5 @@ services:
       - ./setup:/docker-entrypoint-initdb.d
     command: --port 27017 --dbpath /data/db --logpath /data/logs/mongod.log --auth
     restart: always
-    network_mode: host
     cpu_count: 2
     mem_limit: 4g
