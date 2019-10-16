@@ -3,5 +3,5 @@
 exec docker run --rm \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
-                registry.inventec/hub/uphold/pgbadger:latest \
+                registry.inventec/hub/uphold/pgbadger:11.1 \
                 "$@"
