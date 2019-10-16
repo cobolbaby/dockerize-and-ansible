@@ -13,7 +13,8 @@
 # 支持输出生成的数据
 # -v /data:/data
 
-exec docker run -ti --rm \
+exec docker run --rm \
+                -v /opt/greenplum6:/opt/greenplum6 \
                 -v /opt/greenplum5:/opt/greenplum5 \
                 -v /opt/spark:/opt/spark \
                 -v /opt/kafka:/opt/kafka \
