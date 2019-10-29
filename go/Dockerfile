@@ -1,6 +1,6 @@
 # Compile
-FROM golang:1.9.0 AS builder
-WORKDIR /go/src/v9.git...com/.../k8s-monitor
+FROM golang:1.13.3 AS builder
+WORKDIR /go/src/github.com/cobolbaby/k8s-monitor
 COPY . .
 RUN make build
 RUN mv k8s-monitor /root
@@ -10,4 +10,4 @@ FROM scratch
 WORKDIR /root/
 COPY --from=builder /root .
 EXPOSE 8080
-CMD ["/root/k8s-monitor"]
+ENTRYPOINT ["/root/k8s-monitor"]
