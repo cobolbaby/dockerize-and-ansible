@@ -1,0 +1,32 @@
+global:
+  # How frequently to scrape targets by default.
+  scrape_interval: 10s
+
+scrape_configs:
+  # - job_name: 'jmx_exporter'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
+
+  - job_name: 'redis_exporter'
+    static_configs:
+    - targets: ['127.0.0.1:9121']
+
+  # - job_name: 'kafka_exporter'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9308']
+
+  # - job_name: 'node_exporter'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
+
+  # - job_name: 'postgresql_exporter'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
+
+  # - job_name: 'client_golang'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
+
+  # - job_name: 'influxdb'
+  #   static_configs:
+  #   - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
