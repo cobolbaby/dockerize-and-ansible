@@ -56,9 +56,22 @@ services:
         max-size: "200k"
         max-file: "10"
 
-# docker run -d \
-#   --net="host" \
-#   --pid="host" \
-#   -v "/:/host:ro,rslave" \
-#   quay.io/prometheus/node-exporter \
-#   --path.rootfs=/host
+  node-exporter:
+    image: prom/node-exporter:v0.18.1
+    container_name: node-exporter
+    hostname: node1.tomcat.xiansongda.local
+    network_mode: host
+    pid: host
+    # ports:
+    #   - "9100:9100"
+    volumes:
+      - /:/host:ro,rslave
+    command: --path.rootfs=/host
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
