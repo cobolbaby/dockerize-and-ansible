@@ -1,0 +1,243 @@
+version: '3.7'
+
+x-default:
+  &default_cfg
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "200k"
+      max-file: "10"
+
+services:
+
+  visualizer:
+    image: registry.inventec/hub/dockersamples/visualizer:latest
+    networks:
+      - overlay
+    ports:
+      - "38080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 128M
+
+  prometheus:
+    << : *default_cfg
+    image: registry.inventec/hub/prom/prometheus:v2.13.1
+    hostname: prometheus
+    networks:
+      - overlay
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./config/prometheus:/config:ro
+      - /mnt/cephfs/prometheus/data:/data
+    command:
+      - --config.file=/config/prometheus.yml
+      - --web.enable-lifecycle
+      - --storage.tsdb.path=/data
+      - --storage.tsdb.retention.time=14d
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+    
+  redis-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/oliver006/redis_exporter:v1.3.4
+    hostname: redis-exporter
+    networks:
+      - overlay
+    # ports:
+    #   - "9121:9121"
+    environment:
+      # REDIS_PASSWORD: xxxxxx
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  node-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/prom/node-exporter:v0.18.1
+    hostname: node-exporter
+    networks:
+      hostnet: {}
+    # pid: host
+    # ports:
+    #   - "9100:9100"
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - --path.rootfs=/host
+    deploy:
+      mode: global
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+ 
+  kafka-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/danielqsj/kafka-exporter:v1.2.0
+    hostname: kafka-exporter
+    networks:
+      - overlay
+    # ports:
+    #   - "9308:9308"
+    command: 
+      - --kafka.server=${BROKER1_ADDR}
+      - --kafka.server=${BROKER2_ADDR}
+      - --kafka.server=${BROKER3_ADDR}
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  pg-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/wrouesnel/postgres_exporter:v0.8.0
+    hostname: pg-exporter
+    networks:
+      - overlay
+    # ports:
+    #   - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: ${PG_URI}
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  es-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/justwatch/elasticsearch_exporter:1.1.0
+    hostname: es-exporter
+    networks:
+      - overlay
+    # ports:
+    # - "9114:9114"
+    environment:
+      ES_URI: ${ES_URI}
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  mongo-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/bitnami/mongodb-exporter:0.10.0
+    hostname: mongo-exporter
+    networks:
+      - overlay
+    # ports:
+    # - "9216:9216"
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  mysql-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/prom/mysqld-exporter:v0.12.1
+    hostname: mysql-exporter
+    networks:
+      - overlay
+    # ports:
+    # - "9104:9104"
+    environment:
+      DATA_SOURCE_NAME: ${MYSQL_URI}
+    deploy:
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+  # grafana:
+  #   image: registry.inventec/hub/grafana/grafana:6.4.4
+  #   hostname: grafana
+  #   networks:
+  #     hostnet: {}
+  #   # ports:
+  #   #   - "3000:3000"
+  #   # volumes:
+  #   #   - ./config:/config:ro
+  #   #   - ./data:/data
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints: 
+  #         - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+
+  alertmanager:
+    << : *default_cfg
+    image: registry.inventec/hub/prom/alertmanager:v0.19.0
+    hostname: alertmanager
+    networks:
+      - overlay
+    ports:
+      - target: 9093
+        published: 9093
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --log.level=info
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 2g
+
+networks:
+  hostnet:
+    external: true
+    name: host
+  overlay:
+    external: true
+    name: bdc

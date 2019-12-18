@@ -1,0 +1,32 @@
+groups:
+- name: common-alerting
+  rules:
+  # down了超过30秒
+  - alert: instance-down
+    expr: up == 0
+    for: 30s
+    labels:
+      severity: yellow
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 30 seconds."
+
+  # down了超过1分钟
+  - alert: instance-down
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: orange
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minutes."
+
+  # down了超过5分钟
+  - alert: instance-down
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: red
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."

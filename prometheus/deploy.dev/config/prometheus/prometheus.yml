@@ -1,0 +1,99 @@
+global:
+  # How frequently to scrape targets by default.
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+remote_write:
+  # influxdb
+  - url: "http://10.191.7.11:8086/api/v1/prom/write?db=prom"
+
+remote_read:
+  # influxdb
+  - url: "http://10.191.7.11:8086/api/v1/prom/read?db=prom"
+
+rule_files:
+  - "jvm-alert-rules.yml"
+  - "common-alert-rules.yml"
+  # - "mongo-alert-rules.yml"
+
+alerting:
+  alertmanagers:
+  - scheme: http
+    static_configs:
+    - targets:
+      - "alertmanager:9093"
+
+scrape_configs:
+  - job_name: 'jmx'
+    static_configs:
+    - targets: ['10.191.5.218:9990','10.191.5.233:9990','10.191.4.54:9990']
+
+  - job_name: 'redis'
+    static_configs:
+    - targets:
+      - redis://10.191.7.1:7505
+      - redis://10.191.7.1:7506
+      - redis://10.191.7.2:7501
+      - redis://10.191.7.2:7502
+      - redis://10.191.7.3:7503
+      - redis://10.191.7.3:7504
+    metrics_path: /scrape
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: redis-exporter:9121
+
+  - job_name: 'kafka'
+    static_configs:
+    - targets: ['kafka-exporter:9308']
+
+  - job_name: 'host'
+    static_configs:
+    - targets: ['10.191.5.218:9100', '10.191.6.53:9100', '10.191.5.233:9100', '10.191.4.54:9100']
+
+  - job_name: 'pg'
+    static_configs:
+    - targets: ['pg-exporter:9187']
+
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['127.0.0.1:9090']
+
+  - job_name: 'ceph'
+    static_configs:
+    - targets: ['10.191.7.11:9283']
+
+  - job_name: 'client_golang'
+    static_configs:
+    - targets: ['10.191.7.11:8086']
+
+  # - job_name: 'influxdb'
+  #   static_configs:
+  #   - targets: ['']
+
+  - job_name: 'es'
+    static_configs:
+    - targets: ['es-exporter:9114']
+
+  - job_name: 'mongo'
+    static_configs:
+    - targets: ['mongo-exporter:9216']
+
+  - job_name: 'mysql'
+    static_configs:
+    - targets: ['mysql-exporter:9104']
+
+  # - job_name: 'nginx'
+  #   static_configs:
+  #   - targets: ['nginx-exporter:9104']
+
+  # - job_name: 'rabbitmq'
+  #   static_configs:
+  #   - targets: ['rabbitmq-exporter:9104']
+
+  # - job_name: 'flink'
+  #   static_configs:
+  #   - targets: ['']
