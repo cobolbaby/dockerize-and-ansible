@@ -1,0 +1,77 @@
+version: '2.3'
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.13.1
+    container_name: prometheus
+    hostname: prometheus
+    network_mode: host
+    # ports:
+    #   - "9090:9090"
+    volumes:
+      - ./config:/config:ro
+    command:
+      - --config.file=/config/prometheus.yml
+      - --web.enable-lifecycle
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+    
+  grafana:
+    image: grafana/grafana:6.4.4
+    container_name: grafana
+    hostname: grafana
+    network_mode: host
+    # ports:
+    #   - "3000:3000"
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+  
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.3.4
+    container_name: redis-exporter
+    hostname: redis-exporter
+    network_mode: host
+    # ports:
+    #   - "9121:9121"
+    environment:
+      REDIS_ADDR: redis://172.21.0.10:6379
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+
+  node-exporter:
+    image: prom/node-exporter:v0.18.1
+    container_name: node-exporter
+    hostname: node1.tomcat.xiansongda.local
+    network_mode: host
+    pid: host
+    # ports:
+    #   - "9100:9100"
+    volumes:
+      - /:/host:ro,rslave
+    command: --path.rootfs=/host
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"

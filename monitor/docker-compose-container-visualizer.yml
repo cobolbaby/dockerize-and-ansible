@@ -1,5 +1,6 @@
-version: "3.3"
+version: "3.7"
 services:
+
   visualizer:
     image: dockersamples/visualizer:latest
     ports:
@@ -16,4 +17,4 @@ services:
 networks:
   default:
     external:
-      name: gpdb
+      name: monitor
