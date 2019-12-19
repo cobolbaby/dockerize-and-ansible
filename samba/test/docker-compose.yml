@@ -1,0 +1,17 @@
+version: '2.3'
+services:
+
+  python-36-centos7:
+    image: registry.inventec/development/python-36-centos7:20191218
+    container_name: python-36-centos7
+    hostname: python-36-centos7
+    ports:
+      - "2222:22"
+    volumes:
+      - /data/vscode:/home/root/.vscode
+    # environment:
+    #   http_proxy: 'http://10.190.40.39:12306/'
+    #   https_proxy: 'http://10.190.40.39:12306/'
+    restart: always
+    # cpu_count: 2
+    # mem_limit: 4g

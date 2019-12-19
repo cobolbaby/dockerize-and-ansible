@@ -234,6 +234,27 @@ services:
       #     cpus: "2"
       #     memory: 2g
 
+  influxdb-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/telegraf:1.13.0-alpine
+    hostname: influxdb-exporter
+    networks:
+      - overlay
+    # ports:
+    #   - 9273:9273
+    volumes:
+      - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+      # resources:
+      #   limits:
+      #     cpus: "2"
+      #     memory: 1g
+
 networks:
   hostnet:
     external: true
