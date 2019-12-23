@@ -1,0 +1,2 @@
+# docker run -d --name myjenkins3 --network host -v ${PWD}/data/jenkins_home:/var/jenkins_home registry.inventec/development/jenkins:2.204.1-centos
+          

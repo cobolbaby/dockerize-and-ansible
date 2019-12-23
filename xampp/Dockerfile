@@ -14,7 +14,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     && curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
     && rm -rf /var/cache/yum \
-    && yum install -y net-tools autoconf gcc automake libtool make \
+    && yum install -y net-tools gcc autoconf automake libtool make \
     && chmod +x ./xampp-linux-x64-5.6.32-0-installer.run \
     && ./xampp-linux-x64-5.6.32-0-installer.run \
     && rm -rf xampp-linux-x64-5.6.32-0-installer.run \
