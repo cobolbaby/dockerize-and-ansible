@@ -13,3 +13,5 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 USER jenkins
 
 ENV LANG en_US.UTF-8
+
+WORKDIR /var/jenkins_home
