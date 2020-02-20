@@ -11,8 +11,6 @@ x-patroni:
   PATRONI_SUPERUSER_PASSWORD: pg10@2019
   PATRONI_REPLICATION_USERNAME: replicator
   PATRONI_REPLICATION_PASSWORD: replicate
-  PATRONI_admin_PASSWORD: admin
-  PATRONI_admin_OPTIONS: createdb,createrole
 
 x-default:
   &default_cfg
