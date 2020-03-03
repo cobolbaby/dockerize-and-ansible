@@ -1,17 +1,20 @@
 version: '2.3'
+
 services:
   postgres:
     image: registry.inventec/hub/postgres:11.3-alpine
-    container_name: postgres
+    container_name: pg11
+    hostname: pg11
     ports:
-      - "5432:5432"
+      - "5499:5432"
     volumes:
-      - /data/ssd0/pg11/data:/var/lib/postgresql/data
+      - /data-ssd/pg11/workdir11/data:/var/lib/postgresql/data
       - /etc/localtime:/etc/localtime
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       PGDATA: /var/lib/postgresql/data
+    user: postgres
     restart: always
-    cpu_count: 2
-    mem_limit: 4g
+    cpu_count: 4
+    mem_limit: 8g

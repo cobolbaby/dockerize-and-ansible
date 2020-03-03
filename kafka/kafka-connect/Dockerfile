@@ -1,12 +1,22 @@
 # Ref: https://docs.confluent.io/5.1.0/installation/versions-interoperability.html
-FROM confluentinc/cp-kafka-connect:5.0.3
+FROM confluentinc/cp-kafka-connect:5.3.1
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-# 直接打包至默认目录，启动的时候会报错，所以只能另外建一个目录
-# ADD plugins/kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz /usr/share/java/kafka
-RUN mkdir -p /usr/share/kafka/plugins
-# ADD plugins/kafka-connect-cassandra-1.2.0-2.0.0-all.jar /usr/share/kafka/plugins
+WORKDIR /usr/share/kafka/plugins
 
-# Ref: https://github.com/Landoop/stream-reactor/releases
-RUN curl -o kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz -sSL "https://github.com/Landoop/stream-reactor/releases/download/1.2.0/kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz" \
-    && tar -zxvf kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz -C /usr/share/kafka/plugins
+# https://github.com/Landoop/stream-reactor/releases/download/1.2.0/kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz
+# ADD plugins/kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz .
+# https://www.confluent.io/hub/debezium/debezium-connector-sqlserver
+# ADD plugins/debezium-debezium-connector-sqlserver-1.0.0.zip .
+# https://www.confluent.io/hub/debezium/debezium-connector-postgresql
+# ADD plugins/debezium-debezium-connector-postgresql-1.0.0.zip .
+ADD plugins /tmp
+
+RUN apt-get update \
+    && apt-get install -y net-tools unzip \
+    && apt-get clean \
+    && tar -zxvf /tmp/kafka-connect-cassandra-1.2.0-2.0.0-all.tar.gz -C . \
+    && unzip /tmp/debezium-debezium-connector-sqlserver-1.0.0.zip \
+    && unzip /tmp/debezium-debezium-connector-postgresql-1.0.0.zip \
+    && mv /tmp/itc-connect-transforms-1.2.jar /usr/share/java/kafka/ \
+    && rm -rf /tmp/*

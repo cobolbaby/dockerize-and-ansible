@@ -158,7 +158,7 @@ services:
           memory: 6g
 
   kafka-connector:
-    image: ${REGISTRY}/development/cp-kafka-connect:${BROKER_VERSION}
+    image: ${REGISTRY}/development/cp-kafka-connect:5.3.1-p3
     hostname: kafka-connector
     ports:
       - "8083:8083"

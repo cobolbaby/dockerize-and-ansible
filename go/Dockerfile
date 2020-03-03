@@ -1,8 +1,9 @@
 # Compile
-FROM golang:1.13.3 AS builder
+FROM golang:1.13.8 AS builder
 WORKDIR /go/src/github.com/cobolbaby/k8s-monitor
 # 拷贝Go的包管理文件
-COPY go.mod go.sum .
+COPY go.mod .
+COPY go.sum .
 # 下载依赖包中的依赖库
 RUN go mod download
 COPY . .

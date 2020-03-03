@@ -1,0 +1,113 @@
+version: '3.4'
+
+x-patroni:
+  &patroni_env
+  PATRONI_NAMESPACE: pgcluster
+  PATRONI_SCOPE: pgcluster_itc
+  PATRONI_ETCD_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
+  PATRONI_SUPERUSER_USERNAME: postgres
+  PATRONI_SUPERUSER_PASSWORD: postgres
+  PATRONI_REPLICATION_USERNAME: replicator
+  PATRONI_REPLICATION_PASSWORD: replicate
+  PATRONI_RESTAPI_USERNAME: admin
+  PATRONI_RESTAPI_PASSWORD: admin
+  # PATRONI_LOG_LEVEL: DEBUG
+
+x-default:
+  &default_cfg
+  extra_hosts:
+    - 'etcd1:10.191.7.15'
+    - 'etcd2:10.191.7.16'
+    - 'etcd3:10.191.7.17'
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: 10m
+
+services:
+
+  pg01:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.6.4
+    hostname: pg01
+    ports:
+      - target: 5432
+        published: 5493
+        protocol: tcp
+        mode: host
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/pgcluster/workdir02/data:/home/postgres/data
+      - /data-ssd/postgres/10/data:/data
+    environment:
+      PATRONI_NAME: pg01
+      << : *patroni_env
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc06.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+  pg02:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.6.4
+    hostname: pg02
+    ports:
+      - target: 5432
+        published: 5493
+        protocol: tcp
+        mode: host
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/pgcluster/workdir04/data:/home/postgres/data
+      - /data-ssd/postgres/10/data:/data
+    environment:
+      PATRONI_NAME: pg02
+      << : *patroni_env
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc07.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+  pg03:
+    << : *default_cfg
+    image: registry.inventec/infra/patroni:1.6.4
+    hostname: pg03
+    ports:
+      - target: 5432
+        published: 5493
+        protocol: tcp
+        mode: host
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/pgcluster/workdir05/data:/home/postgres/data
+      - /data-ssd/postgres/10/data:/data
+    environment:
+      << : *patroni_env
+      PATRONI_NAME: pg03
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: 
+          - node.labels.alias == bdc08.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2g
+
+networks:
+  default:
+    external:
+      name: bdc

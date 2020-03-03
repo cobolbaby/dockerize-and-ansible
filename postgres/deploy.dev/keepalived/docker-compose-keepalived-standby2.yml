@@ -1,0 +1,19 @@
+version: '2.3'
+services:
+
+  keepalived:
+    image: registry.inventec/infra/keepalived:2.0.17
+    container_name: keepalived
+    hostname: keepalived
+    volumes:
+      - "/opt/patroni/keepalived/volumes/pgkeepa_backup2.conf:/container/service/keepalived/assets/keepalived.conf:ro"
+      - "/opt/patroni/keepalived/volumes/check.sh:/check.sh"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+    command: --loglevel debug --copy-service
+    restart: always
+    cpu_count: 1
+    mem_limit: 1g

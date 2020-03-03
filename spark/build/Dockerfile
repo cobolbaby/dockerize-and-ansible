@@ -8,17 +8,15 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     # && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     # && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools \
+    && yum install -y net-tools java-1.8.0-openjdk java-1.8.0-openjdk-devel \
     && yum clean all \
-    && mkdir -p /opt/jdk /opt/spark \
-    && tar -zxvf ${TMP_DIR}/jdk-8u171-linux-x64.tar.gz -C /opt/jdk --strip-components=1 \
-    && tar -zxvf ${TMP_DIR}/spark-2.3.3-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1 \
+    && mkdir -p /opt/spark \
+    && tar -zxvf ${TMP_DIR}/spark-2.4.5-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1 \
     && rm -rf ${TMP_DIR}
 
 ENV LANG=en_US.UTF-8 \
-    JAVA_HOME=/opt/jdk \
     SPARK_HOME=/opt/spark \
-    PATH=${PATH}:${JAVA_HOME}/bin:${SPARK_HOME}/bin
+    PATH=${PATH}:${SPARK_HOME}/bin
 
 WORKDIR /opt/spark
 COPY entrypoint.sh .
