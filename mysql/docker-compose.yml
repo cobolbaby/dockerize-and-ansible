@@ -1,0 +1,26 @@
+version: '2.3'
+services:
+  mysql:
+    image: registry.inventec/hub/mysql:5.7.28
+    container_name: mysql
+    hostname: mysql
+    network_mode: host
+    # ports:
+    #   - "3306:3306"
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /data/ssd/mysql/data:/var/lib/mysql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --skip-character-set-client-handshake
+      - --innodb-buffer-pool-size=6G
+      - --innodb-buffer-pool-instances=6
+      - --max-connections=200
+      - --explicit_defaults_for_timestamp
+      - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+    restart: always
+    cpu_count: 4
+    mem_limit: 8g
