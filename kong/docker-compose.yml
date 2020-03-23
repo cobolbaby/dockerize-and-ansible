@@ -1,0 +1,41 @@
+version: '2.3'
+services:
+  kong:
+    image: registry.inventec/hub/kong:1.5.1
+    container_name: kong
+    restart: always
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 10m
+    ports:
+      - 80:8000
+      - 8443:8443
+      - 8001:8001
+      - 8444:8444
+    volumes:
+      # 当且仅当修改Nginx全局配置的时候才需要修改该文件
+      # - ./config/nginx_kong.lua:/usr/local/share/lua/5.1/kong/templates/nginx_kong.lua
+      # 修改http/server块中配置，可以修改此配置，但不包括location块中配置
+      # - ./config/kong.conf:/etc/kong/kong.conf
+      # 声明需要反向代理的服务，注册一下需要挂载到网关的服务
+      # - ./config/declare-config.yaml:/usr/local/kong/declarative/kong.yml
+      # 如果反向代理的配置含有特殊的处理，可以采用自定义的方式
+      - ./config/my-server.kong.conf:/etc/kong/my-server.kong.conf
+    environment:
+      - KONG_DATABASE=off
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_PROXY_ACCESS_LOG=/dev/null
+      - KONG_ADMIN_ACCESS_LOG=/dev/null
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+      # - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
+      - KONG_NGINX_HTTP_INCLUDE=/etc/kong/my-server.kong.conf
+
+# networks:
+#   default:
+#     external:
+#       name: bdc
+
+# 修改配置之后，可以采用如下方式进行配置热更新
+# docker exec kong kong reload
