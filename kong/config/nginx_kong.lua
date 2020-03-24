@@ -52,11 +52,6 @@ lua_ssl_trusted_certificate '${{LUA_SSL_TRUSTED_CERTIFICATE}}';
 > end
 lua_ssl_verify_depth ${{LUA_SSL_VERIFY_DEPTH}};
 
-# injected nginx_http_* directives
-> for _, el in ipairs(nginx_http_directives)  do
-$(el.name) $(el.value);
-> end
-
 init_by_lua_block {
     Kong = require 'kong'
     Kong.init()
@@ -304,5 +299,10 @@ server {
         return 200 'User-agent: *\nDisallow: /';
     }
 }
+> end
+
+# injected nginx_http_* directives
+> for _, el in ipairs(nginx_http_directives)  do
+$(el.name) $(el.value);
 > end
 ]]

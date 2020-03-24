@@ -15,7 +15,7 @@ services:
       - 8444:8444
     volumes:
       # 当且仅当修改Nginx全局配置的时候才需要修改该文件
-      # - ./config/nginx_kong.lua:/usr/local/share/lua/5.1/kong/templates/nginx_kong.lua
+      - ./config/nginx_kong.lua:/usr/local/share/lua/5.1/kong/templates/nginx_kong.lua
       # 修改http/server块中配置，可以修改此配置，但不包括location块中配置
       # - ./config/kong.conf:/etc/kong/kong.conf
       # 声明需要反向代理的服务，注册一下需要挂载到网关的服务
