@@ -16,6 +16,13 @@ services:
     restart: always
     cpu_count: 2
     mem_limit: 4g
+    networks:
+      - net
+
+networks:
+  net:
+    external:
+      name: infra
 
 # Ref: https://github.com/miketeo/pysmb/issues/95#issuecomment-535349556
 # command: '-s "public;/share;yes;no;no;dev" -u "dev;111111" -g "server min protocol = LANMAN1"'
