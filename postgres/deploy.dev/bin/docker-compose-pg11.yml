@@ -2,14 +2,14 @@ version: '2.3'
 
 services:
   postgres:
-    image: registry.inventec/hub/postgres:11.3-alpine
+    image: registry.inventec/hub/postgres:11.7-alpine
     container_name: pg11
     hostname: pg11
     ports:
       - "5499:5432"
     volumes:
       - /data-ssd/pg11/workdir11/data:/var/lib/postgresql/data
-      - /etc/localtime:/etc/localtime
+      - /etc/localtime:/etc/localtime:ro
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

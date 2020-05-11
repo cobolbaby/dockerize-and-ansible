@@ -2,7 +2,7 @@ version: '3'
 
 services:
   yapi-web:
-    image: jayfong/yapi:1.8.5
+    image: jayfong/yapi:1.8.9
     container_name: yapi-web
     ports:
       - 40001:3000
