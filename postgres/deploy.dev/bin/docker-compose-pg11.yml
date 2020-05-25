@@ -2,7 +2,7 @@ version: '2.3'
 
 services:
   postgres:
-    image: registry.inventec/hub/postgres:11.7-alpine
+    image: registry.inventec/infra/postgres:11.8-partman-4.4.0
     container_name: pg11
     hostname: pg11
     ports:
