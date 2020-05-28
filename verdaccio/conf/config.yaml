@@ -17,25 +17,31 @@ plugins: /verdaccio/plugins
 
 web:
   # WebUI is enabled as default, if you want disable it, just uncomment this line
-  #enable: false
-  title: Verdaccio
+  enable: true
+  title: ITC NPM Private Repo
+  primary_color: "#cd0806"
 
 auth:
   htpasswd:
     file: /verdaccio/conf/htpasswd
     # Maximum amount of users allowed to register, defaults to "+infinity".
     # You can set this to -1 to disable registration.
-    #max_users: 1000
+    # max_users: 1000
 
 # a list of other known repositories we can talk to
 uplinks:
   npmjs:
     url: https://registry.npmjs.org/
-    maxage: 7d
+    maxage: 30d
+    max_fails: 4
 
   cnpmjs:
     url: https://registry.npm.taobao.org/
-    maxage: 7d
+    maxage: 30d
+
+  yarnpkg:
+    url: https://registry.yarnpkg.com/
+    maxage: 30d
 
 packages:
   '@*/*':
@@ -67,8 +73,9 @@ middlewares:
 # log settings
 logs:
   - {type: stdout, format: pretty, level: http}
-  #- {type: file, path: verdaccio.log, level: info}
+  # - {type: file, path: verdaccio.log, level: info}
 
 # Proxies are special-purpose HTTP servers designed to transfer data from remote servers to local clients.
-http_proxy: http://10.190.40.39:12306/
-https_proxy: http://10.190.40.39:12306/
+# http_proxy: http://10.190.40.39:12306/
+# https_proxy: http://10.190.40.39:12306/
+# no_proxy: localhost,127.0.0.1
