@@ -63,7 +63,7 @@ packages:
     publish: $authenticated
 
     # if package is not available locally, proxy requests to 'npmjs' registry
-    proxy: npmjs
+    proxy: npmjs yarnpkg
 
 # To use `npm audit` uncomment the following section
 middlewares:
