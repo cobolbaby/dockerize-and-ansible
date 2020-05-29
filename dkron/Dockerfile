@@ -20,8 +20,9 @@ COPY pkgs /tmp
 
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
+    && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
     && yum install -y https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-${DOCKER_VERSION}-3.el7.x86_64.rpm \
-                      net-tools jq postgresql10 \
+                      net-tools jq  \
 \
     # 添加分布式任务管理组件 - Dkron
     && mkdir -p /opt/local/dkron \
@@ -31,13 +32,9 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && rm *.tar.gz \
 \
     # # 添加S3备份所需必要的命令 - s3cmd
-    # && mkdir -p /opt/local/s3cmd \
-    # && cd /opt/local/s3cmd \
-    # && curl -sSL -o s3cmd.tar.gz https://github.com/s3tools/s3cmd/releases/download/v${S3CMD_VERSION}/s3cmd-${S3CMD_VERSION}.tar.gz \
-    # && tar -zxvf s3cmd.tar.gz \
-    # && cd s3cmd-${S3CMD_VERSION} \
-    # && python setup.py install \
-    # && rm /opt/local/s3cmd/s3cmd.tar.gz \
+    && yum install -y python-pip \
+    && pip install --upgrade pip \
+    && pip install s3cmd \
 \
     # 添加S3备份所需必要的命令 - mc
     && mkdir -p /opt/local/mc \
@@ -45,6 +42,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && curl -sSL -o mc https://dl.min.io/client/mc/release/linux-amd64/mc \
     && chmod +x mc \
 \
+    && yum install https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && postgresql10 \
     && yum clean all
 
 EXPOSE 8080 8946
