@@ -20,6 +20,8 @@ exec docker run --rm \
                 -v /opt/kafka:/opt/kafka \
                 -v /opt/mongo:/opt/mongo \
                 -v /opt/patroni:/opt/patroni \
+                -v /opt/postgres:/opt/postgres \
+                -v /opt/redis:/opt/redis \
                 -v /data:/data \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
