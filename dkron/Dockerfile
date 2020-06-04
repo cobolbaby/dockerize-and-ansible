@@ -42,8 +42,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && curl -sSL -o mc https://dl.min.io/client/mc/release/linux-amd64/mc \
     && chmod +x mc \
 \
-    && yum install https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
-    && postgresql10 \
+    && yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && yum install -y postgresql10 \
     && yum clean all
 
 EXPOSE 8080 8946
