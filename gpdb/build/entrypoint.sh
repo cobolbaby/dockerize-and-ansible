@@ -91,10 +91,10 @@ CHECK_GPMMON=`ps -ef | grep gpmmon | grep -v grep | wc -l`
 if [[ $CHECK_GPMMON -ne 0 && -f /home/gpadmin/.pgpass ]]; then
     echo "Install GPCC..."
     # Ref: http://gpcc.docs.pivotal.io/450/topics/install.html
-    unzip greenplum-cc-web-4.8.0-LINUX-x86_64.zip
+    unzip greenplum-cc-web-4.9.0-rhel7-x86_64.zip
     # ./greenplum-cc-web-4.7.0-LINUX-x86_64/gpccinstall-4.7.0 -c config/gpccinstall_config
     # v4.7支持了auto参数配置，用于自动化安装
-    ./greenplum-cc-web-4.8.0-LINUX-x86_64/gpccinstall-4.8.0 -auto
+    ./greenplum-cc-web-4.9.0-rhel7-x86_64/gpccinstall-4.9.0 -auto
     # Do you agree to the Pivotal Greenplum Command Center End User License Agreement? Yy/Nn (Default=Y)
     # Y
     # Where would you like to install Greenplum Command Center? (Default=/usr/local)
