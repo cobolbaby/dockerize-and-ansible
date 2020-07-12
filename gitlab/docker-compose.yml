@@ -1,7 +1,7 @@
 version: '2'
 services:
   gitlab:
-    image: 'gitlab/gitlab-ce:11.7.7-ce.0'
+    image: 'gitlab/gitlab-ce:12.10.8-ce.0'
     container_name: gitlab
     hostname: 'gitlab'
     ports:
