@@ -3,7 +3,7 @@ FROM registry.inventec/hub/gitlab/gitlab-ce:${VERSION}
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 ARG VERSION
 
-COPY patch /tmp
+COPY patch/gitlab-${VERSION}.patch /tmp
 
 RUN apt-get update \
     && apt-get install -y patch \

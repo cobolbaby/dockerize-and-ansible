@@ -1,0 +1,11 @@
+version: '2.3'
+services:
+  datahub:
+    image: registry.inventec/development/datahub:v0.4.1
+    container_name: datahub
+    hostname: datahub
+    volumes:
+      - /opt/datahub:/usr/src/app
+    restart: always
+    cpu_count: 1
+    mem_limit: 2g
