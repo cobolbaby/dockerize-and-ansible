@@ -91,10 +91,10 @@ CHECK_GPMMON=`ps -ef | grep gpmmon | grep -v grep | wc -l`
 if [[ $CHECK_GPMMON -ne 0 && -f /home/gpadmin/.pgpass ]]; then
     echo "Install GPCC..."
     # Ref: http://gpcc.docs.pivotal.io/450/topics/install.html
-    unzip greenplum-cc-web-4.9.0-rhel7-x86_64.zip
+    unzip greenplum-cc-web-4.10.0-gp5-rhel7-x86_64.zip
     # ./greenplum-cc-web-4.7.0-LINUX-x86_64/gpccinstall-4.7.0 -c config/gpccinstall_config
     # v4.7支持了auto参数配置，用于自动化安装
-    ./greenplum-cc-web-4.9.0-rhel7-x86_64/gpccinstall-4.9.0 -auto
+    ./greenplum-cc-web-4.10.0-gp5-rhel7-x86_64/gpccinstall-4.10.0 -auto
     # Do you agree to the Pivotal Greenplum Command Center End User License Agreement? Yy/Nn (Default=Y)
     # Y
     # Where would you like to install Greenplum Command Center? (Default=/usr/local)
@@ -114,10 +114,10 @@ if [[ $CHECK_GPMMON -ne 0 && -f /home/gpadmin/.pgpass ]]; then
     # 1
     # Installation in progress...
     # Successfully installed Greenplum Command Center.
-    source /usr/local/greenplum-cc-web/gpcc_path.sh
+    source /usr/local/greenplum-cc/gpcc_path.sh
     # [fix] pq: no pg_hba.conf entry for host "10.3.205.94", user "gpmon", database "gpperfmon", SSL off
     gpcc start
-    echo "source /usr/local/greenplum-cc-web/gpcc_path.sh" >> /home/gpadmin/.bashrc
+    echo "source /usr/local/greenplum-cc/gpcc_path.sh" >> /home/gpadmin/.bashrc
     cp /opt/greenplum/config/send_alert.sh $MASTER_DATA_DIRECTORY/gpmetrics/send_alert.sh
 fi
 

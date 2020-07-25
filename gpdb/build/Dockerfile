@@ -1,8 +1,8 @@
 FROM centos:7
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-ARG GPDB_VERSION_FULL="5.27.1-rhel7-x86_64"
-ARG GPCC_VERSION_FULL="4.9.0-rhel7-x86_64"
+ARG GPDB_VERSION_FULL="5.28.0-rhel7-x86_64"
+ARG GPCC_VERSION_FULL="4.10.0-gp5-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
@@ -49,8 +49,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "*:5432:gpperfmon:gpmon:gpmon" > /home/gpadmin/.pgpass \
     && chown -R gpadmin:gpadmin /home/gpadmin/.pgpass \
     && chmod 600 /home/gpadmin/.pgpass \
-    && mkdir -p /usr/local/greenplum-cc-web-${GPCC_VERSION_FULL%%-*} \
-    && ln -s /usr/local/greenplum-cc-web-${GPCC_VERSION_FULL%%-*} /usr/local/greenplum-cc-web \
+    && mkdir -p /usr/local/greenplum-cc-${GPCC_VERSION_FULL%%-*} \
+    && ln -s /usr/local/greenplum-cc-${GPCC_VERSION_FULL%%-*} /usr/local/greenplum-cc \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-cc* \
     && mv ${TMP_DIR}/greenplum-cc-web-${GPCC_VERSION_FULL}.zip $WORK_DIR \
     && rm -rf ${TMP_DIR}
