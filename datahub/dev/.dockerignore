@@ -1,5 +1,0 @@
-.dockerignore
-.gitignore
-build.sh
-docker-compose.yml
-Dockerfile
