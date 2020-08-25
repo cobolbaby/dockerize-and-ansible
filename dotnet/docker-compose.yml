@@ -14,4 +14,6 @@ services:
     cpu_count: 1
     mem_limit: 1g
 
-# docker run -ti --name print-agent --privileged -v /dev/usb:/dev/usb registry.inventec/development/print-agent:${TAG}
+# docker run -ti --name print-agent \
+#           --privileged -v /dev/usb:/dev/usb \
+#           registry.inventec/development/print-agent:${TAG}
