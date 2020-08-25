@@ -1,0 +1,17 @@
+version: '2.3'
+services:
+
+  print-agent:
+    image: registry.inventec/development/print-agent:${TAG}
+    container_name: print-agent
+    hostname: print-agent
+    network_mode: host
+    volumes:
+      - /dev/usb:/dev/usb
+      - /etc/localtime:/etc/localtime:ro
+    privileged: true   
+    restart: always
+    cpu_count: 1
+    mem_limit: 1g
+
+# docker run -ti --name print-agent --privileged -v /dev/usb:/dev/usb registry.inventec/development/print-agent:${TAG}
