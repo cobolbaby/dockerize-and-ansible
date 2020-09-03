@@ -1,0 +1,38 @@
+# Default override to use MySQL as a backing store for datahub-gms (same as docker-compose.mysql.yml).
+---
+version: '3.7'
+services:
+  # mysql:
+  #   container_name: mysql
+  #   hostname: mysql
+  #   image: mysql:5.7
+  #   env_file: mysql/env/docker.env
+  #   restart: always
+  #   command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+  #   ports:
+  #     - "3306:3306"
+  #   volumes:
+  #     - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #     - mysqldata:/var/lib/mysql
+
+  datahub-gms:
+    # env_file: datahub-gms/env/docker.env
+    # depends_on:
+    #   - mysql
+    environment:
+      - EBEAN_DATASOURCE_USERNAME=datahub
+      - EBEAN_DATASOURCE_PASSWORD=datahub
+      - EBEAN_DATASOURCE_HOST=10.191.7.119:5493
+      - EBEAN_DATASOURCE_URL=jdbc:postgresql://10.191.7.119:5493/datahub
+      - EBEAN_DATASOURCE_DRIVER=org.postgresql.Driver
+      - KAFKA_BOOTSTRAP_SERVER=10.191.5.218:9092
+      - KAFKA_SCHEMAREGISTRY_URL=http://schema-registry:8081
+      - ELASTICSEARCH_HOST=10.190.81.17
+      - ELASTICSEARCH_PORT=9200
+      - NEO4J_HOST=neo4j:7474
+      - NEO4J_URI=bolt://neo4j
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=datahub
+
+# volumes:
+#   mysqldata:
