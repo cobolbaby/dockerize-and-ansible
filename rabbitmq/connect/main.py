@@ -1,7 +1,9 @@
 # -*- coding: UTF-8 -*-
 import json
+import os
 import sys
 
+import nginx
 import pika
 import requests
 
@@ -91,24 +93,37 @@ def kafkaConnGenerator(instance, options, srvUrl):
                              headers=headers)
     print('-- Kafka connect service response %s: %d' %
           (instance[0], response.status_code))
-    print('-- %s' %(response.json()))
+    print('-- %s' % (response.json()))
     return
 
-def nginxConfGenerator(instance, options):
-    
-    #  server {
-    #     listen       80;
-    #     server_name  localhost;
-    #     location / {
-    #         proxy_pass   http://127.0.0.1;
-    #     }
-    # }
-
+#  server {
+#     listen       80;
+#     server_name  localhost;
+#     location / {
+#         proxy_pass   http://127.0.0.1;
+#     }
+# }
+def nginxConfGenerator(instances, options):
+    c = nginx.Conf()
+    for instance in instances:
+        s = nginx.Server()
+        s.add(
+            nginx.Key('listen', '80'),
+            nginx.Key('server_name', 'nxt-mq-' + instance[1] + '.ies.inventec'),
+            nginx.Location('/', nginx.Key('proxy_pass', 'http://' + instance[0] + ':15672')),
+        )
+        c.add(s)
+    nginx.dumpf(c, os.path.dirname(os.path.abspath(__file__)) + '/nginx.conf')
     return
+
 
 for r in rabbitMQSrv:
     print(r)
     rabbitQueGenerator(r, options)
     # kafkaTopicGenerator(r, options)
     kafkaConnGenerator(r, options, kafkaConnSrv)
-    # nginxConfGenerator(r, options)
+
+# 创建 Nginx 配置
+nginxConfGenerator(rabbitMQSrv, options)
+# 创建 /etc/hosts 记录
+# ...
