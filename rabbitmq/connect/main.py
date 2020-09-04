@@ -13,7 +13,6 @@ import requests
 rabbitMQSrv = [
     ('10.190.81.17', 'dev1'),
     # ('172.29.78.4', 's17b'),
-    # ('172.29.78.4', 's17b'),
     # ('172.29.78.5', 's17a'),
     # ('172.29.84.3', 's14b'),
     # ('172.29.84.4', 's14a'),
@@ -43,8 +42,10 @@ options = {
 
 
 def rabbitQueGenerator(instance, options):
+    credentials = pika.PlainCredentials(
+        options['username'], options['password'])
     connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=instance[0]))
+        pika.ConnectionParameters(host=instance[0], virtual_host=options['vhost'], credentials=credentials))
     channel = connection.channel()
 
     channel.exchange_declare(
@@ -103,14 +104,18 @@ def kafkaConnGenerator(instance, options, srvUrl):
 #         proxy_pass   http://127.0.0.1;
 #     }
 # }
+
+
 def nginxConfGenerator(instances, options):
     c = nginx.Conf()
     for instance in instances:
         s = nginx.Server()
         s.add(
             nginx.Key('listen', '80'),
-            nginx.Key('server_name', 'nxt-mq-' + instance[1] + '.ies.inventec'),
-            nginx.Location('/', nginx.Key('proxy_pass', 'http://' + instance[0] + ':15672')),
+            nginx.Key('server_name',
+                      'nxt-mq-' + instance[1] + '.ies.inventec'),
+            nginx.Location('/', nginx.Key('proxy_pass',
+                                          'http://' + instance[0] + ':15672')),
         )
         c.add(s)
     nginx.dumpf(c, os.path.dirname(os.path.abspath(__file__)) + '/nginx.conf')
