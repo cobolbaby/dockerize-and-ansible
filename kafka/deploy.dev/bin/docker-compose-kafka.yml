@@ -1,8 +1,8 @@
-version: '3.4'
+version: "3.4"
 services:
 
   broker1:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
     hostname: broker1
     ports:
       - target: 9092
@@ -27,6 +27,8 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER}
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
       KAFKA_LISTENERS: PLAINTEXT://:9092
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${BROKER_NODE1_IP}:9092
       KAFKA_LOG_CLEANUP_POLICY: delete,compact
       KAFKA_LOG_RETENTION_HOURS: 168
@@ -38,25 +40,31 @@ services:
       # 不允许自动创建Topic，需要手动创建
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # 用于端到端测试
-      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
-      KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE1_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
-      JMX_PORT: 9999
+      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+      # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_JMX_HOSTNAME: ${BROKER_NODE1_IP}
+      KAFKA_JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
     deploy:
       restart_policy:
         condition: on-failure
+        delay: 10s
       placement:
-        constraints: 
+        constraints:
           - node.labels.alias == bdc01.infra.dev.tj.itc.inventec
       resources:
         limits:
           cpus: "2"
-          memory: 6g
+          memory: 4g
 
   broker2:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
     hostname: broker2
     ports:
       - target: 9092
@@ -89,25 +97,31 @@ services:
       KAFKA_MESSAGE_MAX_BYTES: 10485760
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
-      KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE2_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
-      JMX_PORT: 9999
+      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+      # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_JMX_HOSTNAME: ${BROKER_NODE2_IP}
+      KAFKA_JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
     deploy:
       restart_policy:
         condition: on-failure
+        delay: 10s
       placement:
-        constraints: 
+        constraints:
           - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
       resources:
         limits:
           cpus: "2"
-          memory: 6g
+          memory: 4g
 
   broker3:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
     hostname: broker3
     ports:
       - target: 9092
@@ -140,25 +154,31 @@ services:
       KAFKA_MESSAGE_MAX_BYTES: 10485760
       KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
-      KAFKA_HEAP_OPTS: "-Xmx4g -Xms4g"
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${BROKER_NODE3_IP} -Dcom.sun.management.jmxremote.rmi.port=9999"
-      JMX_PORT: 9999
+      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+      # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_JMX_HOSTNAME: ${BROKER_NODE3_IP}
+      KAFKA_JMX_PORT: 9999
       KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
     deploy:
       restart_policy:
         condition: on-failure
+        delay: 10s
       placement:
-        constraints: 
+        constraints:
           - node.labels.alias == bdc04.infra.dev.tj.itc.inventec
       resources:
         limits:
           cpus: "2"
-          memory: 6g
+          memory: 4g
 
   kafka-connector:
-    image: ${REGISTRY}/development/cp-kafka-connect:5.3.1-p3
+    image: ${REGISTRY}/development/cp-kafka-connect:5.3.3-p1
     hostname: kafka-connector
     ports:
       - "8083:8083"
@@ -177,10 +197,12 @@ services:
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: connect-status
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      # CONNECT_LOG4J_LOGGERS: "io.debezium.connector.sqlserver=TRACE,io.debezium.jdbc=TRACE"
     deploy:
       restart_policy:
         condition: on-failure
+        delay: 10s
       resources:
         limits:
           cpus: "2"
@@ -192,8 +214,7 @@ services:
     ports:
       - "8084:8000"
     environment:
-      CONNECT_URL: "http://kafka-connector:8083/"
-      PROXY: "true"
+      CONNECT_URL: "http://kafka-connector:8083,Dev Cluster"
     deploy:
       restart_policy:
         condition: on-failure
@@ -201,6 +222,40 @@ services:
         limits:
           cpus: "1"
           memory: 128M
+
+  # kafka-schema-registry:
+  #   image: ${REGISTRY}/hub/confluentinc/cp-schema-registry:${BROKER_VERSION}
+  #   hostname: kafka-schema-registry
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+  #     SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
+  #     SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: ${ZOOKEEPER}
+  #     SCHEMA_REGISTRY_DEBUG: "true"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     resources:
+  #       limits:
+  #         cpus: "1"
+  #         memory: 1g
+
+  # schema-registry-ui:
+  #   image: ${REGISTRY}/hub/landoop/schema-registry-ui:0.9.5
+  #   hostname: kafka-schema-registry-ui
+  #   ports:
+  #     - "18081:8000"
+  #   environment:
+  #     SCHEMAREGISTRY_URL: http://kafka-schema-registry:8081/
+  #     PROXY: "true"
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     resources:
+  #       limits:
+  #         cpus: "1"
+  #         memory: 128M
 
   kafka-manager:
     image: ${REGISTRY}/hub/hlebalbau/kafka-manager:2.0.0.2
@@ -217,24 +272,7 @@ services:
           cpus: "1"
           memory: 1g
 
-  kafka-exporter:
-    image: ${REGISTRY}/hub/danielqsj/kafka-exporter:v1.2.0
-    ports:
-      # Following the scheme, https://github.com/prometheus/prometheus/wiki/Default-port-allocations
-      - "9308:9308"
-    command: --kafka.server=broker1:9092 --kafka.server=broker2:9092 --kafka.server=broker3:9092
-    deploy:
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: "1"
-          memory: 128M
-        reservations:
-          cpus: "1"
-          memory: 64M
-
 networks:
   default:
     external:
-      name: gpdb5
+      name: bdc
