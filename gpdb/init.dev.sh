@@ -12,7 +12,8 @@ else
     # BRANCH=5.19.0
     # BRANCH=5.21.5
     # BRANCH=5.27.1
-    BRANCH=5.28.0
+    # BRANCH=5.28.0
+    BRANCH=5.28.1
 fi
 TAGNAME=development/gpdb:${BRANCH}
 
