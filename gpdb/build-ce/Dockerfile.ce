@@ -10,7 +10,7 @@ COPY src .
 
 RUN yum install -y gcc-c++ \
     && yum clean all \
-    && ./configure --enable-debug --with-perl --with-python --with-libxml --disable-orca --prefix=/usr/local/gpdb \
+    && ./configure --with-perl --with-python --with-libxml --disable-orca --prefix=/usr/local/gpdb \
     && make -j4 \
     && make install \
     && groupmod -g 530 gpadmin \
@@ -19,7 +19,10 @@ RUN yum install -y gcc-c++ \
     && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
     && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
     && echo "source /usr/local/gpdb/greenplum_path.sh" >> /home/gpadmin/.bashrc \
-    && echo "export MASTER_DATA_DIRECTORY=/disk1/gpdata/gpmaster/gpseg-1" >> /home/gpadmin/.bashrc
+    && echo "export MASTER_DATA_DIRECTORY=/disk1/gpdata/gpmaster/gpseg-1" >> /home/gpadmin/.bashrc \
+    && echo "export LD_PRELOAD=/lib64/libz.so.1 ps" >> /home/gpadmin/.bashrc \
+    # /usr/sbin/sshd -- WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several problems.
+    && sed -ri 's/UsePAM no/UsePAM yes/g;s/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 
 WORKDIR /opt/greenplum
 
@@ -27,12 +30,13 @@ COPY entrypoint.sh .
 RUN chown -R gpadmin:gpadmin /opt/greenplum \
     && chmod +x entrypoint.sh
 
-# /usr/sbin/sshd -- WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several problems.
 # gpssh-exkeys -- Error: unable to import module: No module named paramiko
-RUN sed -ri 's/UsePAM no/UsePAM yes/g;s/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config \
-    && pip install --upgrade pip \
+RUN pip install --upgrade pip \
     && pip install --no-cache-dir paramiko
 
 USER gpadmin
+
+# gpconfig -- [ERROR]:-USER environment variable must be set
+ENV USER=gpadmin
 
 ENTRYPOINT [ "./entrypoint.sh" ]
