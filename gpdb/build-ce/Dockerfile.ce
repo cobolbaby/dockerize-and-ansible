@@ -8,21 +8,30 @@ WORKDIR /home/build/gpdb
 
 COPY src .
 
-RUN groupmod -g 530 gpadmin \
-    && usermod -u 530 -g 530 gpadmin \
+RUN yum install -y gcc-c++ \
+    && yum clean all \
     && ./configure --enable-debug --with-perl --with-python --with-libxml --disable-orca --prefix=/usr/local/gpdb \
     && make -j4 \
     && make install \
-    && echo "source /usr/local/gpdb/greenplum_path.sh" >> /home/gpadmin/.bashrc \
-    && echo "export MASTER_DATA_DIRECTORY=/disk1/gpdata/gpmaster/gpseg-1" >> /home/gpadmin/.bashrc \
+    && groupmod -g 530 gpadmin \
+    && usermod -u 530 -g 530 gpadmin \
+    && chown -R gpadmin:gpadmin /usr/local/gpdb \
     && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
-    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
+    && echo "source /usr/local/gpdb/greenplum_path.sh" >> /home/gpadmin/.bashrc \
+    && echo "export MASTER_DATA_DIRECTORY=/disk1/gpdata/gpmaster/gpseg-1" >> /home/gpadmin/.bashrc
 
-WORKDIR /opt/gpdb
+WORKDIR /opt/greenplum
 
 COPY entrypoint.sh .
-RUN chown -R gpadmin:gpadmin /opt/gpdb \
+RUN chown -R gpadmin:gpadmin /opt/greenplum \
     && chmod +x entrypoint.sh
+
+# /usr/sbin/sshd -- WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several problems.
+# gpssh-exkeys -- Error: unable to import module: No module named paramiko
+RUN sed -ri 's/UsePAM no/UsePAM yes/g;s/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config \
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir paramiko
 
 USER gpadmin
 
