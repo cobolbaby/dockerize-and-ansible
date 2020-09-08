@@ -1,0 +1,29 @@
+FROM registry.inventec/hub/pivotaldata/gpdb-dev:centos7
+LABEL maintainer="Zhang.Xing-Long@inventec.com"
+
+ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
+ARG SEGMENT_DATA_PATH=/{disk1,disk2,disk3,disk4}/gpdata/gpsegment
+
+WORKDIR /home/build/gpdb
+
+COPY src .
+
+RUN groupmod -g 530 gpadmin \
+    && usermod -u 530 -g 530 gpadmin \
+    && ./configure --enable-debug --with-perl --with-python --with-libxml --disable-orca --prefix=/usr/local/gpdb \
+    && make -j4 \
+    && make install \
+    && echo "source /usr/local/gpdb/greenplum_path.sh" >> /home/gpadmin/.bashrc \
+    && echo "export MASTER_DATA_DIRECTORY=/disk1/gpdata/gpmaster/gpseg-1" >> /home/gpadmin/.bashrc \
+    && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH
+
+WORKDIR /opt/gpdb
+
+COPY entrypoint.sh .
+RUN chown -R gpadmin:gpadmin /opt/gpdb \
+    && chmod +x entrypoint.sh
+
+USER gpadmin
+
+ENTRYPOINT [ "./entrypoint.sh" ]
