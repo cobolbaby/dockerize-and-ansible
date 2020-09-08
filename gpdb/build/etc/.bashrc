@@ -9,4 +9,4 @@ export PGPORT=5432
 # to enable using the ps command in the greenplum_path.sh environment
 export LD_PRELOAD=/lib64/libz.so.1 ps
 # Support PXF
-export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-1.el7_7.x86_64/jre
+export JAVA_HOME=/etc/alternatives/jre

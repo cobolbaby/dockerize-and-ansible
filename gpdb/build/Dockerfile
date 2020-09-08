@@ -6,10 +6,7 @@ ARG GPCC_VERSION_FULL="4.10.0-gp5-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
-ARG SEGMENT_DATA_PATH1=/disk1/gpdata/gpsegment
-ARG SEGMENT_DATA_PATH2=/disk2/gpdata/gpsegment
-ARG SEGMENT_DATA_PATH3=/disk3/gpdata/gpsegment
-ARG SEGMENT_DATA_PATH4=/disk4/gpdata/gpsegment
+ARG SEGMENT_DATA_PATH=/{disk1,disk2,disk3,disk4}/gpdata/gpsegment
 
 WORKDIR $WORK_DIR
 
@@ -28,8 +25,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo gpadmin:gpadmin | chpasswd \
     && rpm -ivh ${TMP_DIR}/greenplum-db-${GPDB_VERSION_FULL}.rpm \
     && chown -R gpadmin:gpadmin /usr/local/greenplum-db* \
-    && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 $SEGMENT_DATA_PATH4 \
-    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH1 $SEGMENT_DATA_PATH2 $SEGMENT_DATA_PATH3 $SEGMENT_DATA_PATH4 \
+    && mkdir -p $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
+    && chown -R gpadmin:gpadmin $MASTER_DATA_PATH $SEGMENT_DATA_PATH \
     && ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key \
     && ssh-keygen -t ecdsa -N '' -f /etc/ssh/ssh_host_ecdsa_key \
     && ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key \
