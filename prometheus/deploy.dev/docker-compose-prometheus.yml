@@ -97,26 +97,6 @@ services:
       #     cpus: "2"
       #     memory: 2g
  
-  kafka-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/danielqsj/kafka-exporter:v1.2.0
-    hostname: kafka-exporter
-    networks:
-      - overlay
-    # ports:
-    #   - "9308:9308"
-    command: 
-      - --kafka.server=${BROKER1_ADDR}
-      - --kafka.server=${BROKER2_ADDR}
-      - --kafka.server=${BROKER3_ADDR}
-    deploy:
-      restart_policy:
-        condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
-
   pg-exporter:
     << : *default_cfg
     image: registry.inventec/hub/wrouesnel/postgres_exporter:v0.8.0
@@ -233,27 +213,6 @@ services:
       #   limits:
       #     cpus: "2"
       #     memory: 2g
-
-  influxdb-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/telegraf:1.13.0-alpine
-    hostname: influxdb-exporter
-    networks:
-      - overlay
-    # ports:
-    #   - 9273:9273
-    volumes:
-      - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: 
-          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 1g
 
 networks:
   hostnet:
