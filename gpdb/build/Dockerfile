@@ -2,7 +2,7 @@ FROM centos:7
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
 ARG GPDB_VERSION_FULL="5.28.1-rhel7-x86_64"
-ARG GPCC_VERSION_FULL="4.10.0-gp5-rhel7-x86_64"
+ARG GPCC_VERSION_FULL="4.11.0-gp5-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
@@ -17,7 +17,8 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo 'Asia/Shanghai' > /etc/timezone \
     # && mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup \
     # && curl -so /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo \
-    && yum install -y net-tools which scp openssh-clients openssh-server less iproute sudo perl unzip libcgroup-tools java-1.8.0-openjdk-1.8.0* \
+    && yum install -y which scp openssh-clients openssh-server less iproute sudo perl rsync \
+                    net-tools unzip libcgroup-tools \
     && yum clean all \
     && echo root:inventec | chpasswd \
     && groupadd -g 530 gpadmin \
@@ -31,7 +32,7 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && ssh-keygen -t ecdsa -N '' -f /etc/ssh/ssh_host_ecdsa_key \
     && ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key \
     && echo 'gpadmin ALL=(ALL) NOPASSWD:/usr/sbin/sshd,/usr/sbin/cgconfigparser,/usr/sbin/sysctl' >> /etc/sudoers \
-    && mkdir -p /home/gpadmin/.ssh  \
+    && mkdir -p /home/gpadmin/.ssh \
     && ssh-keygen -t rsa -N '' -f /home/gpadmin/.ssh/id_rsa \
     && cat /home/gpadmin/.ssh/id_rsa.pub >> /home/gpadmin/.ssh/authorized_keys \
     && chown -R gpadmin:gpadmin /home/gpadmin/.ssh \
