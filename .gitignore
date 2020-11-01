@@ -2,3 +2,4 @@ pkgs
 jars
 inventory*
 .vscode
+.DB_Store
