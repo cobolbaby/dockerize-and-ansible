@@ -1,20 +1,8 @@
 FROM centos:7
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-ARG DOCKER_VERSION=18.06.3.ce
-ARG DKRON_VERSION=1.2.5
-ARG S3CMD_VERSION=2.1.0
-
-# RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-#     && echo 'Asia/Shanghai' > /etc/timezone \
-#     && curl -sSL -o docker-ce-${DOCKER_VERSION}-3.el7.x86_64.rpm https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-${DOCKER_VERSION}-3.el7.x86_64.rpm \
-#     && yum install -y docker-ce-${DOCKER_VERSION}-3.el7.x86_64.rpm net-tools \
-#     && yum clean all \
-#     && mkdir -p /opt/local/dkron \
-#     && cd /opt/local/dkron \
-#     && curl -sSL -o dkron.tar.gz https://github.com/distribworks/dkron/releases/download/v${DKRON_VERSION}/dkron_${DKRON_VERSION}_linux_amd64.tar.gz \
-#     && tar -xzf dkron.tar.gz \
-#     && rm *.tar.gz *.rpm
+ARG DOCKER_VERSION=cli-19.03.9
+ARG DKRON_VERSION
 
 COPY pkgs /tmp
 
@@ -44,7 +32,9 @@ RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 \
     && yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
     && yum install -y postgresql10 \
-    && yum clean all
+    && yum clean all \
+\
+    && pip install psycopg2-binary
 
 EXPOSE 8080 8946
 
