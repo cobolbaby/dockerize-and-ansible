@@ -82,10 +82,10 @@ class Vaccum(object):
                                 and pgn.nspname <> 'bsi_old'
                                 and pgc.relname !~ 'pinresult'
                             )
-                            or 
+                            or
                             (
                                 pgn.nspname = 'pg_catalog'
-                                and pgc.relname <> 'gp_persistent_relation_node' 
+                                and pgc.relname <> 'gp_persistent_relation_node'
                                 -- and btdrelpages - btdexppages > 100
                             )
                         )
@@ -211,8 +211,8 @@ def main(dsns=[], maintain_window={}):
                 print('=' * 100)
                 print(verbose)
 
-                cmds = v.commands.get(v.server_type)
                 try:
+                    cmds = v.commands.get(v.server_type)
                     if tbl_schema in cmds.keys():
                         v.execute(tbl_schema, tbl_table, cmds.get(
                             tbl_schema).get(tbl_operation.lower()))
@@ -222,7 +222,7 @@ def main(dsns=[], maintain_window={}):
                 except Exception as error:
                     print("Oops! An exception has occured:", error)
                     print("Exception TYPE:", type(error))
-                
+
             print('=' * 100)
             for notice in v.conn.notices:
                 print(notice)
