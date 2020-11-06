@@ -212,13 +212,17 @@ def main(dsns=[], maintain_window={}):
                 print(verbose)
 
                 cmds = v.commands.get(v.server_type)
-                if tbl_schema in cmds.keys():
-                    v.execute(tbl_schema, tbl_table, cmds.get(
-                        tbl_schema).get(tbl_operation.lower()))
-                else:
-                    v.execute(tbl_schema, tbl_table, cmds.get(
-                        'default').get(tbl_operation.lower()))
-
+                try:
+                    if tbl_schema in cmds.keys():
+                        v.execute(tbl_schema, tbl_table, cmds.get(
+                            tbl_schema).get(tbl_operation.lower()))
+                    else:
+                        v.execute(tbl_schema, tbl_table, cmds.get(
+                            'default').get(tbl_operation.lower()))
+                except Exception as error:
+                    print("Oops! An exception has occured:", error)
+                    print("Exception TYPE:", type(error))
+                
             print('=' * 100)
             for notice in v.conn.notices:
                 print(notice)
@@ -231,7 +235,7 @@ def main(dsns=[], maintain_window={}):
 if __name__ == '__main__':
 
     dsns = [
-       'postgresql://xxxx:xxxx@xxx:xxx/xxx?application_name=smart_vacuum',
+        'postgresql://xxxx:xxxx@xxx:xxx/xxx?application_name=smart_vacuum',
     ]
 
     maintain_window = {
