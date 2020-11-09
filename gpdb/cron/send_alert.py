@@ -147,17 +147,14 @@ def alert_slow_query(conn, sess_id):
             usename,
             client_addr,
             application_name,
-            extract(
-                epoch
-                from
-                    (now() - query_start)
-            ) as query_stay
+            extract(epoch from(now() - query_start)) as query_stay
         from
             pg_stat_activity
         where
             sess_id = {}
     '''.format(sess_id)
 
+    # Greenplum自身打包的pygresql版本较低，还不支持onedict，所以只能用dictresult
     res = conn.query(sql).dictresult()
     if res:
         return json.dumps(res[0])
@@ -173,6 +170,7 @@ def alert_blocked_query(conn, sess_id):
     sql = '''
         SELECT
             blocked_locks.pid AS blocked_pid,
+            blocked_activity.datname AS datname,
             blocked_activity.usename AS blocked_user,
             blocked_activity.client_addr AS blocked_clientip,
             blocked_activity.application_name AS blocked_application,
