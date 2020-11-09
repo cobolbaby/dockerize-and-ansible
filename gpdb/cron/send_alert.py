@@ -178,7 +178,7 @@ def alert_blocked_query(conn, sess_id):
             blocking_activity.usename AS blocking_user,
             blocking_activity.client_addr AS blocking_clientip,
             blocking_activity.application_name AS blocking_application,
-            blocking_activity.current_query AS current_statement,
+            blocking_activity.current_query AS current_statement
         FROM
             pg_catalog.pg_locks blocked_locks
             JOIN pg_catalog.pg_stat_activity blocked_activity 
@@ -201,7 +201,7 @@ def alert_blocked_query(conn, sess_id):
             NOT blocked_locks.granted
             AND blocked_activity.sess_id = {};
     '''.format(sess_id)
-    res = conn.query(sql).onedict()
+    res = conn.query(sql).dictresult()
     if res:
         return json.dumps(res)
 
@@ -228,7 +228,7 @@ def alert_too_many_conn(conn, sess_id):
             num desc
     '''
     res = conn.query(sql).dictresult()
-    return json.dumps(res[0])
+    return json.dumps(res)
 
 
 if __name__ == "__main__":
@@ -247,7 +247,7 @@ if __name__ == "__main__":
         'Number of connections exceeds': alert_too_many_conn
     }
 
-    dsn = 'dbname=gpperform user=gpadmin application_name=alert'
+    dsn = 'dbname=gpperfmon user=gpadmin application_name=alert'
     conn = connect_local_db(dsn)
 
     remark = ''
