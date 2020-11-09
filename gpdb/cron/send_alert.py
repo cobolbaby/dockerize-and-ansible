@@ -121,7 +121,10 @@ MAIL_TEMPLATE = """
 
 
 def connect_local_db(dsn):
-    return pg.connect(dsn)
+    try:
+        return pg.connect(dsn)
+    except:
+        raise
 
 
 def alert_spilled_query(conn, sess_id):
@@ -155,9 +158,9 @@ def alert_slow_query(conn, sess_id):
             sess_id = {}
     '''.format(sess_id)
 
-    res = conn.query(sql).onedict()
+    res = conn.query(sql).dictresult()
     if res:
-        return json.dumps(res)
+        return json.dumps(res[0])
 
     return ''
 
@@ -236,6 +239,22 @@ if __name__ == "__main__":
     args = dict(l.split('=', 1) for l in sys.argv[1:])
     print(args)
 
+    '''
+    args = {
+        "ACTIVERULENAME": "",
+        "PGLOGS": "",
+        "ALERTDATE": "2020-11-09",
+        "SERVERNAME": "gpcc",
+        "ALERTTIME": "13: 31: 23Z",
+        "RULEDESCRIPTION": "Query runtime exceeds 8 min",
+        "LOGID": "24068",
+        "QUERYID": "1604464374-345372-1",
+        "QUERYTEXT": "select dwfqas.func_insert_fact_fqas_pca_sn()",
+        "LINK": "http: //172.19.0.6:28080",
+        "SUBJECT": "Query runtime exceeds 8 min at 13:31:23Z on 2020-11-09"
+    }
+    '''
+
     subject = '[Greenplum]' + (args.get('SUBJECT') if args.get(
         'SUBJECT') is not None else 'Unknown Issue.')
 
@@ -247,24 +266,29 @@ if __name__ == "__main__":
         'Number of connections exceeds': alert_too_many_conn
     }
 
-    dsn = 'dbname=gpperfmon user=gpadmin application_name=alert'
-    conn = connect_local_db(dsn)
-
     remark = ''
     for characteristic in strategys.keys():
         if re.match(characteristic, args.get('RULEDESCRIPTION', ''), re.I):
+            try:
+                conn = connect_local_db(
+                    'host=localhost port=5432 dbname=gpperfmon user=gpmon application_name=alert')
 
-            # 从 QUERYID (xxx-xxx-xxx) 中拆解出 sessid，截取两个-号之间的信息
-            query_id = args.get('QUERYID', '')
-            if query_id != '':
-                sess_id = query_id.split('-')[1]
-                remark = strategys[characteristic](conn, sess_id)
-            else:
-                remark = strategys[characteristic](conn)
+                # 从 QUERYID (xxx-xxx-xxx) 中拆解出 sessid，截取两个-号之间的信息
+                query_id = args.get('QUERYID', '')
+                if query_id != '':
+                    sess_id = query_id.split('-')[1]
+                    remark = strategys[characteristic](conn, sess_id)
+                else:
+                    remark = strategys[characteristic](conn)
 
+            except Exception as e:
+                print("Oops! An exception has occured:", e)
+                print("Exception TYPE:", type(e))
+            finally:
+                conn.close()
+
+            # 匹配到一个规则，直接跳出循环
             break
-
-    conn.close()
 
     content = MAIL_TEMPLATE % (args.get('RULEDESCRIPTION'),
                                args.get('ALERTDATE'),
