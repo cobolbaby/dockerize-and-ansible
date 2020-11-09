@@ -212,21 +212,21 @@ def alert_blocked_query(conn, sess_id):
 def alert_too_many_conn(conn):
     '''
     Connection
-    统计最近1min内新建的数据库连接，看看客户端IP是什么，application_name是啥
+    统计最近5min内新建的数据库连接，看看客户端IP是什么，application_name是啥
     '''
     sql = '''
         SELECT
             client_addr,
-            count(1) connection_num
+            count(1) connections
         FROM
             pg_stat_activity
         WHERE
-            now() - backend_start < interval '60 second'
+            now() - backend_start < interval '300 second'
             AND procpid <> pg_backend_pid()
         GROUP BY
             client_addr
         ORDER BY
-            num desc
+            connections desc
     '''
     res = conn.query(sql).dictresult()
     return json.dumps(res)
