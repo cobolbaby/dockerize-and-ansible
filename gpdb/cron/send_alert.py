@@ -209,7 +209,7 @@ def alert_blocked_query(conn, sess_id):
     return ''
 
 
-def alert_too_many_conn(conn, sess_id):
+def alert_too_many_conn(conn):
     '''
     Connection
     统计最近1min内新建的数据库连接，看看客户端IP是什么，application_name是啥
@@ -266,27 +266,29 @@ if __name__ == "__main__":
 
     remark = ''
     for characteristic in strategys.keys():
-        if re.match(characteristic, args.get('RULEDESCRIPTION', ''), re.I):
-            try:
-                conn = connect_local_db(
-                    'host=localhost port=5432 dbname=gpperfmon user=gpmon application_name=alert')
+        if re.match(characteristic, args.get('RULEDESCRIPTION', ''), re.I) is None:
+            continue
 
-                # 从 QUERYID (xxx-xxx-xxx) 中拆解出 sessid，截取两个-号之间的信息
-                query_id = args.get('QUERYID', '')
-                if query_id != '':
-                    sess_id = query_id.split('-')[1]
-                    remark = strategys[characteristic](conn, sess_id)
-                else:
-                    remark = strategys[characteristic](conn)
+        try:
+            conn = connect_local_db(
+                'host=localhost port=5432 dbname=gpperfmon user=gpmon application_name=alert')
 
-            except Exception as e:
-                print("Oops! An exception has occured:", e)
-                print("Exception TYPE:", type(e))
-            finally:
-                conn.close()
+            # 从 QUERYID (xxx-xxx-xxx) 中拆解出 sessid，截取两个-号之间的信息
+            query_id = args.get('QUERYID', '')
+            if query_id != '':
+                sess_id = query_id.split('-')[1]
+                remark = strategys[characteristic](conn, sess_id)
+            else:
+                remark = strategys[characteristic](conn)
 
-            # 匹配到一个规则，直接跳出循环
-            break
+        except Exception as e:
+            print("Oops! An exception has occured:", e)
+            print("Exception TYPE:", type(e))
+        finally:
+            conn.close()
+
+        # 匹配到一个规则，直接跳出循环
+        break
 
     content = MAIL_TEMPLATE % (args.get('RULEDESCRIPTION'),
                                args.get('ALERTDATE'),
