@@ -5,8 +5,7 @@ if [ -n "$1" ]; then
     BRANCH=$1
 else
     # BRANCH=2.3.0
-    # BRANCH=2.3.3
-    BRANCH=2.3.3-without-sshd
+    BRANCH=2.3.3
 fi
 TAGNAME=development/spark:${BRANCH}
 

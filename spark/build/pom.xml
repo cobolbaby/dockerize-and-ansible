@@ -1,0 +1,77 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.inventec</groupId>
+    <artifactId>Spark</artifactId>
+    <version>0.0.1</version>
+
+    <dependencies>
+
+        <!-- https://mvnrepository.com/artifact/com.mchange/c3p0 -->
+        <dependency>
+            <groupId>c3p0</groupId>
+            <artifactId>c3p0</artifactId>
+            <version>0.9.0.4</version>
+            <exclusions>  
+                <exclusion>  
+                    <groupId>*</groupId>  
+                    <artifactId>*</artifactId>  
+                </exclusion>  
+            </exclusions>  
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/net.sourceforge.javacsv/javacsv -->
+        <dependency>
+            <groupId>net.sourceforge.javacsv</groupId>
+            <artifactId>javacsv</artifactId>
+            <version>2.0</version>
+            <exclusions>  
+                <exclusion>  
+                    <groupId>*</groupId>  
+                    <artifactId>*</artifactId>  
+                </exclusion>  
+            </exclusions>  
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.datastax.spark/spark-cassandra-connector -->
+        <dependency>
+            <groupId>com.datastax.spark</groupId>
+            <artifactId>spark-cassandra-connector_2.11</artifactId>
+            <version>2.3.1</version>
+            <exclusions>  
+                <exclusion>  
+                    <groupId>*</groupId>  
+                    <artifactId>*</artifactId>  
+                </exclusion>  
+            </exclusions> 
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.5</version>
+            <exclusions>  
+                <exclusion>  
+                    <groupId>*</groupId>  
+                    <artifactId>*</artifactId>  
+                </exclusion>  
+            </exclusions> 
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>8.2.2.jre8</version>
+            <exclusions>  
+                <exclusion>  
+                    <groupId>*</groupId>  
+                    <artifactId>*</artifactId>  
+                </exclusion>  
+            </exclusions> 
+        </dependency>
+
+    </dependencies>
+
+</project>
