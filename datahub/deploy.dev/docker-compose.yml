@@ -116,7 +116,7 @@ services:
   #     - elasticsearch
 
   neo4j:
-    image: registry.inventec/hub/neo4j:3.5.7
+    image: registry.inventec/hub/neo4j:4.0.6
     # env_file: neo4j/env/docker.env
     hostname: neo4j
     container_name: neo4j
@@ -128,6 +128,8 @@ services:
       # - /opt/datahub/docker/neo4j/neo4j.conf:/var/lib/neo4j/conf/neo4j.conf
     environment:
       NEO4J_AUTH: 'neo4j/datahub'
+      NEO4J_dbms_default__database: graph.db
+      NEO4J_dbms_allow__upgrade: 'true'
 
   # This "container" is a workaround to pre-create search indices
   # elasticsearch-setup:
@@ -147,6 +149,7 @@ services:
     #     context: ../
     #     dockerfile: docker/datahub-gms/Dockerfile
     image: registry.inventec/hub/linkedin/datahub-gms:${DATAHUB_VERSION:-latest}
+    # env_file: datahub-gms/env/docker.env
     hostname: datahub-gms
     container_name: datahub-gms
     ports:
