@@ -171,6 +171,7 @@ def alert_blocked_query(conn, sess_id):
         SELECT
             blocked_locks.pid AS blocked_pid,
             blocked_activity.datname AS datname,
+            blocked_locks.relation::regclass as tblname,
             blocked_activity.usename AS blocked_user,
             blocked_activity.client_addr AS blocked_clientip,
             blocked_activity.application_name AS blocked_application,
