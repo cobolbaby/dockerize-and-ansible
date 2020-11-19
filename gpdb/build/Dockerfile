@@ -1,8 +1,8 @@
 FROM centos:7
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-ARG GPDB_VERSION_FULL="5.28.1-rhel7-x86_64"
-ARG GPCC_VERSION_FULL="4.11.0-gp5-rhel7-x86_64"
+ARG GPDB_VERSION_FULL="5.28.3-rhel7-x86_64"
+ARG GPCC_VERSION_FULL="4.11.1-gp5-rhel7-x86_64"
 ARG WORK_DIR=/opt/greenplum
 ARG TMP_DIR=/tmp/greenplum
 ARG MASTER_DATA_PATH=/disk1/gpdata/gpmaster
