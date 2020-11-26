@@ -1,8 +1,0 @@
-#!/bin/sh
-
-exec docker run --rm \
-                -v "$PWD":"$PWD" \
-                -w "$PWD" \
-                --entrypoint smbget \
-                registry.inventec/hub/kfaughnan/smbclient:latest \
-                "$@"

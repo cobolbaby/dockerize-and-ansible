@@ -22,6 +22,7 @@ exec docker run --rm \
                 -v /opt/patroni:/opt/patroni \
                 -v /opt/postgres:/opt/postgres \
                 -v /opt/redis:/opt/redis \
+                -v /opt/prometheus:/opt/prometheus \
                 -v /data:/data \
                 -v "$PWD":"$PWD" \
                 -w "$PWD" \
