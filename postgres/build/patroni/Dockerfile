@@ -9,22 +9,20 @@ ARG PGHOME=/home/postgres
 RUN set -ex \
     && export DEBIAN_FRONTEND=noninteractive \
     && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
-    && sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
     && apt-get update -y \
     && apt-cache depends patroni | sed -n -e 's/.* Depends: \(python3-.\+\)$/\1/p' \
             | grep -Ev '^python3-(sphinx|etcd|consul|kazoo|kubernetes)' \
-            | xargs apt-get install -y vim-tiny curl less jq locales \
-                            python3-pip python3-wheel net-tools iputils-ping \
+            | xargs apt-get install -y vim-tiny less curl jq locales \
+                            python3-pip net-tools pigz \
     # && pip3 install pip --upgrade \
     ## Make sure we have a en_US.UTF-8 locale available
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
-    && pip3 install setuptools -i https://mirrors.aliyun.com/pypi/simple \
-    && pip3 install patroni[etcd] -i https://mirrors.aliyun.com/pypi/simple \
+    && pip3 install psycopg2-binary \
+    && pip3 install patroni[etcd] \
     && mkdir -p $PGHOME/data /data $PGHOME/.config/patroni \
     && chown -R postgres:postgres $PGHOME /data /run /var/log \
     && sed -i "s|/var/lib/postgresql.*|$PGHOME:/bin/bash|" /etc/passwd \
-    && chmod +s /bin/ping \
-    && apt-get purge -y python3-pip python3-wheel \
+    && apt-get purge -y python3-pip \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache
