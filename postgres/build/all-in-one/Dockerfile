@@ -28,8 +28,8 @@ RUN curl -sSL -o /tmp/pg_partman-4.4.0.tar.gz https://github.com/pgpartman/pg_pa
 # 表，索引在线重建工具
 RUN curl -sSL -o /tmp/pg_repack-1.4.5.zip http://api.pgxn.org/dist/pg_repack/1.4.5/pg_repack-1.4.5.zip \
     && unzip /tmp/pg_repack-1.4.5.zip -d /tmp/ \
-    && apt-get install -y libssl-dev zlib1g-dev \
     && cd /tmp/pg_repack-1.4.5 \
+    && apt-get install -y libssl-dev zlib1g-dev \
     && make && make install \
     && rm -rf /tmp/pg_repack-1.4.5* \
     && apt-get purge -y libssl-dev zlib1g-dev
@@ -48,8 +48,10 @@ RUN apt-get install -y pgbackrest \
 RUN curl -sSL -o /tmp/tds_fdw-2.0.2.tar.gz https://github.com/tds-fdw/tds_fdw/archive/v2.0.2.tar.gz \
     && tar -xzf /tmp/tds_fdw-2.0.2.tar.gz -C /tmp/  \
     && cd /tmp/tds_fdw-2.0.2 \
+    && apt-get install -y libsybdb5 freetds-dev freetds-common \
     && make USE_PGXS=1 && make USE_PGXS=1 install \
-    && rm -rf /tmp/tds_fdw-2.0.2*
+    && rm -rf /tmp/tds_fdw-2.0.2* \
+    && apt-get purge -y libsybdb5 freetds-dev freetds-common
 
 RUN apt-get purge -y postgresql-server-dev-$PG_MAJOR \
     && apt-get autoremove -y \
