@@ -1,0 +1,20 @@
+version: '2.3'
+
+services:
+  postgres:
+    image: registry.inventec/infra/postgres:12.5
+    container_name: pg12
+    hostname: pg12
+    ports:
+      - "5499:5432"
+    volumes:
+      # - /data-ssd/pg11/workdir11/data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: postgres
+      # PGDATA: /var/lib/postgresql/data
+    user: postgres
+    restart: always
+    # cpu_count: 4
+    # mem_limit: 8g

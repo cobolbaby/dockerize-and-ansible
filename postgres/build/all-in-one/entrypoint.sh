@@ -9,12 +9,12 @@ readonly PATRONI_ENABLE=${PATRONI_ENABLE:-false}
 
 if [ "$PATRONI_ENABLE" != "true" ]
 then
-    echo "Start a single instance..."
-    /docker-entrypoint.sh "$@"
+    echo "【`date`】Start a single instance..."
+    /docker-entrypoint.sh postgres
     exit
 fi
 
-echo "Start Patroni..."
+echo "【`date`】Start Patroni..."
 
 readonly PATRONI_SCOPE=${PATRONI_SCOPE:-patroni}
 PATRONI_NAMESPACE=${PATRONI_NAMESPACE:-/pgcluster}
