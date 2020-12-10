@@ -48,7 +48,8 @@ bootstrap:
       use_pg_rewind: true
       # use_slots: true
       pg_hba:
-      - local all all trust
+      - local all postgres trust
+      - local replication postgres ident
       - host replication all all md5
       - host all all all md5
       parameters:

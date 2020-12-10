@@ -25,7 +25,8 @@ RUN apt-get update -y \
     && pip3 install setuptools \
     && pip3 install psycopg2-binary \
     && pip3 install patroni[etcd] \
-    && pip3 uninstall -y setuptools \
+    # 卸载以后执行patroni会报: No matching distribution found for pkg_resources
+    # && pip3 uninstall -y setuptools \
 \
     # 分区表管理工具
     && curl -sSL -o /tmp/pg_partman-4.4.0.tar.gz https://github.com/pgpartman/pg_partman/archive/v4.4.0.tar.gz \
@@ -63,8 +64,11 @@ RUN apt-get update -y \
     && rm -rf /tmp/tds_fdw-2.0.2* \
     && apt-get purge -y libsybdb5 freetds-dev freetds-common \
 \
+    # plpython3
+    && apt-get install -y postgresql-plpython3-$PG_MAJOR \
+\
     # 移除已无效的安装包
-    && apt-get purge -y postgresql-server-dev-$PG_MAJOR python3-pip python3-wheel gcc python3-dev \
+    && apt-get purge -y postgresql-server-dev-$PG_MAJOR python3-wheel python3-dev make gcc \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache
