@@ -6,7 +6,9 @@
 # UPDATE pg_settings SET setting = 'escape' WHERE name = 'bytea_output';
 
 docker run -p 80:80 \
+    --name pgadmin4 \
+    -v /opt/pgadmin4/pgadmin:/var/lib/pgadmin \
     -e "PGADMIN_DEFAULT_EMAIL=cobolbaby@qq.com" \
     -e "PGADMIN_DEFAULT_PASSWORD=123456" \
     --restart always \
-    -d dpage/pgadmin4:4.16
+    -d dpage/pgadmin4:4.29
