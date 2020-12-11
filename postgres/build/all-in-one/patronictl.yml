@@ -53,7 +53,38 @@ bootstrap:
       - host replication all all md5
       - host all all all md5
       parameters:
-        max_connections: 300
+        checkpoint_timeout: 10min
+        effective_cache_size: 4GB
+        hot_standby_feedback: true
+        log_autovacuum_min_duration: 1000
+        log_destination: csvlog
+        log_lock_waits: true
+        log_min_duration_statement: 500
+        log_min_messages: warning
+        log_statement: none
+        log_timezone: UTC
+        logging_collector: 'on'
+        maintenance_work_mem: 128MB
+        max_connections: 800
+        max_parallel_workers: 8
+        max_parallel_workers_per_gather: 4
+        max_standby_streaming_delay: 30s
+        max_wal_size: 4GB
+        max_worker_processes: 8
+        min_wal_size: 1GB
+        pg_stat_statements.max: 10000
+        pg_stat_statements.track: all
+        shared_buffers: 4GB
+        shared_preload_libraries: pg_stat_statements
+        synchronous_commit: 'off'
+        synchronous_standby_names: ANY 1(*)
+        temp_buffers: 32MB
+        track_functions: all
+        track_io_timing: true
+        wal_compression: true
+        wal_keep_segments: 1000
+        wal_level: logical
+        work_mem: 8MB
         # wal_level: hot_standby
         # hot_standby: "on"
         # wal_keep_segments: 8

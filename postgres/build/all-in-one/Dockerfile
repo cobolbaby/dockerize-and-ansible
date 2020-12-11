@@ -10,7 +10,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
     && apt-get update -y \
     # 通用包
-    && apt-get install -y vim-tiny curl jq pigz net-tools unzip --fix-missing \
+    && apt-get install -y vim-tiny curl jq pigz net-tools unzip procps --fix-missing \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache
@@ -77,8 +77,9 @@ WORKDIR $PGHOME
 
 # 定义数据目录，并赋权
 RUN mkdir -p ./data /data ./.config/patroni \
-    && chown -R postgres:postgres ./data /data \
-    && chmod -R 700 ./data /data \
+    && touch .psql_history \
+    && chown -R postgres:postgres $PGHOME /data \
+    && chmod -R 700 $PGHOME/data /data \
     && sed -i "s|/var/lib/postgresql.*|$PGHOME:/bin/bash|" /etc/passwd
 
 # 默认配置文件载入
