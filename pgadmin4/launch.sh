@@ -5,6 +5,10 @@
 # GPDB SQL执行语句: 
 # UPDATE pg_settings SET setting = 'escape' WHERE name = 'bytea_output';
 
+# /pgadmin4 $ id
+# uid=5050(pgadmin) gid=5050(pgadmin)
+sudo chown -R 5050:5050 /opt/pgadmin4/pgadmin
+
 docker run -p 80:80 \
     --name pgadmin4 \
     -v /opt/pgadmin4/pgadmin:/var/lib/pgadmin \
