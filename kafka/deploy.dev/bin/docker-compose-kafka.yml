@@ -177,9 +177,9 @@ services:
           cpus: "2"
           memory: 4g
 
-  kafka-connector:
+  kafka-connect:
     image: ${REGISTRY}/development/cp-kafka-connect:5.3.3-p1
-    hostname: kafka-connector
+    hostname: kafka-connect
     ports:
       - "8083:8083"
     volumes:
@@ -190,10 +190,10 @@ services:
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connector
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
       CONNECT_REST_PORT: 8083
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/kafka/plugins
-      CONNECT_GROUP_ID: kafka-sink-connector
+      CONNECT_GROUP_ID: kafka-sink-connect
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: connect-status
@@ -207,21 +207,6 @@ services:
         limits:
           cpus: "2"
           memory: 4g
-
-  kafka-connect-ui:
-    image: ${REGISTRY}/hub/landoop/kafka-connect-ui:0.9.7
-    hostname: kafka-connect-ui
-    ports:
-      - "8084:8000"
-    environment:
-      CONNECT_URL: "http://kafka-connector:8083,Dev Cluster"
-    deploy:
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: "1"
-          memory: 128M
 
   # kafka-schema-registry:
   #   image: ${REGISTRY}/hub/confluentinc/cp-schema-registry:${BROKER_VERSION}
@@ -240,37 +225,6 @@ services:
   #       limits:
   #         cpus: "1"
   #         memory: 1g
-
-  # schema-registry-ui:
-  #   image: ${REGISTRY}/hub/landoop/schema-registry-ui:0.9.5
-  #   hostname: kafka-schema-registry-ui
-  #   ports:
-  #     - "18081:8000"
-  #   environment:
-  #     SCHEMAREGISTRY_URL: http://kafka-schema-registry:8081/
-  #     PROXY: "true"
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #     resources:
-  #       limits:
-  #         cpus: "1"
-  #         memory: 128M
-
-  kafka-manager:
-    image: ${REGISTRY}/hub/hlebalbau/kafka-manager:2.0.0.2
-    ports:
-      - "9000:9000"
-    environment:
-      ZK_HOSTS: ${ZOOKEEPER}
-    command: -Dpidfile.path=/dev/null
-    deploy:
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1g
 
 networks:
   default:
