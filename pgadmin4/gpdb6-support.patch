@@ -1,0 +1,897 @@
+diff --git a/Dockerfile b/Dockerfile
+index 34ad8f6..8f22490 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -14,6 +14,8 @@
+ 
+ FROM alpine:3.13 AS app-builder
+ 
++RUN sed -i 's/https/http/' /etc/apk/repositories
++
+ RUN apk add --no-cache \
+     autoconf \
+     automake \
+@@ -62,9 +64,11 @@ RUN export CPPFLAGS="-DPNG_ARM_NEON_OPT=0" && \
+ 
+ FROM alpine:3.13 as env-builder
+ 
++RUN sed -i 's/https/http/' /etc/apk/repositories
++
+ # Install dependencies
+ COPY requirements.txt /
+-RUN     apk add --no-cache \
++RUN apk add --no-cache \
+         make \
+         python3 \
+         py3-pip && \
+@@ -168,6 +172,8 @@ COPY pkg/docker/entrypoint.sh /entrypoint.sh
+ COPY LICENSE /pgadmin4/LICENSE
+ COPY DEPENDENCIES /pgadmin4/DEPENDENCIES
+ 
++RUN sed -i 's/https/http/' /etc/apk/repositories
++
+ # Install runtime dependencies and configure everything in one RUN step
+ RUN apk add \
+         python3 \
+diff --git a/Makefile b/Makefile
+index 0b4d1a7..21f40ff 100644
+--- a/Makefile
++++ b/Makefile
+@@ -12,6 +12,7 @@ SHELL = /bin/sh
+ APP_NAME := $(shell grep ^APP_NAME web/config.py | awk -F"=" '{print $$NF}' | tr -d '[:space:]' | tr -d "'" | awk '{print tolower($$0)}')
+ APP_RELEASE := $(shell grep ^APP_RELEASE web/config.py | awk -F"=" '{print $$NF}' | tr -d '[:space:]')
+ APP_REVISION := $(shell grep ^APP_REVISION web/config.py | awk -F"=" '{print $$NF}' | tr -d '[:space:]')
++PROXY := http://10.190.40.39:5493/
+ 
+ #########################################################################
+ # High-level targets
+@@ -131,7 +132,7 @@ debian:
+ 
+ docker:
+ 	echo $(APP_NAME)
+-	docker build -t ${APP_NAME} -t $(APP_NAME):latest -t $(APP_NAME):$(APP_RELEASE) -t $(APP_NAME):$(APP_RELEASE).$(APP_REVISION) .
++	docker build --rm --build-arg http_proxy=$(PROXY) --build-arg https_proxy=$(PROXY) -t $(APP_NAME):$(APP_RELEASE).$(APP_REVISION) .
+ 
+ docs:
+ 	LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 $(MAKE) -C docs/en_US -f Makefile.sphinx html
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
+index c4b023e..fabc7fb 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
+@@ -16,23 +16,22 @@ import traceback
+ from functools import wraps
+ 
+ import simplejson as json
+-from flask import render_template, request, jsonify, \
+-    current_app
++from flask import current_app, jsonify, render_template, request
+ from flask_babelex import gettext
+ 
+ import pgadmin.browser.server_groups.servers.databases as databases
+ from config import PG_DEFAULT_DRIVER
+-from pgadmin.browser.server_groups.servers.databases.schemas.utils import \
+-    SchemaChildModule, DataTypeReader
+-from pgadmin.browser.server_groups.servers.databases.utils import \
+-    parse_sec_labels_from_db, parse_variables_from_db
+-from pgadmin.browser.server_groups.servers.utils import parse_priv_from_db, \
+-    parse_priv_to_db
++from pgadmin.browser.server_groups.servers.databases.schemas.utils import (
++    DataTypeReader, SchemaChildModule)
++from pgadmin.browser.server_groups.servers.databases.utils import (
++    parse_sec_labels_from_db, parse_variables_from_db)
++from pgadmin.browser.server_groups.servers.utils import (parse_priv_from_db,
++                                                         parse_priv_to_db)
+ from pgadmin.browser.utils import PGChildNodeView
+ from pgadmin.tools.schema_diff.compare import SchemaDiffObjectCompare
+ from pgadmin.tools.schema_diff.node_registry import SchemaDiffRegistry
+-from pgadmin.utils.ajax import make_json_response, internal_server_error, \
+-    make_response as ajax_response, gone
++from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
++from pgadmin.utils.ajax import make_response as ajax_response
+ from pgadmin.utils.driver import get_driver
+ 
+ 
+@@ -361,12 +360,11 @@ class FunctionView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
+                 template_initial = 'trigger_functions'
+ 
+             # Set the template path for the SQL scripts
+-            self.sql_template_path = "/".join([
+-                template_initial,
+-                self.manager.server_type,
+-                'sql',
+-                '#{0}#'
+-            ]).format(self.manager.version)
++            self.sql_template_path = template_initial + (
++                '/{0}/sql/#{0}#{1}#'.format(self.manager.server_type, self.manager.version) if 
++                self.manager.server_type == 'gpdb' else
++                '/{0}/sql/#{1}#'.format(self.manager.server_type, self.manager.version)
++            )
+ 
+             return f(*args, **kwargs)
+ 
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
+index 48a722f..8d1438d 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
+@@ -9,21 +9,22 @@
+ 
+ """Implements Foreign key constraint Node"""
+ 
+-import simplejson as json
+ from functools import wraps
+ 
+-import pgadmin.browser.server_groups.servers.databases as database
+-from flask import render_template, request, jsonify
++import simplejson as json
++from flask import jsonify, render_template, request
+ from flask_babelex import gettext
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.type import ConstraintRegistry, ConstraintTypeModule
++
++import pgadmin.browser.server_groups.servers.databases as database
++from config import PG_DEFAULT_DRIVER
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.foreign_key import \
++    utils as fkey_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.type import (
++    ConstraintRegistry, ConstraintTypeModule)
+ from pgadmin.browser.utils import PGChildNodeView
+-from pgadmin.utils.ajax import make_json_response, internal_server_error, \
+-    make_response as ajax_response, gone
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.foreign_key import utils as fkey_utils
++from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
++from pgadmin.utils.ajax import make_response as ajax_response
+ from pgadmin.utils.driver import get_driver
+-from config import PG_DEFAULT_DRIVER
+ 
+ FOREIGN_KEY_NOT_FOUND = gettext("Could not find the foreign key.")
+ 
+@@ -184,7 +185,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+     """
+ 
+     node_type = 'foreign_key'
+-    FOREIGN_KEY_PATH = 'foreign_key/sql/#{0}#'
++    FOREIGN_KEY_PATH = 'foreign_key/sql/#{0}#{1}#'
+ 
+     parent_ids = [
+         {'type': 'int', 'id': 'gid'},
+@@ -244,7 +245,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+                     kwargs['did']]['datistemplate']
+ 
+             self.template_path = self.FOREIGN_KEY_PATH.format(
+-                self.manager.version)
++                self.manager.server_type, self.manager.version)
+ 
+             # We need parent's name eg table name and schema name
+             schema, table = fkey_utils.get_parent(self.conn, kwargs['tid'])
+@@ -349,7 +350,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+         self.manager = get_driver(PG_DEFAULT_DRIVER).connection_manager(sid)
+         self.conn = self.manager.connection(did=did)
+         self.template_path = self.FOREIGN_KEY_PATH.format(
+-            self.manager.version)
++            self.manager.server_type, self.manager.version)
+ 
+         # We need parent's name eg table name and schema name
+         schema, table = fkey_utils.get_parent(self.conn, tid)
+@@ -459,7 +460,8 @@ class ForeignKeyConstraintView(PGChildNodeView):
+         """
+         self.manager = get_driver(PG_DEFAULT_DRIVER).connection_manager(sid)
+         self.conn = self.manager.connection(did=did)
+-        self.template_path = self.FOREIGN_KEY_PATH.format(self.manager.version)
++        self.template_path = self.FOREIGN_KEY_PATH.format(
++            self.manager.server_type, self.manager.version)
+ 
+         # We need parent's name eg table name and schema name
+         schema, table = fkey_utils.get_parent(self.conn, tid)
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
+index 3e99e56..5fa6366 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
+@@ -9,11 +9,13 @@
+ 
+ """ Implements Utility class for Foreign Keys. """
+ 
++from functools import wraps
++
+ from flask import render_template
+ from flask_babelex import gettext as _
++
+ from pgadmin.utils.ajax import internal_server_error
+-from pgadmin.utils.exception import ObjectGone, ExecuteError
+-from functools import wraps
++from pgadmin.utils.exception import ExecuteError, ObjectGone
+ 
+ FKEY_PROPERTIES_SQL = 'properties.sql'
+ 
+@@ -29,8 +31,8 @@ def get_template_path(f):
+         # Here args[0] will hold the connection object
+         conn_obj = args[0]
+         if 'template_path' not in kwargs:
+-            kwargs['template_path'] = 'foreign_key/sql/#{0}#'.format(
+-                conn_obj.manager.version)
++            kwargs['template_path'] = 'foreign_key/sql/#{0}#{1}#'.format(
++                conn_obj.manager.server_type, conn_obj.manager.version)
+ 
+         return f(*args, **kwargs)
+     return wrap
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql
+index b6ff1f1..b1862b3 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql
+@@ -41,8 +41,8 @@ CREATE {% if data.relpersistence %}UNLOGGED {% endif %}TABLE {{conn|qtIdent(data
+ {### Add columns ###}
+ {% if data.columns and data.columns|length > 0 %}
+ {% for c in data.columns %}
+-{% if c.name and c.cltype %}
+-    {% if c.inheritedfromtable %}-- Inherited from table {{c.inheritedfromtable}}: {% elif c.inheritedfromtype %}-- Inherited from type {{c.inheritedfromtype}}: {% endif %}{{conn|qtIdent(c.name)}} {% if is_sql %}{{c.displaytypname}}{% else %}{{ GET_TYPE.CREATE_TYPE_SQL(conn, c.cltype, c.attlen, c.attprecision, c.hasSqrBracket) }}{% endif %}{% if c.collspcname %} COLLATE {{c.collspcname}}{% endif %}{% if c.attnotnull %} NOT NULL{% endif %}{% if c.defval is defined and c.defval is not none and c.defval != '' %} DEFAULT {{c.defval}}{% endif %}
++{% if c.name and c.cltype and not c.inheritedfrom %}
++    {{conn|qtIdent(c.name)}} {% if is_sql %}{{c.displaytypname}}{% else %}{{ GET_TYPE.CREATE_TYPE_SQL(conn, c.cltype, c.attlen, c.attprecision, c.hasSqrBracket) }}{% endif %}{% if c.collspcname %} COLLATE {{c.collspcname}}{% endif %}{% if c.attnotnull %} NOT NULL{% endif %}{% if c.defval %} DEFAULT {{c.defval}}{% endif %}
+ {% if not loop.last %},
+ {% endif %}
+ {% endif %}
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/properties.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/properties.sql
+index 738608c..e040542 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/properties.sql
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/properties.sql
+@@ -59,14 +59,14 @@ FROM (
+ 		substring(array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS toast_autovacuum_freeze_table_age,
+ 		array_to_string(rel.reloptions, ',') AS table_vacuum_settings_str,
+ 		array_to_string(tst.reloptions, ',') AS toast_table_vacuum_settings_str,
+-		rel.reloptions AS reloptions, tst.reloptions AS toast_reloptions, NULL AS reloftype, typ.typname AS typname,
++		rel.reloptions AS reloptions, tst.reloptions AS toast_reloptions, NULL AS reloftype, NULL AS typname,
+ 		typ.typrelid AS typoid,
+ 		(CASE WHEN rel.reltoastrelid = 0 THEN false ELSE true END) AS hastoasttable,
+ 		ARRAY[]::varchar[] AS seclabels,
+ 		(CASE WHEN rel.oid <= {{ datlastsysoid}}::oid THEN true ElSE false END) AS is_sys_table,
+ 
+ 		gdp.attrnums AS distribution,
+-    (CASE WHEN (SELECT count(*) from pg_partition where parrelid = rel.oid) > 0 THEN true ELSE false END) AS is_partitioned
++    	(CASE WHEN (SELECT count(*) from pg_partition where parrelid = rel.oid) > 0 THEN true ELSE false END) AS is_partitioned
+ 
+ 
+ 	FROM pg_class rel
+@@ -81,3 +81,4 @@ FROM (
+ 	{% if tid %}  AND rel.oid = {{ tid }}::oid {% endif %}
+ ) AS TableInformation
+  ORDER BY name
++ 
+\ No newline at end of file
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
+index c93f4a8..db8d6ea 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
+@@ -9,46 +9,44 @@
+ 
+ """ Implements Utility class for Table and Partitioned Table. """
+ 
+-import re
+ import copy
++import re
+ from functools import wraps
++
+ import simplejson as json
+-from flask import render_template, jsonify, request
++from flask import jsonify, render_template, request
+ from flask_babelex import gettext
+ 
+-from pgadmin.browser.server_groups.servers.databases.schemas\
+-    .tables.base_partition_table import BasePartitionTable
+-from pgadmin.utils.ajax import make_json_response, internal_server_error, \
+-    gone, make_response as ajax_response
+-from pgadmin.browser.server_groups.servers.databases.schemas.utils \
+-    import DataTypeReader, parse_rule_definition
+-from pgadmin.browser.server_groups.servers.utils import parse_priv_from_db, \
+-    parse_priv_to_db
++from config import PG_DEFAULT_DRIVER
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.base_partition_table import \
++    BasePartitionTable
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.columns import \
++    utils as column_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.compound_triggers import \
++    utils as compound_trigger_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.check_constraint import \
++    utils as check_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.exclusion_constraint import \
++    utils as exclusion_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.foreign_key import \
++    utils as fkey_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.constraints.index_constraint import \
++    utils as idxcons_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.row_security_policies import \
++    utils as row_security_policies_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.triggers import \
++    utils as trigger_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.utils import (
++    DataTypeReader, VacuumSettings, parse_rule_definition)
++from pgadmin.browser.server_groups.servers.utils import (parse_priv_from_db,
++                                                         parse_priv_to_db)
+ from pgadmin.browser.utils import PGChildNodeView
++from pgadmin.tools.schema_diff.node_registry import SchemaDiffRegistry
++from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
++from pgadmin.utils.ajax import make_response as ajax_response
+ from pgadmin.utils.compile_template_name import compile_template_path
+ from pgadmin.utils.driver import get_driver
+-from config import PG_DEFAULT_DRIVER
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    columns import utils as column_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.foreign_key import utils as fkey_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.check_constraint import utils as check_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.exclusion_constraint import utils as exclusion_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    constraints.index_constraint import utils as idxcons_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    triggers import utils as trigger_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    compound_triggers import utils as compound_trigger_utils
+-from pgadmin.browser.server_groups.servers.databases.schemas. \
+-    tables.row_security_policies import \
+-    utils as row_security_policies_utils
+ from pgadmin.utils.preferences import Preferences
+-from pgadmin.browser.server_groups.servers.databases.schemas.utils \
+-    import VacuumSettings
+-from pgadmin.tools.schema_diff.node_registry import SchemaDiffRegistry
+ 
+ 
+ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+@@ -116,7 +114,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+             self.datlastsysoid = self.manager.db_info[
+                 did
+             ]['datlastsysoid'] if self.manager.db_info is not None and \
+-                did in self.manager.db_info else 0
++                                  did in self.manager.db_info else 0
+ 
+             ver = self.manager.version
+             server_type = self.manager.server_type
+@@ -519,7 +517,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+             module_view = SchemaDiffRegistry.get_node_view(module)
+             if module_view.blueprint.server_type is None or \
+                 self.manager.server_type in \
+-                    module_view.blueprint.server_type:
++                module_view.blueprint.server_type:
+                 sub_data = module_view.fetch_objects_to_compare(
+                     sid=sid, did=did, scid=scid, tid=row['oid'],
+                     oid=None)
+@@ -580,12 +578,12 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+ 
+         # If estimated rows are greater than threshold then
+         if estimated_row_count and \
+-                estimated_row_count > table_row_count_threshold:
++            estimated_row_count > table_row_count_threshold:
+             res['rows'][0]['rows_cnt'] = str(table_row_count_threshold) + '+'
+ 
+         # If estimated rows is lower than threshold then calculate the count
+         elif estimated_row_count and \
+-                table_row_count_threshold >= estimated_row_count:
++            table_row_count_threshold >= estimated_row_count:
+             sql = render_template(
+                 "/".join(
+                     [self.table_template_path, 'get_table_row_count.sql']
+@@ -678,8 +676,8 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+             return internal_server_error(errormsg=rset)
+ 
+         # Dynamically load index utils to avoid circular dependency.
+-        from pgadmin.browser.server_groups.servers.databases.schemas. \
+-            tables.indexes import utils as index_utils
++        from pgadmin.browser.server_groups.servers.databases.schemas.tables.indexes import \
++            utils as index_utils
+         for row in rset['rows']:
+             index_sql = index_utils.get_reverse_engineered_sql(
+                 self.conn, schema=schema, table=table, did=did, tid=tid,
+@@ -711,10 +709,10 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+             for row in rset['rows']:
+                 policy_sql = row_security_policies_utils. \
+                     get_reverse_engineered_sql(
+-                        self.conn, schema=schema, table=table, scid=scid,
+-                        plid=row['oid'], policy_table_id=tid,
+-                        datlastsysoid=self.datlastsysoid,
+-                        template_path=None, with_header=json_resp)
++                    self.conn, schema=schema, table=table, scid=scid,
++                    plid=row['oid'], policy_table_id=tid,
++                    datlastsysoid=self.datlastsysoid,
++                    template_path=None, with_header=json_resp)
+                 policy_sql = "\n" + policy_sql
+ 
+                 # Add into main sql
+@@ -757,7 +755,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+         """
+ 
+         if self.manager.server_type == 'ppas' \
+-                and self.manager.version >= 120000:
++            and self.manager.version >= 120000:
+             sql = render_template("/".join(
+                 [self.compound_trigger_template_path, self._NODES_SQL]),
+                 tid=tid)
+@@ -955,7 +953,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+ 
+         # Get Reverse engineered sql for Partitions
+         partition_main_sql = ""
+-        if is_partitioned:
++        if is_partitioned and self.manager.server_type != 'gpdb':
+             sql = render_template("/".join([self.partition_template_path,
+                                             self._NODES_SQL]),
+                                   scid=scid, tid=tid)
+@@ -1149,7 +1147,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                     column_sql += render_template("/".join(
+                         [self.column_template_path, self._DELETE_SQL]),
+                         data=c, conn=self.conn).strip('\n') + \
+-                        self.double_newline
++                                  self.double_newline
+         return column_sql
+ 
+     def _check_for_column_update(self, columns, data, column_sql, tid):
+@@ -1174,7 +1172,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 old_col_data = res['rows'][0]
+ 
+                 old_col_data['cltype'], \
+-                    old_col_data['hasSqrBracket'] = \
++                old_col_data['hasSqrBracket'] = \
+                     column_utils.type_formatter(old_col_data['cltype'])
+                 old_col_data = \
+                     column_utils.convert_length_precision_to_string(
+@@ -1188,7 +1186,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+ 
+                 # Sql for alter column
+                 if 'inheritedfrom' not in c and \
+-                        'inheritedfromtable' not in c:
++                    'inheritedfromtable' not in c:
+                     column_sql += render_template("/".join(
+                         [self.column_template_path, self._UPDATE_SQL]),
+                         data=c, o_data=old_col_data, conn=self.conn
+@@ -1205,11 +1203,11 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 c = column_utils.convert_length_precision_to_string(c)
+ 
+                 if 'inheritedfrom' not in c and \
+-                        'inheritedfromtable' not in c:
++                    'inheritedfromtable' not in c:
+                     column_sql += render_template("/".join(
+                         [self.column_template_path, self._CREATE_SQL]),
+                         data=c, conn=self.conn).strip('\n') + \
+-                        self.double_newline
++                                  self.double_newline
+         return column_sql
+ 
+     def _check_for_partitions_in_sql(self, data, old_data, sql):
+@@ -1243,7 +1241,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+ 
+             # If partition(s) is/are added
+             if 'added' in partitions and 'partition_scheme' in old_data \
+-                    and old_data['partition_scheme'] != '':
++                and old_data['partition_scheme'] != '':
+                 temp_data = dict()
+                 temp_data['schema'] = data['schema']
+                 temp_data['name'] = data['name']
+@@ -1478,7 +1476,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 return internal_server_error(errormsg=rest)
+ 
+             sql = render_template("/".join([self.table_template_path,
+-                                  self._GET_SCHEMA_OID_SQL]), tid=tid)
++                                            self._GET_SCHEMA_OID_SQL]), tid=tid)
+             status, rest = self.conn.execute_2darray(sql)
+             if not status:
+                 return internal_server_error(errormsg=rest)
+@@ -1621,7 +1619,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+         if data['toast_reloptions'] is not None:
+             data['vacuum_settings_str'] += '\n' \
+                 if data['vacuum_settings_str'] != '' else ''
+-            data['vacuum_settings_str'] += '\n'.\
++            data['vacuum_settings_str'] += '\n'. \
+                 join(map(lambda o: 'toast.' + o, data['toast_reloptions']))
+ 
+         data['vacuum_settings_str'] = data[
+@@ -1748,8 +1746,8 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 part_data['name'] = row['partition_name']
+ 
+             if 'is_default' in row and row['is_default'] and (
+-                    partitions['partition_type'] == 'range' or
+-                    partitions['partition_type'] == 'list'):
++                partitions['partition_type'] == 'range' or
++                partitions['partition_type'] == 'list'):
+                 part_data['partition_value'] = 'DEFAULT'
+             elif partitions['partition_type'] == 'range':
+                 range_from = row['values_from'].split(',')
+@@ -1760,14 +1758,14 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 to_str = ', '.join("{0}".format(item) for
+                                    item in range_to)
+ 
+-                part_data['partition_value'] = 'FOR VALUES FROM (' +\
+-                                               from_str + ') TO (' +\
++                part_data['partition_value'] = 'FOR VALUES FROM (' + \
++                                               from_str + ') TO (' + \
+                                                to_str + ')'
+ 
+             elif partitions['partition_type'] == 'list':
+                 range_in = row['values_in'].split(',')
+                 in_str = ', '.join("{0}".format(item) for item in range_in)
+-                part_data['partition_value'] = 'FOR VALUES IN (' + in_str\
++                part_data['partition_value'] = 'FOR VALUES IN (' + in_str \
+                                                + ')'
+ 
+             else:
+@@ -1779,9 +1777,9 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 remainder_str = ', '.join("{0}".format(item) for item in
+                                           range_remainder)
+ 
+-                part_data['partition_value'] = 'FOR VALUES WITH (MODULUS '\
++                part_data['partition_value'] = 'FOR VALUES WITH (MODULUS ' \
+                                                + modulus_str \
+-                                               + ', REMAINDER ' +\
++                                               + ', REMAINDER ' + \
+                                                remainder_str + ')'
+ 
+             partition_sql = self._check_for_partitioned_table(row, part_data,
+@@ -1945,7 +1943,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                         opt.pop('value')
+         # Iterate vacuum table
+         elif vacuum_key in data and 'changed' in data[vacuum_key] \
+-                and vacuum_key in old_data:
++            and vacuum_key in old_data:
+             set_values = []
+             reset_values = []
+             self._iterate_vacuume_table(data, old_data, set_values,
+@@ -1956,11 +1954,11 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+         for data_row in data[vacuum_key]['changed']:
+             for old_data_row in old_data[vacuum_key]:
+                 if data_row['name'] == old_data_row['name'] and \
+-                        'value' in data_row:
++                    'value' in data_row:
+                     if data_row['value'] is not None:
+                         set_values.append(data_row)
+                     elif data_row['value'] is None and \
+-                            'value' in old_data_row:
++                        'value' in old_data_row:
+                         reset_values.append(data_row)
+ 
+         if len(set_values) > 0:
+@@ -1998,7 +1996,7 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+                 res['autovacuum_freeze_min_age'],
+                 res['autovacuum_freeze_max_age'],
+                 res['autovacuum_freeze_table_age']]) or \
+-                res['autovacuum_enabled'] in ('t', 'f')
++                                       res['autovacuum_enabled'] in ('t', 'f')
+ 
+             res['toast_autovacuum'] = any([
+                 res['toast_autovacuum_vacuum_threshold'],
+diff --git a/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependencies.sql b/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependencies.sql
+index 81bb2a6..e69de29 100644
+--- a/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependencies.sql
++++ b/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependencies.sql
+@@ -1,85 +0,0 @@
+-SELECT DISTINCT dep.deptype, dep.refclassid, dep.refobjid, cl.relkind, ad.adbin, ad.adsrc,
+-    CASE WHEN cl.relkind IS NOT NULL THEN CASE WHEN cl.relkind = 'r' THEN cl.relkind || COALESCE(dep.refobjsubid::text, '') ELSE cl.relkind END
+-        WHEN tg.oid IS NOT NULL THEN 'Tr'::text
+-        WHEN ty.oid IS NOT NULL THEN CASE WHEN ty.typtype = 'd' THEN 'd'::text ELSE 'Ty'::text END
+-        WHEN ns.oid IS NOT NULL THEN 'n'::text
+-        WHEN pr.oid IS NOT NULL AND (prtyp.typname = 'trigger' OR prtyp.typname = 'event_trigger') THEN 'Pt'::text
+-        WHEN pr.oid IS NOT NULL THEN 'Pf'::text
+-        WHEN la.oid IS NOT NULL THEN 'l'::text
+-        WHEN rw.oid IS NOT NULL THEN 'Rl'::text
+-        WHEN co.oid IS NOT NULL THEN CASE WHEN co.contypid > 0 THEN 'Cd' ELSE 'C'::text || contype END
+-        WHEN ad.oid IS NOT NULL THEN 'A'::text
+-        WHEN fs.oid IS NOT NULL THEN 'Fs'::text
+-        WHEN fdw.oid IS NOT NULL THEN 'Fw'::text
+-        WHEN col.oid IS NOT NULL THEN 'Co'::text
+-        WHEN ftsc.oid IS NOT NULL THEN 'Fc'::text
+-        WHEN ftsp.oid IS NOT NULL THEN 'Fp'::text
+-        WHEN ftsd.oid IS NOT NULL THEN 'Fd'::text
+-        WHEN ftst.oid IS NOT NULL THEN 'Ft'::text
+-        WHEN ext.oid IS NOT NULL THEN 'Ex'::text
+-    ELSE ''
+-    END AS type,
+-    COALESCE(coc.relname, clrw.relname) AS ownertable,
+-    CASE WHEN cl.relname IS NOT NULL OR att.attname IS NOT NULL THEN cl.relname || COALESCE('.' || att.attname, '')
+-    ELSE COALESCE(cl.relname, co.conname, pr.proname, tg.tgname, ty.typname, la.lanname, rw.rulename, ns.nspname,
+-                  fs.srvname, fdw.fdwname, col.collname, ftsc.cfgname, ftsd.dictname, ftsp.prsname,
+-                  ftst.tmplname, ext.extname)
+-    END AS refname,
+-    COALESCE(nsc.nspname, nso.nspname, nsp.nspname, nst.nspname, nsrw.nspname, colns.nspname, ftscns.nspname,
+-        ftsdns.nspname, ftspns.nspname, ftstns.nspname) AS nspname,
+-    CASE WHEN inhits.inhparent IS NOT NULL THEN '1' ELSE '0' END AS is_inherits,
+-    CASE WHEN inhed.inhparent IS NOT NULL THEN '1' ELSE '0' END AS is_inherited
+-FROM pg_depend dep
+-LEFT JOIN pg_class cl ON dep.refobjid=cl.oid
+-LEFT JOIN pg_attribute att ON dep.refobjid=att.attrelid AND dep.refobjsubid=att.attnum
+-LEFT JOIN pg_namespace nsc ON cl.relnamespace=nsc.oid
+-LEFT JOIN pg_proc pr ON dep.refobjid=pr.oid
+-LEFT JOIN pg_namespace nsp ON pr.pronamespace=nsp.oid
+-LEFT JOIN pg_trigger tg ON dep.refobjid=tg.oid
+-LEFT JOIN pg_type ty ON dep.refobjid=ty.oid
+-LEFT JOIN pg_namespace nst ON ty.typnamespace=nst.oid
+-LEFT JOIN pg_constraint co ON dep.refobjid=co.oid
+-LEFT JOIN pg_class coc ON co.conrelid=coc.oid
+-LEFT JOIN pg_namespace nso ON co.connamespace=nso.oid
+-LEFT JOIN pg_rewrite rw ON dep.refobjid=rw.oid
+-LEFT JOIN pg_class clrw ON clrw.oid=rw.ev_class
+-LEFT JOIN pg_namespace nsrw ON clrw.relnamespace=nsrw.oid
+-LEFT JOIN pg_language la ON dep.refobjid=la.oid
+-LEFT JOIN pg_namespace ns ON dep.refobjid=ns.oid
+-LEFT JOIN pg_attrdef ad ON ad.adrelid=att.attrelid AND ad.adnum=att.attnum
+-LEFT JOIN pg_foreign_server fs ON fs.oid=dep.refobjid
+-LEFT JOIN pg_foreign_data_wrapper fdw ON fdw.oid=dep.refobjid
+-LEFT JOIN pg_type prtyp ON prtyp.oid = pr.prorettype
+-LEFT JOIN pg_inherits inhits ON (inhits.inhrelid=dep.refobjid)
+-LEFT JOIN pg_inherits inhed ON (inhed.inhparent=dep.refobjid)
+-LEFT JOIN pg_collation col ON col.oid=dep.refobjid
+-LEFT JOIN pg_namespace colns ON col.collnamespace=colns.oid
+-LEFT JOIN pg_ts_config ftsc ON ftsc.oid=dep.refobjid
+-LEFT JOIN pg_namespace ftscns ON ftsc.cfgnamespace=ftscns.oid
+-LEFT JOIN pg_ts_dict ftsd ON ftsd.oid=dep.refobjid
+-LEFT JOIN pg_namespace ftsdns ON ftsd.dictnamespace=ftsdns.oid
+-LEFT JOIN pg_ts_parser ftsp ON ftsp.oid=dep.refobjid
+-LEFT JOIN pg_namespace ftspns ON ftsp.prsnamespace=ftspns.oid
+-LEFT JOIN pg_ts_template ftst ON ftst.oid=dep.refobjid
+-LEFT JOIN pg_namespace ftstns ON ftst.tmplnamespace=ftstns.oid
+-LEFT JOIN pg_extension ext ON ext.oid=dep.refobjid
+-{{where_clause}} AND
+-refclassid IN ( SELECT oid FROM pg_class WHERE relname IN
+-   ('pg_class', 'pg_constraint', 'pg_conversion', 'pg_language', 'pg_proc', 'pg_rewrite', 'pg_namespace',
+-   'pg_trigger', 'pg_type', 'pg_attrdef', 'pg_foreign_server', 'pg_foreign_data_wrapper',
+-   'pg_collation', 'pg_ts_config', 'pg_ts_dict', 'pg_ts_parser', 'pg_ts_template', 'pg_extension'))
+-UNION
+-SELECT DISTINCT dep.deptype, dep.refclassid, dep.refobjid, cl.relkind, ad.adbin, ad.adsrc,
+-    CASE WHEN cl.relkind IS NOT NULL THEN CASE WHEN cl.relkind = 'r' THEN cl.relkind || COALESCE(dep.refobjsubid::text, '') ELSE cl.relkind END
+-    ELSE '' END AS type,
+-	NULL AS ownertable,
+-	CASE WHEN cl.relname IS NOT NULL OR att.attname IS NOT NULL THEN cl.relname || COALESCE('.' || att.attname, '')
+-    ELSE cl.relname END AS refname,
+-    nsc.nspname AS nspname, '0' AS is_inherits, '0' AS is_inherited
+-FROM pg_depend dep
+-LEFT JOIN pg_class cl ON dep.refobjid=cl.oid
+-LEFT JOIN pg_attribute att ON dep.refobjid=att.attrelid AND dep.refobjsubid=att.attnum
+-LEFT JOIN pg_namespace nsc ON cl.relnamespace=nsc.oid
+-LEFT JOIN pg_attrdef ad ON ad.adrelid=att.attrelid AND ad.adnum=att.attnum
+-WHERE dep.objid IN (SELECT oid FROM pg_rewrite WHERE ev_class={{object_id}}) AND cl.relkind not in ('v', 'm')
+-ORDER BY refclassid, relkind
+diff --git a/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependents.sql b/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependents.sql
+index 71b0a1e..e69de29 100644
+--- a/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependents.sql
++++ b/web/pgadmin/browser/server_groups/servers/templates/depends/gpdb/5_plus/dependents.sql
+@@ -1,71 +0,0 @@
+-SELECT DISTINCT dep.deptype, dep.classid, cl.relkind, ad.adbin, ad.adsrc,
+-    CASE WHEN cl.relkind IS NOT NULL THEN CASE WHEN cl.relkind = 'r' THEN cl.relkind || COALESCE(dep.objsubid::text, '') ELSE cl.relkind END
+-        WHEN tg.oid IS NOT NULL THEN 'Tr'::text
+-        WHEN ty.oid IS NOT NULL THEN CASE WHEN ty.typtype = 'd' THEN 'd'::text ELSE 'Ty'::text END
+-        WHEN ns.oid IS NOT NULL THEN 'n'::text
+-        WHEN pr.oid IS NOT NULL AND (prtyp.typname = 'trigger' OR prtyp.typname = 'event_trigger') THEN 'Pt'::text
+-        WHEN pr.oid IS NOT NULL THEN 'Pf'::text
+-        WHEN la.oid IS NOT NULL THEN 'l'::text
+-        WHEN rw.oid IS NOT NULL THEN 'Rl'::text
+-        WHEN co.oid IS NOT NULL THEN CASE WHEN co.contypid > 0 THEN 'Cd' ELSE 'C'::text || contype END
+-        WHEN ad.oid IS NOT NULL THEN 'A'::text
+-        WHEN fs.oid IS NOT NULL THEN 'Fs'::text
+-        WHEN fdw.oid IS NOT NULL THEN 'Fw'::text
+-        WHEN col.oid IS NOT NULL THEN 'Co'::text
+-        WHEN ftsc.oid IS NOT NULL THEN 'Fc'::text
+-        WHEN ftsp.oid IS NOT NULL THEN 'Fp'::text
+-        WHEN ftsd.oid IS NOT NULL THEN 'Fd'::text
+-        WHEN ftst.oid IS NOT NULL THEN 'Ft'::text
+-        WHEN ext.oid IS NOT NULL THEN 'Ex'::text
+-    ELSE ''
+-    END AS type,
+-    COALESCE(coc.relname, clrw.relname) AS ownertable,
+-    CASE WHEN cl.relname IS NOT NULL AND att.attname IS NOT NULL THEN cl.relname || COALESCE('.' || att.attname, '')
+-    ELSE COALESCE(cl.relname, co.conname, pr.proname, tg.tgname, ty.typname, la.lanname, rw.rulename, ns.nspname,
+-                  fs.srvname, fdw.fdwname, col.collname, ftsc.cfgname, ftsd.dictname, ftsp.prsname,
+-                  ftst.tmplname, ext.extname)
+-    END AS refname,
+-    COALESCE(nsc.nspname, nso.nspname, nsp.nspname, nst.nspname, nsrw.nspname, colns.nspname, ftscns.nspname,
+-        ftsdns.nspname, ftspns.nspname, ftstns.nspname) AS nspname,
+-    CASE WHEN inhits.inhparent IS NOT NULL THEN '1' ELSE '0' END AS is_inherits,
+-    CASE WHEN inhed.inhparent IS NOT NULL THEN '1' ELSE '0' END AS is_inherited
+-FROM pg_depend dep
+-LEFT JOIN pg_class cl ON dep.objid=cl.oid
+-LEFT JOIN pg_attribute att ON dep.objid=att.attrelid AND dep.objsubid=att.attnum
+-LEFT JOIN pg_namespace nsc ON cl.relnamespace=nsc.oid
+-LEFT JOIN pg_proc pr ON dep.objid=pr.oid
+-LEFT JOIN pg_namespace nsp ON pr.pronamespace=nsp.oid
+-LEFT JOIN pg_trigger tg ON dep.objid=tg.oid
+-LEFT JOIN pg_type ty ON dep.objid=ty.oid
+-LEFT JOIN pg_namespace nst ON ty.typnamespace=nst.oid
+-LEFT JOIN pg_constraint co ON dep.objid=co.oid
+-LEFT JOIN pg_class coc ON co.conrelid=coc.oid
+-LEFT JOIN pg_namespace nso ON co.connamespace=nso.oid
+-LEFT JOIN pg_rewrite rw ON dep.objid=rw.oid
+-LEFT JOIN pg_class clrw ON clrw.oid=rw.ev_class
+-LEFT JOIN pg_namespace nsrw ON clrw.relnamespace=nsrw.oid
+-LEFT JOIN pg_language la ON dep.objid=la.oid
+-LEFT JOIN pg_namespace ns ON dep.objid=ns.oid
+-LEFT JOIN pg_attrdef ad ON ad.oid=dep.objid
+-LEFT JOIN pg_foreign_server fs ON fs.oid=dep.objid
+-LEFT JOIN pg_foreign_data_wrapper fdw ON fdw.oid=dep.objid
+-LEFT JOIN pg_type prtyp ON prtyp.oid = pr.prorettype
+-LEFT JOIN pg_inherits inhits ON (inhits.inhrelid=dep.objid)
+-LEFT JOIN pg_inherits inhed ON (inhed.inhparent=dep.objid)
+-LEFT JOIN pg_collation col ON col.oid=dep.objid
+-LEFT JOIN pg_namespace colns ON col.collnamespace=colns.oid
+-LEFT JOIN pg_ts_config ftsc ON ftsc.oid=dep.objid
+-LEFT JOIN pg_namespace ftscns ON ftsc.cfgnamespace=ftscns.oid
+-LEFT JOIN pg_ts_dict ftsd ON ftsd.oid=dep.objid
+-LEFT JOIN pg_namespace ftsdns ON ftsd.dictnamespace=ftsdns.oid
+-LEFT JOIN pg_ts_parser ftsp ON ftsp.oid=dep.objid
+-LEFT JOIN pg_namespace ftspns ON ftsp.prsnamespace=ftspns.oid
+-LEFT JOIN pg_ts_template ftst ON ftst.oid=dep.objid
+-LEFT JOIN pg_namespace ftstns ON ftst.tmplnamespace=ftstns.oid
+-LEFT JOIN pg_extension ext ON ext.oid=dep.objid
+-{{where_clause}} AND
+-classid IN ( SELECT oid FROM pg_class WHERE relname IN
+-   ('pg_class', 'pg_constraint', 'pg_conversion', 'pg_language', 'pg_proc', 'pg_rewrite', 'pg_namespace',
+-   'pg_trigger', 'pg_type', 'pg_attrdef', 'pg_foreign_server', 'pg_foreign_data_wrapper',
+-   'pg_collation', 'pg_ts_config', 'pg_ts_dict', 'pg_ts_parser', 'pg_ts_template', 'pg_extension'))
+-ORDER BY classid, cl.relkind
+diff --git a/web/pgadmin/browser/utils.py b/web/pgadmin/browser/utils.py
+index 312b0ee..ce37e5c 100644
+--- a/web/pgadmin/browser/utils.py
++++ b/web/pgadmin/browser/utils.py
+@@ -12,15 +12,15 @@
+ from abc import abstractmethod
+ 
+ import flask
+-from flask import render_template, current_app
+-from flask.views import View, MethodViewType, with_metaclass
++from flask import current_app, render_template
++from flask.views import MethodViewType, View, with_metaclass
+ from flask_babelex import gettext
+ 
+ from config import PG_DEFAULT_DRIVER
+-from pgadmin.utils.ajax import make_json_response, precondition_required,\
+-    internal_server_error
+-from pgadmin.utils.exception import ConnectionLost, SSHTunnelConnectionLost,\
+-    CryptKeyMissing
++from pgadmin.utils.ajax import (internal_server_error, make_json_response,
++                                precondition_required)
++from pgadmin.utils.exception import (ConnectionLost, CryptKeyMissing,
++                                     SSHTunnelConnectionLost)
+ 
+ 
+ def underscore_escape(text):
+@@ -472,9 +472,12 @@ class PGChildNodeView(NodeView):
+         """
+ 
+         # Set the sql_path
+-        sql_path = 'depends/{0}/#{1}#'.format(
+-            conn.manager.server_type, conn.manager.version)
+-
++        sql_path = 'depends/' + (
++            '{0}/#{0}#{1}#'.format(conn.manager.server_type, conn.manager.version) if
++            conn.manager.server_type == 'gpdb' else
++            '{0}/#{1}#'.format(conn.manager.server_type, conn.manager.version)
++        )
++        
+         if where is None:
+             where_clause = "WHERE dep.objid={0}::oid".format(object_id)
+         else:
+@@ -528,8 +531,11 @@ class PGChildNodeView(NodeView):
+         Returns: Dictionary of dependents for the selected node.
+         """
+         # Set the sql_path
+-        sql_path = 'depends/{0}/#{1}#'.format(
+-            conn.manager.server_type, conn.manager.version)
++        sql_path = 'depends/' + (
++            '{0}/#{0}#{1}#'.format(conn.manager.server_type, conn.manager.version) if
++            conn.manager.server_type == 'gpdb' else
++            '{0}/#{1}#'.format(conn.manager.server_type, conn.manager.version)
++        )
+ 
+         if where is None:
+             where_clause = "WHERE dep.refobjid={0}::oid".format(object_id)
+@@ -601,6 +607,7 @@ class PGChildNodeView(NodeView):
+         status, result = conn.execute_dict(query)
+         if not status:
+             current_app.logger.error(result)
++            return []
+ 
+         dependency = list()
+ 
+diff --git a/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/activity.sql b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/activity.sql
+index 0b3918e..05f168e 100644
+--- a/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/activity.sql
++++ b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/activity.sql
+@@ -11,5 +11,5 @@ SELECT
+ FROM
+     pg_stat_activity
+ {% if did %}WHERE
+-    datid = {{ did }} {% endif %}
++    datid = {{ did }}{% endif %}
+ ORDER BY pid
+diff --git a/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/dashboard_stats.sql b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/dashboard_stats.sql
+index 2b0017d..5a71855 100644
+--- a/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/dashboard_stats.sql
++++ b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb_5.0_plus/dashboard_stats.sql
+@@ -4,9 +4,9 @@
+ {% set add_union = true %}
+ SELECT 'session_stats' AS chart_name, row_to_json(t) AS chart_data
+ FROM (SELECT
+-   (SELECT count(*) FROM pg_stat_activity{% if did %} WHERE datid = {{ did }} {% endif %}) AS "{{ _('Total') }}",
+-   (SELECT count(*) FROM pg_stat_activity WHERE current_query NOT LIKE '<IDLE>%'{% if did %} AND datid = {{ did }} {% endif %})  AS "{{ _('Active') }}",
+-   (SELECT count(*) FROM pg_stat_activity WHERE current_query LIKE '<IDLE>%'{% if did %} AND datid =  {{ did }} {% endif %})  AS "{{ _('Idle') }}"
++   (SELECT count(*) FROM pg_stat_activity{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Total') }}",
++   (SELECT count(*) FROM pg_stat_activity WHERE current_query NOT LIKE '<IDLE>%'{% if did %} AND datid = {{ did }}{% endif %})  AS "{{ _('Active') }}",
++   (SELECT count(*) FROM pg_stat_activity WHERE current_query LIKE '<IDLE>%'{% if did %} AND datid =  {{ did }}{% endif %})  AS "{{ _('Idle') }}"
+ ) t
+ {% endif %}
+ {% if add_union and 'tps_stats' in chart_names %}
+@@ -16,9 +16,9 @@ UNION ALL
+ {% set add_union = true %}
+ SELECT 'tps_stats' AS chart_name, row_to_json(t) AS chart_data
+ FROM (SELECT
+-   (SELECT sum(xact_commit) + sum(xact_rollback) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Transactions') }}",
+-   (SELECT sum(xact_commit) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Commits') }}",
+-   (SELECT sum(xact_rollback) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Rollbacks') }}"
++   (SELECT sum(xact_commit) + sum(xact_rollback) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Transactions') }}",
++   (SELECT sum(xact_commit) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Commits') }}",
++   (SELECT sum(xact_rollback) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Rollbacks') }}"
+ ) t
+ {% endif %}
+ {% if add_union and 'ti_stats' in chart_names %}
+@@ -28,9 +28,9 @@ UNION ALL
+ {% set add_union = true %}
+ SELECT 'ti_stats' AS chart_name, row_to_json(t) AS chart_data
+ FROM (SELECT
+-   (SELECT sum(tup_inserted) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Inserts') }}",
+-   (SELECT sum(tup_updated) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Updates') }}",
+-   (SELECT sum(tup_deleted) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Deletes') }}"
++   (SELECT sum(tup_inserted) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Inserts') }}",
++   (SELECT sum(tup_updated) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Updates') }}",
++   (SELECT sum(tup_deleted) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Deletes') }}"
+ ) t
+ {% endif %}
+ {% if add_union and 'to_stats' in chart_names %}
+@@ -40,8 +40,8 @@ UNION ALL
+ {% set add_union = true %}
+ SELECT 'to_stats' AS chart_name, row_to_json(t) AS chart_data
+ FROM (SELECT
+-   (SELECT sum(tup_fetched) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Fetched') }}",
+-   (SELECT sum(tup_returned) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Returned') }}"
++   (SELECT sum(tup_fetched) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Fetched') }}",
++   (SELECT sum(tup_returned) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Returned') }}"
+ ) t
+ {% endif %}
+ {% if add_union and 'bio_stats' in chart_names %}
+@@ -51,7 +51,7 @@ UNION ALL
+ {% set add_union = true %}
+ SELECT 'bio_stats' AS chart_name, row_to_json(t) AS chart_data
+ FROM (SELECT
+-   (SELECT sum(blks_read) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Reads') }}",
+-   (SELECT sum(blks_hit) FROM pg_stat_database{% if did %} WHERE datname = (SELECT datname FROM pg_database WHERE oid = {{ did }}){% endif %}) AS "{{ _('Hits') }}"
++   (SELECT sum(blks_read) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Reads') }}",
++   (SELECT sum(blks_hit) FROM pg_stat_database{% if did %} WHERE datid = {{ did }}{% endif %}) AS "{{ _('Hits') }}"
+ ) t
+ {% endif %}
+diff --git a/web/pgadmin/utils/versioned_template_loader.py b/web/pgadmin/utils/versioned_template_loader.py
+index c4dcc15..3dd135f 100644
+--- a/web/pgadmin/utils/versioned_template_loader.py
++++ b/web/pgadmin/utils/versioned_template_loader.py
+@@ -12,6 +12,21 @@ from jinja2 import TemplateNotFound
+ 
+ class VersionedTemplateLoader(DispatchingJinjaLoader):
+     def get_source(self, environment, template):
++        """
++        Should support the following template string format:
++
++        - connect/sql/9.0_plus/check_recovery.sql           <= connect/sql/#xxx#/check_recovery.sql
++        - dashboard/sql/9.6_plus/activity.sql               <= dashboard/sql/#xxx#/activity.sql
++        - dashboard/sql/gpdb_6.0_plus/activity.sql          <= dashboard/sql/#xxx#xxx#/activity.sql
++        - table/sql/9.6_plus/properties.sql                 <= table/sql/#xxx#/properties.sql
++        - table/sql/gpdb_5.0_plus/properties.sql            <= table/sql/#xxx#xxx#/properties.sql
++        - depends/pg/9.6_plus/role_dependencies.sql         <= depends/xxx/#xxx#xxx#/role_dependencies.sql
++        - depends/gpdb/5_plus/role_dependencies.sql         <= depends/xxx/#xxx#xxx#/role_dependencies.sql
++        - function/gpdb/sql/5_plus/get_definition.sql       <= function/###/sql/#xxx#xxx#/get_definition.sql
++        - function/pg/sql/10_plus/get_definition.sql        <= function/###/sql/#xxx#xxx#/get_definition.sql
++        - schemas/gpdb_5.0_plus/sql/acl.sql                 <= schemas/#xxx#xxx#/sql/acl.sql
++        - schemas/pg/9.6_plus/sql/acl.sql                   <= schemas/xxx/#xxx#/sql/acl.sql
++        """
+         specified_version_number, exists = parse_version(template)
+         if not exists:
+             return super(VersionedTemplateLoader, self).get_source(
+@@ -79,7 +94,9 @@ def get_version_mapping_directories(server_type):
+     """
+     if server_type == 'gpdb':
+         return (
++            {'name': "gpdb_6.0_plus", 'number': 90424},
+             {'name': "gpdb_5.0_plus", 'number': 80323},
++            {'name': "6_plus", 'number': 90424},
+             {'name': "5_plus", 'number': 80323},
+             {'name': "default", 'number': 0}
+         )
