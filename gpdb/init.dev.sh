@@ -14,8 +14,9 @@ else
     # BRANCH=5.27.1
     # BRANCH=5.28.0
     # BRANCH=5.28.1
-    BRANCH=5.28.3
+    # BRANCH=5.28.3
+    BRANCH=5.28.5
 fi
 TAGNAME=development/gpdb:${BRANCH}
 
-PROXY=http://10.190.40.39:2379/
+PROXY=http://10.190.40.39:5493/
