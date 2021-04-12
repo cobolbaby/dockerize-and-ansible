@@ -55,10 +55,10 @@ index 0b4d1a7..21f40ff 100644
  docs:
  	LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 $(MAKE) -C docs/en_US -f Makefile.sphinx html
 diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
-index c4b023e..fabc7fb 100644
+index c4b023e..56449d5 100644
 --- a/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
 +++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/__init__.py
-@@ -16,23 +16,22 @@ import traceback
+@@ -16,23 +16,23 @@ import traceback
  from functools import wraps
  
  import simplejson as json
@@ -88,32 +88,32 @@ index c4b023e..fabc7fb 100644
 -    make_response as ajax_response, gone
 +from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
 +from pgadmin.utils.ajax import make_response as ajax_response
++from pgadmin.utils.compile_template_name import compile_template_path
  from pgadmin.utils.driver import get_driver
  
  
-@@ -361,12 +360,11 @@ class FunctionView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
+@@ -361,12 +361,11 @@ class FunctionView(PGChildNodeView, DataTypeReader, SchemaDiffObjectCompare):
                  template_initial = 'trigger_functions'
  
              # Set the template path for the SQL scripts
 -            self.sql_template_path = "/".join([
 -                template_initial,
--                self.manager.server_type,
++            self.sql_template_path = compile_template_path(
++                template_initial + '/' + self.manager.server_type + '/sql' ,
+                 self.manager.server_type,
 -                'sql',
 -                '#{0}#'
 -            ]).format(self.manager.version)
-+            self.sql_template_path = template_initial + (
-+                '/{0}/sql/#{0}#{1}#'.format(self.manager.server_type, self.manager.version) if 
-+                self.manager.server_type == 'gpdb' else
-+                '/{0}/sql/#{1}#'.format(self.manager.server_type, self.manager.version)
++                self.manager.version
 +            )
  
              return f(*args, **kwargs)
  
 diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
-index 48a722f..8d1438d 100644
+index 48a722f..6e7512d 100644
 --- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
 +++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/__init__.py
-@@ -9,21 +9,22 @@
+@@ -9,21 +9,23 @@
  
  """Implements Foreign key constraint Node"""
  
@@ -141,53 +141,68 @@ index 48a722f..8d1438d 100644
 -    constraints.foreign_key import utils as fkey_utils
 +from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
 +from pgadmin.utils.ajax import make_response as ajax_response
++from pgadmin.utils.compile_template_name import compile_template_path
  from pgadmin.utils.driver import get_driver
 -from config import PG_DEFAULT_DRIVER
  
  FOREIGN_KEY_NOT_FOUND = gettext("Could not find the foreign key.")
  
-@@ -184,7 +185,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+@@ -184,8 +186,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
      """
  
      node_type = 'foreign_key'
 -    FOREIGN_KEY_PATH = 'foreign_key/sql/#{0}#'
-+    FOREIGN_KEY_PATH = 'foreign_key/sql/#{0}#{1}#'
- 
+-
++    FOREIGN_KEY_PATH = 'foreign_key/sql'
      parent_ids = [
          {'type': 'int', 'id': 'gid'},
-@@ -244,7 +245,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+         {'type': 'int', 'id': 'sid'},
+@@ -243,8 +244,11 @@ class ForeignKeyConstraintView(PGChildNodeView):
+                 self.datistemplate = self.manager.db_info[
                      kwargs['did']]['datistemplate']
  
-             self.template_path = self.FOREIGN_KEY_PATH.format(
+-            self.template_path = self.FOREIGN_KEY_PATH.format(
 -                self.manager.version)
-+                self.manager.server_type, self.manager.version)
++            self.template_path = compile_template_path(
++                self.FOREIGN_KEY_PATH,
++                self.manager.server_type,
++                self.manager.version
++            )
  
              # We need parent's name eg table name and schema name
              schema, table = fkey_utils.get_parent(self.conn, kwargs['tid'])
-@@ -349,7 +350,7 @@ class ForeignKeyConstraintView(PGChildNodeView):
+@@ -348,8 +352,11 @@ class ForeignKeyConstraintView(PGChildNodeView):
+         """
          self.manager = get_driver(PG_DEFAULT_DRIVER).connection_manager(sid)
          self.conn = self.manager.connection(did=did)
-         self.template_path = self.FOREIGN_KEY_PATH.format(
+-        self.template_path = self.FOREIGN_KEY_PATH.format(
 -            self.manager.version)
-+            self.manager.server_type, self.manager.version)
++        self.template_path = compile_template_path(
++            self.FOREIGN_KEY_PATH,
++            self.manager.server_type,
++            self.manager.version
++        )
  
          # We need parent's name eg table name and schema name
          schema, table = fkey_utils.get_parent(self.conn, tid)
-@@ -459,7 +460,8 @@ class ForeignKeyConstraintView(PGChildNodeView):
+@@ -459,7 +466,11 @@ class ForeignKeyConstraintView(PGChildNodeView):
          """
          self.manager = get_driver(PG_DEFAULT_DRIVER).connection_manager(sid)
          self.conn = self.manager.connection(did=did)
 -        self.template_path = self.FOREIGN_KEY_PATH.format(self.manager.version)
-+        self.template_path = self.FOREIGN_KEY_PATH.format(
-+            self.manager.server_type, self.manager.version)
++        self.template_path = compile_template_path(
++            self.FOREIGN_KEY_PATH,
++            self.manager.server_type,
++            self.manager.version
++        )
  
          # We need parent's name eg table name and schema name
          schema, table = fkey_utils.get_parent(self.conn, tid)
 diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
-index 3e99e56..5fa6366 100644
+index 3e99e56..83be1dc 100644
 --- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
 +++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/constraints/foreign_key/utils.py
-@@ -9,11 +9,13 @@
+@@ -9,11 +9,14 @@
  
  """ Implements Utility class for Foreign Keys. """
  
@@ -199,21 +214,116 @@ index 3e99e56..5fa6366 100644
  from pgadmin.utils.ajax import internal_server_error
 -from pgadmin.utils.exception import ObjectGone, ExecuteError
 -from functools import wraps
++from pgadmin.utils.compile_template_name import compile_template_path
 +from pgadmin.utils.exception import ExecuteError, ObjectGone
  
  FKEY_PROPERTIES_SQL = 'properties.sql'
  
-@@ -29,8 +31,8 @@ def get_template_path(f):
+@@ -29,9 +32,11 @@ def get_template_path(f):
          # Here args[0] will hold the connection object
          conn_obj = args[0]
          if 'template_path' not in kwargs:
 -            kwargs['template_path'] = 'foreign_key/sql/#{0}#'.format(
 -                conn_obj.manager.version)
-+            kwargs['template_path'] = 'foreign_key/sql/#{0}#{1}#'.format(
-+                conn_obj.manager.server_type, conn_obj.manager.version)
- 
+-
++            kwargs['template_path'] = compile_template_path(
++                'foreign_key/sql',
++                conn_obj.manager.server_type,
++                conn_obj.manager.version
++            )
          return f(*args, **kwargs)
      return wrap
+ 
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/__init__.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/__init__.py
+index 31103f0..f86a47a 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/__init__.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/__init__.py
+@@ -9,26 +9,27 @@
+ 
+ """ Implements Index Node """
+ 
+-import simplejson as json
+ from functools import wraps
+ 
+-import pgadmin.browser.server_groups.servers.databases as database
+-from flask import render_template, request, jsonify, current_app
++import simplejson as json
++from flask import current_app, jsonify, render_template, request
+ from flask_babelex import gettext
++
++import pgadmin.browser.server_groups.servers.databases as database
++from config import PG_DEFAULT_DRIVER
+ from pgadmin.browser.collection import CollectionNodeModule
+-from pgadmin.browser.server_groups.servers.databases.schemas.tables.\
+-    partitions import backend_supported
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.indexes import \
++    utils as index_utils
++from pgadmin.browser.server_groups.servers.databases.schemas.tables.partitions import \
++    backend_supported
+ from pgadmin.browser.utils import PGChildNodeView
+-from pgadmin.utils.ajax import make_json_response, internal_server_error, \
+-    make_response as ajax_response, gone
++from pgadmin.tools.schema_diff.compare import SchemaDiffObjectCompare
++from pgadmin.tools.schema_diff.directory_compare import directory_diff
++from pgadmin.tools.schema_diff.node_registry import SchemaDiffRegistry
++from pgadmin.utils.ajax import gone, internal_server_error, make_json_response
++from pgadmin.utils.ajax import make_response as ajax_response
+ from pgadmin.utils.compile_template_name import compile_template_path
+ from pgadmin.utils.driver import get_driver
+-from config import PG_DEFAULT_DRIVER
+-from pgadmin.tools.schema_diff.node_registry import SchemaDiffRegistry
+-from pgadmin.tools.schema_diff.directory_compare import directory_diff
+-from pgadmin.tools.schema_diff.compare import SchemaDiffObjectCompare
+-from pgadmin.browser.server_groups.servers.databases.schemas. \
+-    tables.indexes import utils as index_utils
+ 
+ 
+ class IndexesModule(CollectionNodeModule):
+@@ -260,7 +261,7 @@ class IndexesView(PGChildNodeView, SchemaDiffObjectCompare):
+ 
+             # we will set template path for sql scripts
+             self.template_path = compile_template_path(
+-                'indexes/sql/',
++                'indexes/sql',
+                 self.manager.server_type,
+                 self.manager.version
+             )
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/utils.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/utils.py
+index 6f3bb86..196d908 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/utils.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/indexes/utils.py
+@@ -9,11 +9,14 @@
+ 
+ """ Implements Utility class for Indexes. """
+ 
++from functools import wraps
++
+ from flask import render_template
+ from flask_babelex import gettext as _
++
+ from pgadmin.utils.ajax import internal_server_error
+-from pgadmin.utils.exception import ObjectGone, ExecuteError
+-from functools import wraps
++from pgadmin.utils.compile_template_name import compile_template_path
++from pgadmin.utils.exception import ExecuteError, ObjectGone
+ 
+ 
+ def get_template_path(f):
+@@ -27,9 +30,11 @@ def get_template_path(f):
+         # Here args[0] will hold the connection object
+         conn_obj = args[0]
+         if 'template_path' not in kwargs or kwargs['template_path'] is None:
+-            kwargs['template_path'] = \
+-                'indexes/sql/#{0}#'.format(conn_obj.manager.version)
+-
++            kwargs['template_path'] = compile_template_path(
++                'indexes/sql',
++                conn_obj.manager.server_type,
++                conn_obj.manager.version
++            )
+         return f(*args, **kwargs)
+     return wrap
+ 
 diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql
 index b6ff1f1..b1862b3 100644
 --- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb_5.0_plus/create.sql
@@ -721,10 +831,10 @@ index 71b0a1e..e69de29 100644
 -   'pg_collation', 'pg_ts_config', 'pg_ts_dict', 'pg_ts_parser', 'pg_ts_template', 'pg_extension'))
 -ORDER BY classid, cl.relkind
 diff --git a/web/pgadmin/browser/utils.py b/web/pgadmin/browser/utils.py
-index 312b0ee..ce37e5c 100644
+index 312b0ee..d9a4870 100644
 --- a/web/pgadmin/browser/utils.py
 +++ b/web/pgadmin/browser/utils.py
-@@ -12,15 +12,15 @@
+@@ -12,15 +12,16 @@
  from abc import abstractmethod
  
  import flask
@@ -741,42 +851,43 @@ index 312b0ee..ce37e5c 100644
 -    CryptKeyMissing
 +from pgadmin.utils.ajax import (internal_server_error, make_json_response,
 +                                precondition_required)
++from pgadmin.utils.compile_template_name import compile_template_path
 +from pgadmin.utils.exception import (ConnectionLost, CryptKeyMissing,
 +                                     SSHTunnelConnectionLost)
  
  
  def underscore_escape(text):
-@@ -472,9 +472,12 @@ class PGChildNodeView(NodeView):
+@@ -472,9 +473,12 @@ class PGChildNodeView(NodeView):
          """
  
          # Set the sql_path
 -        sql_path = 'depends/{0}/#{1}#'.format(
 -            conn.manager.server_type, conn.manager.version)
 -
-+        sql_path = 'depends/' + (
-+            '{0}/#{0}#{1}#'.format(conn.manager.server_type, conn.manager.version) if
-+            conn.manager.server_type == 'gpdb' else
-+            '{0}/#{1}#'.format(conn.manager.server_type, conn.manager.version)
++        sql_path = compile_template_path(
++            'depends/' + conn.manager.server_type,
++            conn.manager.server_type,
++            conn.manager.version
 +        )
 +        
          if where is None:
              where_clause = "WHERE dep.objid={0}::oid".format(object_id)
          else:
-@@ -528,8 +531,11 @@ class PGChildNodeView(NodeView):
+@@ -528,8 +532,11 @@ class PGChildNodeView(NodeView):
          Returns: Dictionary of dependents for the selected node.
          """
          # Set the sql_path
 -        sql_path = 'depends/{0}/#{1}#'.format(
 -            conn.manager.server_type, conn.manager.version)
-+        sql_path = 'depends/' + (
-+            '{0}/#{0}#{1}#'.format(conn.manager.server_type, conn.manager.version) if
-+            conn.manager.server_type == 'gpdb' else
-+            '{0}/#{1}#'.format(conn.manager.server_type, conn.manager.version)
++        sql_path = compile_template_path(
++            'depends/' + conn.manager.server_type,
++            conn.manager.server_type,
++            conn.manager.version
 +        )
  
          if where is None:
              where_clause = "WHERE dep.refobjid={0}::oid".format(object_id)
-@@ -601,6 +607,7 @@ class PGChildNodeView(NodeView):
+@@ -601,6 +608,7 @@ class PGChildNodeView(NodeView):
          status, result = conn.execute_dict(query)
          if not status:
              current_app.logger.error(result)
