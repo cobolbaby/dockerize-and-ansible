@@ -1,0 +1,87 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Append",
+      "Parallel Aware": false,
+      "Startup Cost": 0.00,
+      "Total Cost": 1217015.44,
+      "Plan Rows": 23263128,
+      "Plan Width": 277,
+      "Subplans Removed": 27,
+      "Plans": [
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Member",
+          "Parallel Aware": false,
+          "Relation Name": "ictlogtestpart_ao_p2021_04_06",
+          "Alias": "ictlogtestpart_ao_p2021_04_06",
+          "Startup Cost": 0.00,
+          "Total Cost": 219035.75,
+          "Plan Rows": 4770100,
+          "Plan Width": 278,
+          "Filter": "(testtime < (now() - '7 days'::interval))"
+        },
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Member",
+          "Parallel Aware": false,
+          "Relation Name": "ictlogtestpart_ao_p2021_04_07",
+          "Alias": "ictlogtestpart_ao_p2021_04_07",
+          "Startup Cost": 0.00,
+          "Total Cost": 384898.77,
+          "Plan Rows": 8398387,
+          "Plan Width": 276,
+          "Filter": "(testtime < (now() - '7 days'::interval))"
+        },
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Member",
+          "Parallel Aware": false,
+          "Relation Name": "ictlogtestpart_ao_p2021_04_08",
+          "Alias": "ictlogtestpart_ao_p2021_04_08",
+          "Startup Cost": 0.00,
+          "Total Cost": 332043.72,
+          "Plan Rows": 7199927,
+          "Plan Width": 278,
+          "Filter": "(testtime < (now() - '7 days'::interval))"
+        },
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Member",
+          "Parallel Aware": false,
+          "Relation Name": "ictlogtestpart_ao_p2021_04_09",
+          "Alias": "ictlogtestpart_ao_p2021_04_09",
+          "Startup Cost": 0.00,
+          "Total Cost": 164461.92,
+          "Plan Rows": 2894434,
+          "Plan Width": 275,
+          "Filter": "(testtime < (now() - '7 days'::interval))"
+        },
+        {
+          "Node Type": "Index Scan",
+          "Parent Relationship": "Member",
+          "Parallel Aware": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ictlogtestpart_ao_default_testtime_idx1",
+          "Relation Name": "ictlogtestpart_ao_default",
+          "Alias": "ictlogtestpart_ao_default",
+          "Startup Cost": 0.15,
+          "Total Cost": 8.17,
+          "Plan Rows": 1,
+          "Plan Width": 190,
+          "Index Cond": "(testtime < (now() - '7 days'::interval))"
+        }
+      ]
+    },
+    "JIT": {
+      "Worker Number": -1,
+      "Functions": 11,
+      "Options": {
+        "Inlining": true,
+        "Optimization": true,
+        "Expressions": true,
+        "Deforming": true
+      }
+    }
+  }
+]
