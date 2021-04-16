@@ -5,15 +5,13 @@ cd `dirname $0`
 schema="ict"
 table="ictlogtestpart_ao"
 
-where="testtime < now() - interval '7 day'"
-where="testtime < '2021-04-20 00:00:00'::timestamp"
-
-where="testtime < "
-
-exit
-
 # 针对 pg10 版本，动态条件会造成全表扫描，除非拼接 动态SQL
+# where="testtime < '`date "+%Y-%m-%d %H:%M:%S"`'::timestamp - interval '7 day'"
+where="testtime < '`date "+%Y-%m-%d 00:00:00"`'::timestamp - interval '7 day'"
 # 而针对 pg11 / pg12 版本，动态条件应该做了优化，支持了分区裁剪
+# where="testtime < now() - interval '7 day'"
+
+echo $where
 
 export PGHOST=
 export PGPORT=
