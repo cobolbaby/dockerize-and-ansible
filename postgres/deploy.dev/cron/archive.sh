@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -e
+set -e
 cd `dirname $0`
 
 # *****************************************************************************
@@ -51,25 +51,31 @@ do
     # mc cp --recursive ${archive_path}/${schema}.${part_tbl}.dump minio/${archive_s3_bucket}/${archive_s3_path}/${archive_subdir}/
     # 归档之后删除
     # 判断是否为默认分区，如果是默认分区，则采用delete的命令，如果是其他历史分区，则直接drop
-    # psql -At -d $database -c "drop table ${schema}.${part_tbl}"
-    if [[ $part_tbl =~ _default$ ]] 
+    if [[ $part_tbl =~ _default$ ]]
     then
         echo "delete from ${schema}.${part_tbl} where ${where}"
+        # psql -At -d $database -c "delete from ${schema}.${part_tbl} where ${where}"
+        # psql -At -d $database -c "vacuum analyse ${schema}.${part_tbl}"
     else
         echo "drop from ${schema}.${part_tbl}"
+        # psql -At -d $database -c "drop table ${schema}.${part_tbl}"
     fi
-
-    # Alter tablespace
-    # 无需关心导出的数据格式，只是换了一块盘，依赖文件系统，不能是S3
     
     # Or dump table and migrate to S3
     # 导出的数据格式需要符合外部表所兼容的格式，另外结存过程中可能还要落一次盘(尽量避免)
+    # 
     # 迁移到S3的数据，可以采用外部表的形式挂载
     
-
+    # Alter tablespace
+    # 无需关心导出的数据格式，只是换了一块盘，依赖文件系统，不能是S3
+    # 该策略更像是在借助多盘来提升磁盘IO性能
+    
+    
     # 所以:
-    # 如果最终存储在某块磁盘，推荐是用 tablespace 的方式
-    # 如果最终存储在S3，就是后面的实现
+    # 如果是为了分担磁盘读写压力，一般采用 tablespace 的方式
+    # 如果是为了归档保存，则视情况而定，
+    #   若数据一个月还可能用那么几次，则建议保存为csv格式文件，在Minio层级做压缩
+    #   若数据只是为了存储，则建议保存的时候就采用压缩保存，且不为其创建外部表
     
 done
 
