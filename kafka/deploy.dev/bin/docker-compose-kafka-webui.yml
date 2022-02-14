@@ -11,7 +11,7 @@ services:
   #   restart: on-failure
 
   kowl:
-    image: registry.inventec/quay/cloudhut/kowl:v1.2.2
+    image: quay.io/cloudhut/kowl:v1.5.0
     container_name: kowl
     ports:
       - 8082:8080
@@ -20,13 +20,13 @@ services:
     entrypoint: ./kowl --config.filepath=/etc/kowl/config.yaml
     restart: on-failure
 
-  kafka-manager:
-    image: registry.inventec/hub/hlebalbau/kafka-manager:master-7e7a22e
-    container_name: kafka-manager
-    ports:
-      - 9000:9000
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      ZK_HOSTS: 10.0.1.81:2181,10.0.1.82:2181,10.0.1.83:2181
-    restart: always
+  # kafka-manager:
+  #   image: registry.inventec/hub/hlebalbau/kafka-manager:master-7e7a22e
+  #   container_name: kafka-manager
+  #   ports:
+  #     - 9000:9000
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #   environment:
+  #     ZK_HOSTS: 10.0.1.81:2181,10.0.1.82:2181,10.0.1.83:2181
+  #   restart: always
