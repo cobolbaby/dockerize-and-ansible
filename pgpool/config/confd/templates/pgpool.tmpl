@@ -1,0 +1,133 @@
+#------------------------------------------------------------------------------
+# CONNECTIONS
+#------------------------------------------------------------------------------
+
+# - pgpool Connection Settings -
+listen_addresses = '0.0.0.0'
+port = 5432
+
+# - Authentication -
+enable_pool_hba = off
+pool_passwd = 'pool_passwd'
+allow_clear_text_frontend_auth = on
+
+#------------------------------------------------------------------------------
+# POOLS
+#------------------------------------------------------------------------------
+
+# - Concurrent session and pool size -
+num_init_children = 2
+
+#------------------------------------------------------------------------------
+# LOGS
+#------------------------------------------------------------------------------
+
+log_connections = on
+log_hostname = on
+
+#------------------------------------------------------------------------------
+# LOAD BALANCING MODE
+#------------------------------------------------------------------------------
+
+load_balance_mode = on
+                                   # Activate load balancing mode
+                                   # (change requires restart)
+ignore_leading_white_space = on
+                                   # Ignore leading white spaces of each query
+read_only_function_list = ''
+                                   # Comma separated list of function names
+                                   # that don't write to database
+                                   # Regexp are accepted
+write_function_list = ''
+                                   # Comma separated list of function names
+                                   # that write to database
+                                   # Regexp are accepted
+                                   # If both read_only_function_list and write_function_list
+                                   # is empty, function's volatile property is checked.
+                                   # If it's volatile, the function is regarded as a
+                                   # writing function.
+
+primary_routing_query_pattern_list = ''
+                                   # Semicolon separated list of query patterns
+                                   # that should be sent to primary node
+                                   # Regexp are accepted
+                                   # valid for streaming replicaton mode only.
+
+database_redirect_preference_list = ''
+                                   # comma separated list of pairs of database and node id.
+                                   # example: postgres:primary,mydb[0-4]:1,mydb[5-9]:2'
+                                   # valid for streaming replicaton mode only.
+
+app_name_redirect_preference_list = ''
+                                   # comma separated list of pairs of app name and node id.
+                                   # example: 'psql:primary,myapp[0-4]:1,myapp[5-9]:standby'
+                                   # valid for streaming replicaton mode only.
+allow_sql_comments = off
+                                   # if on, ignore SQL comments when judging if load balance or
+                                   # query cache is possible.
+                                   # If off, SQL comments effectively prevent the judgment
+                                   # (pre 3.4 behavior).
+
+disable_load_balance_on_write = 'transaction'
+                                   # Load balance behavior when write query is issued
+                                   # in an explicit transaction.
+                                   #
+                                   # Valid values:
+                                   #
+                                   # 'transaction' (default):
+                                   #     if a write query is issued, subsequent
+                                   #     read queries will not be load balanced
+                                   #     until the transaction ends.
+                                   #
+                                   # 'trans_transaction':
+                                   #     if a write query is issued, subsequent
+                                   #     read queries in an explicit transaction
+                                   #     will not be load balanced until the session ends.
+                                   #
+                                   # 'dml_adaptive':
+                                   #     Queries on the tables that have already been
+                                   #     modified within the current explicit transaction will
+                                   #     not be load balanced until the end of the transaction.
+                                   #
+                                   # 'always':
+                                   #     if a write query is issued, read queries will
+                                   #     not be load balanced until the session ends.
+                                   #
+                                   # Note that any query not in an explicit transaction
+                                   # is not affected by the parameter except 'always'.
+
+dml_adaptive_object_relationship_list= ''
+                                   # comma separated list of object pairs
+                                   # [object]:[dependent-object], to disable load balancing
+                                   # of dependent objects within the explicit transaction
+                                   # after WRITE statement is issued on (depending-on) object.
+                                   #
+                                   # example: 'tb_t1:tb_t2,insert_tb_f_func():tb_f,tb_v:my_view'
+                                   # Note: function name in this list must also be present in
+                                   # the write_function_list
+                                   # only valid for disable_load_balance_on_write = 'dml_adaptive'.
+
+statement_level_load_balance = off
+                                   # Enables statement level load balancing
+
+#------------------------------------------------------------------------------
+# HEALTH CHECK GLOBAL PARAMETERS
+#------------------------------------------------------------------------------
+
+health_check_user = 'postgres'
+health_check_password = 'postgres10'
+
+#------------------------------------------------------------------------------
+# BACKENDS
+#------------------------------------------------------------------------------
+backend_hostname0 = '10.191.7.15'
+backend_port0 = 5493
+backend_weight0 = 0
+
+backend_hostname1 = '10.191.7.14'
+backend_port1 = 5493
+backend_weight1 = 1
+
+backend_hostname2 = '10.191.7.12'
+backend_port2 = 5493
+backend_weight2 = 1
