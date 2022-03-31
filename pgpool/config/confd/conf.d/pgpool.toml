@@ -9,5 +9,4 @@ reload_cmd = "pgpool -f /opt/pgpool-II/etc/pgpool.conf -F /opt/pgpool-II/etc/pcp
 
 keys = [
     "/members/",
-    "/leader",
 ]
