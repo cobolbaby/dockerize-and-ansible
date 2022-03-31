@@ -16,14 +16,117 @@ allow_clear_text_frontend_auth = on
 #------------------------------------------------------------------------------
 
 # - Concurrent session and pool size -
-num_init_children = 2
+
+num_init_children = 32
 
 #------------------------------------------------------------------------------
 # LOGS
 #------------------------------------------------------------------------------
 
+# - Where to log -
+
+log_destination = 'stderr'
+                                   # Where to log
+                                   # Valid values are combinations of stderr,
+                                   # and syslog. Default to stderr.
+
+# - What to log -
+
+log_line_prefix = '%t: pid %p: '   # printf-style string to output at beginning of each log line.
+
 log_connections = on
+                                   # Log connections
+log_disconnections = off
+                                   # Log disconnections
 log_hostname = on
+                                   # Hostname will be shown in ps status
+                                   # and in logs if connections are logged
+log_statement = on
+                                   # Log all statements
+log_per_node_statement = on
+                                   # Log all statements
+                                   # with node and backend informations
+log_client_messages = off
+                                   # Log any client messages
+log_standby_delay = 'if_over_threshold'
+                                   # Log standby delay
+                                   # Valid values are combinations of always,
+                                   # if_over_threshold, none
+
+# - Syslog specific -
+
+syslog_facility = 'LOCAL0'
+                                   # Syslog local facility. Default to LOCAL0
+syslog_ident = 'pgpool'
+                                   # Syslog program identification string
+                                   # Default to 'pgpool'
+
+# - Debug -
+
+#log_error_verbosity = default          # terse, default, or verbose messages
+
+#client_min_messages = notice           # values in order of decreasing detail:
+                                        #   debug5
+                                        #   debug4
+                                        #   debug3
+                                        #   debug2
+                                        #   debug1
+                                        #   log
+                                        #   notice
+                                        #   warning
+                                        #   error
+
+#log_min_messages = warning             # values in order of decreasing detail:
+                                        #   debug5
+                                        #   debug4
+                                        #   debug3
+                                        #   debug2
+                                        #   debug1
+                                        #   info
+                                        #   notice
+                                        #   warning
+                                        #   error
+                                        #   log
+                                        #   fatal
+                                        #   panic
+
+# This is used when logging to stderr:
+logging_collector = on
+                                        # Enable capturing of stderr
+                                        # into log files.
+                                        # (change requires restart)
+
+# -- Only used if logging_collector is on ---
+
+#log_directory = '/tmp/pgpool_logs'
+                                        # directory where log files are written,
+                                        # can be absolute
+#log_filename = 'pgpool-%Y-%m-%d_%H%M%S.log'
+                                        # log file name pattern,
+                                        # can include strftime() escapes
+
+#log_file_mode = 0600
+                                        # creation mode for log files,
+                                        # begin with 0 to use octal notation
+
+#log_truncate_on_rotation = off
+                                        # If on, an existing log file with the
+                                        # same name as the new log file will be
+                                        # truncated rather than appended to.
+                                        # But such truncation only occurs on
+                                        # time-driven rotation, not on restarts
+                                        # or size-driven rotation.  Default is
+                                        # off, meaning append to existing files
+                                        # in all cases.
+
+#log_rotation_age = 1d
+                                        # Automatic rotation of logfiles will
+                                        # happen after that (minutes)time.
+                                        # 0 disables time based rotation.
+#log_rotation_size = 10MB
+                                        # Automatic rotation of logfiles will
+                                        # happen after that much (KB) log output.
+                                        # 0 disables size based rotation.
 
 #------------------------------------------------------------------------------
 # LOAD BALANCING MODE
@@ -107,14 +210,14 @@ dml_adaptive_object_relationship_list= ''
                                    # the write_function_list
                                    # only valid for disable_load_balance_on_write = 'dml_adaptive'.
 
-statement_level_load_balance = off
+statement_level_load_balance = on
                                    # Enables statement level load balancing
 
 #------------------------------------------------------------------------------
 # HEALTH CHECK GLOBAL PARAMETERS
 #------------------------------------------------------------------------------
 
-health_check_user = 'nobody'
+# health_check_user = 'nobody'
                                    # User name to be used for health check
                                    # (change requires restart)
 health_check_password = ''
