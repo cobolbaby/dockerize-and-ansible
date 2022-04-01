@@ -10,6 +10,8 @@ readonly PGPOOL_HEALTH_CHECK_PASSWORD=${PGPOOL_HEALTH_CHECK_PASSWORD:-}
 # Dynamic configuration 
 sed -i "s/^#*\s*health_check_user\s*=.*/health_check_user = '${PGPOOL_HEALTH_CHECK_USER}'/" /etc/confd/templates/pgpool.tmpl
 sed -i "s/^#*\s*health_check_password\s*=.*/health_check_password = '${PGPOOL_HEALTH_CHECK_PASSWORD}'/" /etc/confd/templates/pgpool.tmpl
+sed -i "s/^#*\s*sr_check_user\s*=.*/sr_check_user = '${PGPOOL_HEALTH_CHECK_USER}'/" /etc/confd/templates/pgpool.tmpl
+sed -i "s/^#*\s*sr_check_password\s*=.*/sr_check_password = '${PGPOOL_HEALTH_CHECK_PASSWORD}'/" /etc/confd/templates/pgpool.tmpl
 
 # Start Confd
 CONFD="confd -prefix=$PATRONI_NAMESPACE/$PATRONI_SCOPE -interval=10 -backend"
