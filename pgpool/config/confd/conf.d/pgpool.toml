@@ -5,7 +5,7 @@ mode = "0644"
 src = "pgpool.tmpl"
 dest = "/opt/pgpool-II/etc/pgpool.conf"
 
-reload_cmd = "pgpool -f /opt/pgpool-II/etc/pgpool.conf -F /opt/pgpool-II/etc/pcp.conf reload"
+reload_cmd = "pgpool -f /opt/pgpool-II/etc/pgpool.conf -F /opt/pgpool-II/etc/pcp.conf -m fast stop; pgpool -f /opt/pgpool-II/etc/pgpool.conf -F /opt/pgpool-II/etc/pcp.conf -D"
 
 keys = [
     "/members/",
