@@ -1,4 +1,4 @@
-FROM registry.inventec/proxy/pgpool/pgpool:4.2.6
+FROM registry.inventec/proxy/pgpool/pgpool:4.3.1
 
 WORKDIR /opt/confd/bin/
 
