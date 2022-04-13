@@ -256,7 +256,7 @@ health_check_password = ''
 #------------------------------------------------------------------------------
 # OTHERS
 #------------------------------------------------------------------------------
-relcache_expire = 0
+relcache_expire = 3600
                                    # Life time of relation cache in seconds.
                                    # 0 means no cache expiration(the default).
                                    # The relation cache is used for cache the
@@ -271,7 +271,7 @@ relcache_expire = 0
                                    # not consistent anymore.
                                    # For this purpose, cache_expiration
                                    # controls the life time of the cache.
-relcache_size = 256
+relcache_size = 1024
                                    # Number of relation cache
                                    # entry. If you see frequently:
                                    # "pool_search_relcache: cache replacement happend"
@@ -297,6 +297,17 @@ enable_shared_relcache = on
 relcache_query_target = primary
                                    # Target node to send relcache queries. Default is primary node.
                                    # If load_balance_node is specified, queries will be sent to load balance node.
+
+#------------------------------------------------------------------------------
+# IN MEMORY QUERY MEMORY CACHE
+#------------------------------------------------------------------------------
+memory_cache_enabled = on
+                                   # If on, use the memory cache functionality, off by default
+                                   # (change requires restart)
+memqcache_method = 'shmem'
+                                   # Cache storage method. either 'shmem'(shared memory) or
+                                   # 'memcached'. 'shmem' by default
+                                   # (change requires restart)
 
 #------------------------------------------------------------------------------
 # BACKENDS
