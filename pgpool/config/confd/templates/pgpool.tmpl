@@ -17,10 +17,10 @@ allow_clear_text_frontend_auth = on
 
 # - Concurrent session and pool size -
 
-num_init_children = 32
+num_init_children = 200
                                    # Number of concurrent sessions allowed
                                    # (change requires restart)
-max_pool = 20
+max_pool = 4
                                    # Number of connection pool caches per connection
                                    # (change requires restart)
 
