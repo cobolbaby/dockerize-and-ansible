@@ -322,12 +322,15 @@ relcache_query_target = primary
 #------------------------------------------------------------------------------
 # IN MEMORY QUERY MEMORY CACHE
 #------------------------------------------------------------------------------
-memory_cache_enabled = on
+memory_cache_enabled = off
                                    # If on, use the memory cache functionality, off by default
                                    # (change requires restart)
 memqcache_method = 'shmem'
                                    # Cache storage method. either 'shmem'(shared memory) or
                                    # 'memcached'. 'shmem' by default
+                                   # (change requires restart)
+memqcache_oiddir = '/tmp/oiddir'
+                                   # Temporary work directory to record table oids
                                    # (change requires restart)
 
 #------------------------------------------------------------------------------
