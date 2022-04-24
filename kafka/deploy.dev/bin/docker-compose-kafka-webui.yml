@@ -1,15 +1,7 @@
 version: '3.6'
 
 services:
-  # akhq:
-  #   image: registry.inventec/hub/tchiotludo/akhq:dev
-  #   container_name: akhq
-  #   ports:
-  #     - 8081:8080
-  #   volumes:
-  #     - ../config/akhq.yml:/app/application.yml
-  #   restart: on-failure
-
+  
   kowl:
     image: quay.io/cloudhut/kowl:v1.5.0
     container_name: kowl
@@ -19,14 +11,3 @@ services:
       - ../config/kowl.yaml:/etc/kowl/config.yaml
     entrypoint: ./kowl --config.filepath=/etc/kowl/config.yaml
     restart: on-failure
-
-  # kafka-manager:
-  #   image: registry.inventec/hub/hlebalbau/kafka-manager:master-7e7a22e
-  #   container_name: kafka-manager
-  #   ports:
-  #     - 9000:9000
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
-  #   environment:
-  #     ZK_HOSTS: 10.0.1.81:2181,10.0.1.82:2181,10.0.1.83:2181
-  #   restart: always
