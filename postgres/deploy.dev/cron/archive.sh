@@ -2,80 +2,171 @@
 set -e
 cd `dirname $0`
 
+prerequisites=("pg_dump" "psql")
+
+# 判断是否存在必要的命令
+for cmd in ${prerequisites[@]}; do
+    if ! command -v $cmd &> /dev/null
+    then
+        printf "You don\'t seem to install %s.\n" $cmd
+        exit 1
+    fi
+done
+
 # *****************************************************************************
+# 根据需求，请自行修改
 # *****************************************************************************
-database="bdc"
-schema="ict"
-table="ictlogtestpart_ao"
-archive_local_path=/tmp/hdd/postgres/10
-archive_s3_path=/postgres/10
-archive_s3_bucket=prod-picture
 
 source .env
+
+archive_local_path=/tmp/hdd/postgres/11
+# archive_s3_bucket=infra-backup
+# archive_s3_path=/postgres/11
+
 # *****************************************************************************
 # *****************************************************************************
 
 archive_subdir=archive/$(date "+%Y%m%d")
-
 archive_path=${archive_local_path}/${archive_subdir}
 mkdir -p ${archive_path} && cd ${archive_path}
-echo "【`date`】Archive path: $(pwd)"
+echo "【`date`】Create archive directory: $(pwd)"
 
-echo "【`date`】SQL query table: ${schema}.${table}"
+psql_cmd="psql -Atc"
 
-# 针对 pg10 版本，动态条件会造成全表扫描，除非拼接 动态SQL
-# where="testtime < '$(date "+%Y-%m-%d 00:00:00")'::timestamp - interval '7 day'"
-# 而针对 pg11 / pg12 版本，动态条件应该做了优化，支持了分区裁剪
-where="testtime < now() - interval '7 day'"
-echo "【`date`】SQL query condition: $where"
+pg_get_partition_tables="SELECT distinct inhparent::regclass FROM pg_inherits"
 
-temp_plan=sql-plan-$(date "+%Y%m%d%H%M%S").json
-echo "【`date`】SQL execution plan: $temp_plan"
+# 获取全部的分区表
+partition_tables=$($psql_cmd """$pg_get_partition_tables""")
 
-psql -At -d $database -c "explain (FORMAT JSON) select * from ${schema}.${table} where ${where}" > $temp_plan
+for partition_table in $partition_tables; do
+    # 获取表名和Schema名
+    # Ref: https://www.delftstack.com/howto/linux/split-string-into-array-in-bash/
+    t=(`echo $partition_table | tr '.' ' '`)
 
-partitions=`cat $temp_plan | jq '.[0].Plan.Plans[] | ."Relation Name"' | tr -d "\""`
+    relname=${t[1]}
+    nspname=${t[0]}
 
-# 如果配置了转存S3，需要执行如下命令
-# mc config host add minio <URL> <AccessKey> <SecretKey>
-
-for part_tbl in $partitions
-do
-    echo "【`date`】Archive table: ${schema}.${part_tbl}"
+    # 获取过期分区，归档并删除
+    pg_get_expired_partitions=$(cat <<-EOF
+        WITH q_expired_part AS (
+            select
+                *,
+                ((regexp_match(part_expr, \$$ TO \('(.*)'\)\$$))[1])::timestamp without time zone as part_end
+            from
+                (
+                    select
+                        format('%I.%I', n.nspname, p.relname) as parent_name,
+                        format('%I.%I', n.nspname, c.relname) as part_name,
+                        pg_catalog.pg_get_expr(c.relpartbound, c.oid) as part_expr
+                    from
+                        pg_class p
+                        join pg_inherits i ON i.inhparent = p.oid
+                        join pg_class c on c.oid = i.inhrelid
+                        join pg_namespace n on n.oid = c.relnamespace
+                    where
+                        p.relname = '${relname}'
+                        and n.nspname = '${nspname}'
+                        and p.relkind = 'p'
+                ) x
+        )
+        SELECT
+            -- format('DROP TABLE IF EXISTS %s', part_name) as sql_to_exec
+            part_name
+        FROM
+            q_expired_part
+        WHERE
+            part_end < CURRENT_DATE - '6 month'::interval
+            and part_name !~* '(his|default|extra)$';
+EOF
+)
     
-    # 最简单的就是dump出来，调用pg_dump的命令，然后可选择是否保存在S3上
-    command="pg_dump -Fc $database -t ${schema}.${part_tbl} > $archive_path/${schema}.${part_tbl}.dump"
-    echo "【`date`】Archive command: $command"
-    eval $command
-    # 如果配置了转存S3，需要执行如下命令
-    # mc cp --recursive ${archive_path}/${schema}.${part_tbl}.dump minio/${archive_s3_bucket}/${archive_s3_path}/${archive_subdir}/
-    # 归档之后删除
-    # 判断是否为默认分区，如果是默认分区，则采用delete的命令，如果是其他历史分区，则直接drop
-    if [[ $part_tbl =~ _default$ ]]
-    then
-        echo "delete from ${schema}.${part_tbl} where ${where}"
-        # psql -At -d $database -c "delete from ${schema}.${part_tbl} where ${where}"
-        # psql -At -d $database -c "vacuum analyse ${schema}.${part_tbl}"
-    else
-        echo "drop from ${schema}.${part_tbl}"
-        # psql -At -d $database -c "drop table ${schema}.${part_tbl}"
-    fi
+    echo "Archive relname: $relname, nspname: $nspname"
+    # echo "pg_get_expired_partitions: $pg_get_expired_partitions"
+
+    expired_partitions=`$psql_cmd """${pg_get_expired_partitions}"""`
     
-    # Or dump table and migrate to S3
-    # 导出的数据格式需要符合外部表所兼容的格式，另外结存过程中可能还要落一次盘(尽量避免)
-    # 
-    # 迁移到S3的数据，可以采用外部表的形式挂载
+    for part in $expired_partitions
+    do
+        echo "Archive partition: $part"
+        # pg_dump -Fc -t $part > $archive_path/$part.dump
+
+        # echo "Sync dump to S3"
+        # scp -P $port -i $ssh_key_path $archive_path/$part.dump $ssh_user@$host:$pg_data_path/$part.dump 
+
+        echo "Drop partition: $part"
+        # $psql_cmd "DROP TABLE IF EXISTS $part"
+    done
+
+    # 新建分区
+    pg_get_new_partitions=$(cat <<-EOF
+        WITH q_last_part AS (
+		select
+			*,
+			((regexp_match(part_expr, \$$ TO \('(.*)'\)\$$))[1])::timestamp without time zone as last_part_end
+		from
+			(
+				select
+					format('%I.%I', n.nspname, p.relname) as parent_name,
+					format('%I.%I', n.nspname, c.relname) as part_name,
+					pg_catalog.pg_get_expr(c.relpartbound, c.oid) as part_expr
+				from
+					pg_class p
+					join pg_inherits i ON i.inhparent = p.oid
+					join pg_class c on c.oid = i.inhrelid
+					join pg_namespace n on n.oid = c.relnamespace
+				where
+					p.relname = '${relname}'
+					and n.nspname = '${nspname}'
+					and p.relkind = 'p'
+                    and c.relname !~* '(his|default|extra)$'
+			) x
+		order by
+			last_part_end desc
+		limit
+			1
+	)
+	SELECT
+		-- format(
+		-- 	$$ CREATE TABLE IF NOT EXISTS %s_%s%s%s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s') $$,
+		-- 	parent_name,
+		-- 	extract(year from last_part_end),
+		-- 	lpad((extract(month from last_part_end))::text, 2, '0'),
+		-- 	lpad((extract(day from last_part_end))::text, 2, '0'),
+		-- 	parent_name,
+		-- 	last_part_end,
+		-- 	last_part_end + '1 month' :: interval
+		-- ) AS sql_to_exec
+        parent_name,
+        extract(year from last_part_end) as year,
+        lpad((extract(month from last_part_end))::text, 2, '0') as month,
+        last_part_end,
+        last_part_end + '1 month' :: interval as next_part_end
+	FROM
+		q_last_part;
+EOF
+)
     
-    # Alter tablespace
-    # 无需关心导出的数据格式，只是换了一块盘，依赖文件系统，不能是S3
-    # 该策略更像是在借助多盘来提升磁盘IO性能
-    
-    
-    # 所以:
-    # 如果是为了分担磁盘读写压力，一般采用 tablespace 的方式
-    # 如果是为了归档保存，则视情况而定，
-    #   若数据一个月还可能用那么几次，则建议保存为csv格式文件，在Minio层级做压缩
-    #   若数据只是为了存储，则建议保存的时候就采用压缩保存，且不为其创建外部表
-    
+    new_partitions=`$psql_cmd """${pg_get_new_partitions}"""`
+    echo "New partitions: $new_partitions"
+
+    t=(`echo $new_partitions | tr '|' ' '`)
+    ddl="CREATE TABLE IF NOT EXISTS ${t[0]}_${t[1]}${t[2]} PARTITION OF ${t[0]} 
+            FOR VALUES FROM ('${t[3]}') TO ('${t[5]}')"
+
+    echo "Create partition: $ddl"
+    $psql_cmd """$ddl"""
+
 done
 
+# Or dump table and migrate to S3
+#
+
+# Alter tablespace
+# 该策略更像是在借助多盘来提升磁盘IO性能
+
+# 所以:
+# 如果是为了分担磁盘读写压力，一般采用 tablespace 的方式
+# 如果是为了归档保存，则视情况而定，
+#   若数据一个月还可能用那么几次，则建议保存为csv格式文件，在Minio层级做压缩
+#   若数据只是为了存储，则建议保存的时候就采用压缩保存，且不为其创建外部表
+    
