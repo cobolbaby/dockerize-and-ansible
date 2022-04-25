@@ -40,7 +40,7 @@ pg_get_new_partitions=$(cat <<-EOF
         select
             *,
             ((regexp_match(part_expr, \$$ TO \('(.*)'\)\$$))[1])::timestamp without time zone as last_part_end,
-			((regexp_match(part_expr, \$$ FROM \('(.*?)'\)\$$))[1])::timestamp without time zone as last_part_begin
+            ((regexp_match(part_expr, \$$ FROM \('(.*?)'\)\$$))[1])::timestamp without time zone as last_part_begin
         from
             (
                 select
