@@ -1,0 +1,34 @@
+version: '3'
+services:
+
+  verdaccio:
+    image: verdaccio/verdaccio:4.12.2
+    container_name: verdaccio
+    hostname: verdaccio
+    volumes:
+      - "/opt/verdaccio/conf:/verdaccio/conf"
+      - "/opt/verdaccio/storage:/verdaccio/storage"
+    restart: always
+
+  nexus3:
+    image: sonatype/nexus3:3.38.1
+    container_name: nexus3
+    hostname: nexus3
+    volumes:
+      - "/data/nexus-data:/nexus-data"
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: "-Xms1024m -Xmx1024m -XX:MaxDirectMemorySize=1024m -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+    restart: always
+  
+  nginx:
+    image: nginx:1.20-alpine
+    container_name: nginx
+    hostname: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - "./conf/nginx:/etc/nginx/conf.d"
+    restart: always
+    depends_on:
+      - verdaccio
+      - nexus3

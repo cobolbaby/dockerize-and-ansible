@@ -32,23 +32,31 @@ auth:
 uplinks:
   npmjs:
     url: https://registry.npmjs.org/
-    maxage: 30d
-    max_fails: 4
+    maxage: 1d
+    max_fails: 10
+    timeout: 120s
 
   cnpmjs:
     url: https://registry.npm.taobao.org/
-    maxage: 30d
+    maxage: 1d
+    max_fails: 10
+    timeout: 60s
 
   yarnpkg:
     url: https://registry.yarnpkg.com/
-    maxage: 30d
+    maxage: 1d
+    max_fails: 10
+    timeout: 60s
 
 packages:
-  '@*/*':
+  '@itc-*/*':
+    access: $all
+    publish: $authenticated
+
+  'e-planet-*':
     # scoped packages
     access: $all
     publish: $authenticated
-    proxy: npmjs
 
   '**':
     # allow all users (including non-authenticated users) to read and
@@ -63,7 +71,7 @@ packages:
     publish: $authenticated
 
     # if package is not available locally, proxy requests to 'npmjs' registry
-    proxy: npmjs yarnpkg
+    proxy: npmjs
 
 # To use `npm audit` uncomment the following section
 middlewares:
@@ -76,6 +84,6 @@ logs:
   # - {type: file, path: verdaccio.log, level: info}
 
 # Proxies are special-purpose HTTP servers designed to transfer data from remote servers to local clients.
-# http_proxy: http://10.190.40.39:12306/
-# https_proxy: http://10.190.40.39:12306/
+# http_proxy: 
+# https_proxy: 
 # no_proxy: localhost,127.0.0.1
