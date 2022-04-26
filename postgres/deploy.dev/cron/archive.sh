@@ -70,6 +70,11 @@ for partition_table in $partition_tables; do
     new_partitions=`$psql_cmd """${pg_get_new_partitions}"""`
     echo "New partitions: $new_partitions"
 
+    # 跳过分区表索引(分区表索引也能被检索出来)
+    if [ -z "$new_partitions" ]; then
+        continue
+    fi
+
     # https://stackoverflow.com/questions/10586153/how-to-split-a-string-into-an-array-in-bash
     IFS='|' read -r -a new_partitions_array <<< "$new_partitions"
     ddl="${new_partitions_array[5]}"
