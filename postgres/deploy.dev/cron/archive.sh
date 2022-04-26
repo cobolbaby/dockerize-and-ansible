@@ -28,8 +28,8 @@ archive_local_path=/tmp/hdd/postgres/11
 
 archive_subdir=archive/$(date "+%Y%m%d")
 archive_path=${archive_local_path}/${archive_subdir}
-mkdir -p ${archive_path} && cd ${archive_path}
-echo "【`date`】Create archive directory: $(pwd)"
+mkdir -p ${archive_path}
+echo "【`date`】Create archive directory: ${archive_path}"
 
 psql_cmd="psql -Atc"
 
