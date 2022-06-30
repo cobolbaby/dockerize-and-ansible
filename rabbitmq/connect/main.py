@@ -1,47 +1,18 @@
 # -*- coding: UTF-8 -*-
+import importlib
 import json
 import os
 import sys
+from ast import If, Try
 
 import nginx
 import pika
 import requests
 
-# 批量创建 RabbitMQ 的 Queue 以及配置 bind 关系
-# 创建完 Queue 之后再创建 Kafka Connector
-
-rabbitMQSrv = [
-    ('10.190.81.17', 'dev1'),
-    # ('172.29.78.4', 's17b'),
-    # ('172.29.78.5', 's17a'),
-    # ('172.29.84.3', 's14b'),
-    # ('172.29.84.4', 's14a'),
-    # ('172.29.83.3', 's13b'),
-    # ('172.29.83.4', 's13a'),
-    # ('172.29.82.3', 's12b'),
-    # ('172.29.82.4', 's12a'),
-    # ('172.29.70.5', 's10b'),
-    # ('172.29.70.6', 's10a'),
-    # ('172.29.78.8', 's08b'),
-    # ('172.29.78.9', 's08a'),
-    # ('172.29.73.3', 's03b'),
-    # ('172.29.73.4', 's03a'),
-]
-
-kafkaConnSrv = 'http://10.191.6.53:8083/connectors'
-
-options = {
-    'vhost': '/',
-    'username': 'guest',
-    'password': 'guest',
-    'exchange': 'exchange',
-    'queue': 'NXT-MES-Event-T-Kafka1',
-    'routing_keys': ['NXT.#'],
-    'topic': 'NXT-MES-Event-Rabbit2kafka',
-}
-
-
-def rabbitQueGenerator(instance, options):
+'''
+已废弃
+'''
+def rabbitmq_queue_generator(instance, options):
     credentials = pika.PlainCredentials(
         options['username'], options['password'])
     connection = pika.BlockingConnection(
@@ -49,7 +20,7 @@ def rabbitQueGenerator(instance, options):
     channel = connection.channel()
 
     channel.exchange_declare(
-        exchange=options['exchange'], exchange_type='topic', durable=True)
+        exchange=options['exchange'], exchange_type='topic')
 
     # 如何配置ttl为 1800000
     channel.queue_declare(queue=options['queue'], durable=True, arguments={
@@ -65,15 +36,15 @@ def rabbitQueGenerator(instance, options):
     return
 
 
-def kafkaConnGenerator(instance, options, srvUrl):
+def kafka_connector_generator(instance, options, srvUrl):
     headers = {
         'Content-type': 'application/json'
     }
 
     payload = {
-        'name': 'rabbitmq-source-nxt-' + instance[1],
+        'name': 'rabbitmq-source-' + instance[1],
         'config': {
-            'connector.class': 'com.ibm.eventstreams.connect.rabbitmqsource.RabbitMQSourceConnector',
+            "connector.class": "com.github.themeetgroup.kafka.connect.rabbitmq.source.RabbitMQSourceConnector",
             'tasks.max': 1,
             'kafka.topic': options['topic'],
             'rabbitmq.host': instance[0],
@@ -83,9 +54,13 @@ def kafkaConnGenerator(instance, options, srvUrl):
             'rabbitmq.username': options['username'],
             'rabbitmq.password': options['password'],
             'rabbitmq.network.recovery.interval.ms': 10000,
-            'rabbitmq.prefetch.count': 500,
+            'rabbitmq.prefetch.count': 100,
             'rabbitmq.automatic.recovery.enabled': True,
-            'key.converter': 'org.apache.kafka.connect.storage.StringConverter'
+            'key.converter': 'org.apache.kafka.connect.storage.StringConverter',
+            "message.converter": "com.github.themeetgroup.kafka.connect.rabbitmq.source.data.StringSourceMessageConverter",
+            "rabbitmq.exchange": options['exchange'],
+            "rabbitmq.routing.key": options['routing_keys'][0],
+            "rabbitmq.queue.ttl": options['ttl']
         }
     }
 
@@ -97,23 +72,28 @@ def kafkaConnGenerator(instance, options, srvUrl):
     print('-- %s' % (response.json()))
     return
 
-#  server {
-#     listen       80;
-#     server_name  localhost;
-#     location / {
-#         proxy_pass   http://127.0.0.1;
-#     }
-# }
+
+'''
+需要构造如下配置块:
+
+server {
+    listen       80;
+    server_name  localhost;
+    location / {
+        proxy_pass   http://127.0.0.1;
+    }
+}
+'''
 
 
-def nginxConfGenerator(instances, options):
+def nginx_conf_generator(instances, options):
     c = nginx.Conf()
     for instance in instances:
         s = nginx.Server()
         s.add(
             nginx.Key('listen', '80'),
             nginx.Key('server_name',
-                      'nxt-mq-' + instance[1] + '.ies.inventec'),
+                      'mq-' + instance[1] + '.inventec.net'),
             nginx.Location('/', nginx.Key('proxy_pass',
                                           'http://' + instance[0] + ':15672')),
         )
@@ -122,13 +102,31 @@ def nginxConfGenerator(instances, options):
     return
 
 
-for r in rabbitMQSrv:
-    print(r)
-    rabbitQueGenerator(r, options)
-    # kafkaTopicGenerator(r, options)
-    kafkaConnGenerator(r, options, kafkaConnSrv)
+if __name__ == '__main__':
 
-# 创建 Nginx 配置
-nginxConfGenerator(rabbitMQSrv, options)
-# 创建 /etc/hosts 记录
-# ...
+    APP_ENV = os.environ.get('APP_ENV', 'dev').lower()
+    APP_BIZ = os.environ.get('BIZ', 'default').upper()
+
+    try:
+        cfg = importlib.import_module('config.' + APP_ENV)
+
+        if cfg.RabbitMQSrv.get(APP_BIZ) is None:
+            print('-- No RabbitMQ service in %s' % (APP_BIZ))
+            sys.exit(1)
+
+        for r in cfg.RabbitMQSrv.get(APP_BIZ):
+            kafka_connector_generator(
+                r, cfg.RabbitMQOptions.get(APP_BIZ), cfg.KafkaConnectEndpoint)
+            print('-- Kafka connector have created')
+
+        '''
+        nginx_conf_generator(cfg.RabbitMQSrv[APP_BIZ], cfg.RabbitMQOptions[APP_BIZ])
+        print('-- Nginx config file have created')
+        print('-- /etc/hosts have created')
+        '''
+
+    except:
+        print('-- Error: config file %s not found' % (APP_ENV))
+        sys.exit(1)
+
+    print('-- All done')

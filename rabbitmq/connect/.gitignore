@@ -1,0 +1,2 @@
+config/prod-*
+config/__pycache__
