@@ -7,19 +7,6 @@
 
     <dependencies>
 
-        <!-- https://mvnrepository.com/artifact/com.mchange/c3p0 -->
-        <dependency>
-            <groupId>c3p0</groupId>
-            <artifactId>c3p0</artifactId>
-            <version>0.9.0.4</version>
-            <exclusions>  
-                <exclusion>  
-                    <groupId>*</groupId>  
-                    <artifactId>*</artifactId>  
-                </exclusion>  
-            </exclusions>  
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/net.sourceforge.javacsv/javacsv -->
         <dependency>
             <groupId>net.sourceforge.javacsv</groupId>
