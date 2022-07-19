@@ -1,0 +1,10 @@
+version: "2"
+services:
+
+  gitlab-runner:
+    image: registry.inventec/proxy/gitlab/gitlab-runner:v13.12.0
+    container_name: gitlab-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/gitlab-runner/config:/etc/gitlab-runner
+    restart: always

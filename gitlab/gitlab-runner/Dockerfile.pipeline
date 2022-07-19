@@ -1,0 +1,5 @@
+FROM registry.inventec/proxy/library/alpine:latest
+LABEL maintainer="Zhang.Xing-Long@inventec.com"
+
+RUN apk update && \
+    apk add --no-cache make docker-cli ansible 
