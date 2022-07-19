@@ -26,13 +26,8 @@ class PartitionManager(object):
         """
 
         query = """
-            select n.nspname,c.relname
-            from (
-                select distinct inhparent as inhparent from pg_inherits
-            ) i 
-            join pg_class c on c.oid = i.inhparent
-            join pg_namespace n on c.relnamespace = n.oid
-            where c.relkind = 'r'
+            select distinct schemaname,tablename from pg_partitions 
+            order by 1,2
         """
 
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -43,7 +38,7 @@ class PartitionManager(object):
             if self.whitelist is None or len(self.whitelist) == 0:
                 yield(r)
             else:
-                if '.'.join([r['nspname'], r['relname']]) in self.whitelist:
+                if '.'.join([r['schemaname'], r['tablename']]) in self.whitelist:
                     yield(r)
 
     def get_partition_table_subpartitions(self, partition_table, sort='desc'):
@@ -52,24 +47,11 @@ class PartitionManager(object):
         """
 
         query = """
-            select
-                *
-            from
-                (
-                    SELECT
-                        i.inhparent::regclass::character varying AS parent_name,
-                        i.inhrelid::regclass::character varying AS part_name,
-                        pg_get_expr(pr1.parrangestart, pr1.parchildrelid) pstart,
-                        pg_get_expr(pr1.parrangeend, pr1.parchildrelid) pend,
-                        pg_get_expr(pr1.parrangeevery, pr1.parchildrelid) pduration
-                    FROM pg_inherits AS i
-                    JOIN pg_partition_rule AS pr1 ON i.inhrelid = pr1.parchildrelid
-                    WHERE i.inhparent = '{nspname}.{relname}'::regclass
-                ) x
-            where part_name !~ '_extra$'
-            order by
-                pstart {sort}
-        """.format(nspname=partition_table['nspname'], relname=partition_table['relname'], sort=sort)
+            select schemaname,tablename,partitiontablename,partitionname,partitionrangestart,partitionrangeend,partitioneveryclause
+            from pg_partitions 
+            where schemaname = '{nspname}' and tablename = '{relname}' and partitionname <> 'extra'
+            order by partitionrangestart {sort}
+        """.format(nspname=partition_table['schemaname'], relname=partition_table['tablename'], sort=sort)
 
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(query)
@@ -81,8 +63,8 @@ class PartitionManager(object):
         """
 
         query = """
-            select * from {subpartition_name} limit 1;
-        """.format(subpartition_name=subpartition['part_name'])
+            select * from {nspname}.{relname} limit 1;
+        """.format(nspname=subpartition['schemaname'], relname=subpartition['partitiontablename'])
 
         cur = self.conn.cursor()
         cur.execute(query)
@@ -95,8 +77,8 @@ class PartitionManager(object):
     def drop_subpartition(self, subpartition, rank=1):
 
         query = """
-            ALTER TABLE {partition_table} DROP PARTITION FOR(RANK({rank}));
-        """.format(partition_table=subpartition['parent_name'], rank=rank)
+            ALTER TABLE {nspname}.{relname} DROP PARTITION FOR(RANK({rank}));
+        """.format(nspname=subpartition['schemaname'], relname=subpartition['tablename'], rank=rank)
 
         print(query)
 
@@ -110,6 +92,11 @@ class PartitionManager(object):
 
 
 def partition_cleaner(dsn, whitelist=None, maintain_window={"start_time": "00:00:00", "end_time": "23:59:59"}):
+    
+    if whitelist is None or len(whitelist) == 0:
+        print("No whitelist provided, skipping.")
+        return
+    
     try:
         archiver = PartitionManager(dsn, whitelist)
 
@@ -156,7 +143,7 @@ if __name__ == '__main__':
     ]
 
     whitelist = [
-        'ict.ictlogtestpart_ao_old',
+        # 'ict.ictlogtestpart_ao_old',
     ]
 
     maintain_window = {
