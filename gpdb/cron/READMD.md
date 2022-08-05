@@ -139,34 +139,6 @@ order by schemaname,relname
 
 ```sql
 
--- 判断分区合理性
-
-SELECT parrelid::regclass,
-CASE WHEN parkind = 'r' THEN 'range'
-     ELSE 'list'
-END
-FROM pg_partition;
-
--- 获取历史分区
-
-select
-    *
-from
-    (
-        SELECT
-            i.inhparent::regclass::character varying AS parent_name,
-            i.inhrelid::regclass::character varying AS part_name,
-            pg_get_expr(pr1.parrangestart, pr1.parchildrelid) pstart,
-            pg_get_expr(pr1.parrangeend, pr1.parchildrelid) pend,
-            pg_get_expr(pr1.parrangeevery, pr1.parchildrelid) pduration
-        FROM pg_inherits AS i
-        JOIN pg_partition_rule AS pr1 ON i.inhrelid = pr1.parchildrelid
-        WHERE i.inhparent = 'ict.ictlogtestpart_ao_old'::regclass
-    ) x
-where part_name !~ '_extra$'
-order by
-    pstart asc
-
 -- 归档历史分区
 
 -- 如果归档的是冷数据，_old 表，当下暂时不用了，等有诉求的时候再导入，可以考虑将一些无数据的分区清理掉，然后再进行备份，避免不必要的小文件产生，_old表进行 truncate 操作
