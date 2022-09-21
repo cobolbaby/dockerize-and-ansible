@@ -1,12 +1,10 @@
 # -*- coding: UTF-8 -*-
 from __future__ import print_function
 
-import re
-from ast import If
 from datetime import datetime, timedelta
 
 import psycopg2
-from psycopg2 import Error, extras
+from psycopg2 import extras
 
 
 class PartitionManager(object):
@@ -31,7 +29,7 @@ class PartitionManager(object):
             order by 1,2
         """
 
-        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = self.conn.cursor(cursor_factory=extras.RealDictCursor)
         cur.execute(query)
         res = cur.fetchall()
 
@@ -39,7 +37,7 @@ class PartitionManager(object):
             if self.whitelist is None or len(self.whitelist) == 0:
                 yield(r)
             else:
-                if '.'.join([r['schemaname'], r['tablename']]) in self.whitelist:
+                if r['schemaname'] + '.' + r['tablename'] in self.whitelist:
                     yield(r)
 
     def get_partition_table_subpartitions(self, partition_table, sort='desc'):
@@ -48,13 +46,13 @@ class PartitionManager(object):
         """
 
         query = """
-            select current_database() as datname,schemaname,tablename,partitiontablename,partitionname,partitionrangestart,partitionrangeend,partitioneveryclause
-            from pg_partitions 
-            where schemaname = '{nspname}' and tablename = '{relname}' and partitionname <> 'extra'
-            order by partitionrangestart {sort}
+            select current_database() as datname,p.schemaname,p.tablename,p.partitiontablename,p.partitionname,p.partitionrangestart,p.partitionrangeend,p.partitioneveryclause,t.tablespace
+            from pg_partitions p join pg_tables t on p.schemaname = t.schemaname and p.partitiontablename = t.tablename
+            where p.schemaname = '{nspname}' and p.tablename = '{relname}' and p.partitionname <> 'extra'
+            order by p.partitionrangestart {sort}
         """.format(nspname=partition_table['schemaname'], relname=partition_table['tablename'], sort=sort)
 
-        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = self.conn.cursor(cursor_factory=extras.RealDictCursor)
         cur.execute(query)
         return cur.fetchall()
 
@@ -99,9 +97,11 @@ class PartitionManager(object):
         partitionrangeend = datetime.strptime(subpartition['partitionrangeend'].strip(
             "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
 
-        print("Checking partitionrangeend of subpartition: ", partitionrangeend)
+        partenttablename = subpartition['schemaname'] + '.' + subpartition['tablename']
+        threadhold = self.whitelist.get(partenttablename, 180)
 
-        if partitionrangeend < datetime.now() - timedelta(days=180):
+        if partitionrangeend < datetime.now() - timedelta(days=threadhold):
+            print(f"Partitionrangeend of subpartition: {partitionrangeend}(< -{threadhold}days)")
             return True
 
         return False
@@ -110,6 +110,9 @@ class PartitionManager(object):
         """
         Get all tables in database's schema.
         """
+
+        # TODO:判断是否已经是 External Table 了
+        # ...
 
         query = """
             CREATE WRITABLE EXTERNAL TABLE {nspname}.{relname}_ext (LIKE {nspname}.{partname})
@@ -146,15 +149,21 @@ class PartitionManager(object):
         Get all tables in database's schema.
         """
 
+        COLD_TABLESPACE = 'tbs_hdd01'
+
+        if subpartition['tablespace'] == COLD_TABLESPACE:
+            print(f"The subpartition {subpartition['partitiontablename']} is already in {COLD_TABLESPACE} tablespace.")
+            return True
+
         query = """
             ALTER TABLE {nspname}.{partname}
-            SET TABLESPACE tbs_hdd01;
-        """.format(nspname=subpartition['schemaname'], partname=subpartition['partitiontablename'])
+            SET TABLESPACE {tablespace};
+        """.format(nspname=subpartition['schemaname'], partname=subpartition['partitiontablename'], tablespace=COLD_TABLESPACE)
 
         print(query)
 
-        # cur = self.conn.cursor()
-        # cur.execute(query)
+        cur = self.conn.cursor()
+        cur.execute(query)
 
         return True
 
@@ -197,9 +206,9 @@ def partition_cleaner(dsn, whitelist=None, maintain_window={"start_time": "00:00
                 archiver.drop_subpartition(p, part_rank=1)
 
             # 最后一次性 commit
-            # archiver.commit_tx()
+            archiver.commit_tx()
 
-    except (Exception, Error) as error:
+    except (Exception, psycopg2.Error) as error:
         print("Oops! An exception has occured:", error)
         print("Exception TYPE:", type(error))
 
@@ -231,10 +240,10 @@ def partition_migrate(dsn, whitelist=None, maintain_window={"start_time": "00:00
                 archiver.migrate_subpartition_tablespace(p, part_rank)
                 part_rank += 1
 
-            # 最后一次性 commit
-            # archiver.commit_tx()
+                # 分批提交，避免形成长事务
+                archiver.commit_tx()
 
-    except (Exception, Error) as error:
+    except (Exception, psycopg2.Error) as error:
         print("Oops! An exception has occured:", error)
         print("Exception TYPE:", type(error))
 
@@ -246,11 +255,11 @@ if __name__ == '__main__':
     ]
 
     whitelist_clean = [
-        # 'ict.ictlogtestpart_ao_old',
+        'public.demo',
     ]
-    whitelist_migrate = [
-        # 'spi.testlogsolder'
-    ]
+    whitelist_migrate = {
+        'public.demo2': 90,
+    }
 
     maintain_window = {
         'start_time': '01:00',
