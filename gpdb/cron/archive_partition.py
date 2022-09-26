@@ -168,7 +168,7 @@ class PartitionManager(object):
         return True
 
 
-def partition_cleaner(dsn, whitelist=None, maintain_window={"start_time": "00:00:00", "end_time": "23:59:59"}):
+def partition_cleaner(dsn, whitelist=None):
 
     if whitelist is None or len(whitelist) == 0:
         print("No whitelist provided, skipping.")
@@ -213,7 +213,7 @@ def partition_cleaner(dsn, whitelist=None, maintain_window={"start_time": "00:00
         print("Exception TYPE:", type(error))
 
 
-def partition_migrate(dsn, whitelist=None, maintain_window={"start_time": "00:00:00", "end_time": "23:59:59"}):
+def partition_migrate(dsn, whitelist=None):
 
     if whitelist is None or len(whitelist) == 0:
         print("No whitelist provided, skipping.")
@@ -261,15 +261,10 @@ if __name__ == '__main__':
         'public.demo2': 90,
     }
 
-    maintain_window = {
-        'start_time': '01:00',
-        'end_time': '02:30'
-    }
-
     for dsn in dsns:
         print('*' * 100)
         print(dsn)
         print('*' * 100)
 
-        # partition_cleaner(dsn, whitelist_clean, maintain_window)
-        partition_migrate(dsn, whitelist_migrate, maintain_window)
+        # partition_cleaner(dsn, whitelist_clean)
+        partition_migrate(dsn, whitelist_migrate)
