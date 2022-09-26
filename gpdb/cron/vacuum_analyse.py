@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 from __future__ import print_function
 
-import os
 from datetime import datetime
 
 import psycopg2
@@ -235,7 +234,7 @@ def main(dsns=[], maintain_window={}):
 if __name__ == '__main__':
 
     dsns = [
-        'postgresql://xxxx:xxxx@xxx:xxx/xxx?application_name=smart_vacuum',
+        'postgresql://<username>:<password>@<host>:<port>/<dbname>?application_name=smart_vacuum',
     ]
 
     maintain_window = {

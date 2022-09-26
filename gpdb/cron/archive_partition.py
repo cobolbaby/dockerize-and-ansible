@@ -147,6 +147,8 @@ class PartitionManager(object):
     def migrate_subpartition_tablespace(self, subpartition, rank=1):
         """
         Get all tables in database's schema.
+
+        CREATE TABLESPACE tbs_hdd01 OWNER ??? LOCATION '???';
         """
 
         COLD_TABLESPACE = 'tbs_hdd01'
