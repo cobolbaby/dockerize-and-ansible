@@ -5,16 +5,34 @@ from __future__ import print_function
 import logging
 
 import psycopg2
+from psycopg2.extras import LoggingConnection
 
-logger = logging.getLogger("dev")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def delete_table(conn, tbl):
-    
+    # https://stackoverflow.com/questions/5170546/how-do-i-delete-a-fixed-number-of-rows-with-sorting-in-postgresql
+    q = """
+        DELETE FROM {relname}
+        WHERE ctid IN (
+            SELECT ctid
+            FROM {relname}
+            WHERE {condition}
+            LIMIT 100000
+        );
+    """.format(relname=tbl.get("relname"), condition=tbl.get("condition"))
+
+    counter_size = 0
+    counter_num = 0
+
     with conn.cursor() as cur:
         while True:
-            cur.execute("DELETE FROM %s WHERE %s LIMIT 10000;", (tbl.get("relname"), tbl.get("condition")))
+            cur.execute(q)
             conn.commit()
+
+            counter_num += 1
+            counter_size += cur.rowcount
+            print(f'Loop delete {counter_num} times from table {tbl.get("relname")}, clean {counter_size} rows.')
             
             if cur.rowcount == 0:
                 break
@@ -60,8 +78,10 @@ def drop_partition(conn, tbl):
 
 def vacuum_table(conn, tbl):
 
+    q = "VACUUM ANALYSE {};".format(tbl.get("relname"))
+
     with conn.cursor() as cur:
-        cur.execute("VACUUM ANALYSE %s;", (tbl.get("relname")))
+        cur.execute(q)
         conn.commit()
 
     return True
@@ -70,11 +90,11 @@ if __name__ == '__main__':
 
     db_archive = [
         {
-            'dsn': 'postgresql://<username>:<password>@<host>:<port>/<dbname>?application_name=archiver',
+            'dsn': 'postgresql://<username>:<password>@<host>:<port>/<dbname>?application_name=cleaner&options=-c%20statement_timeout%3D30000',
             'tables': [
                 {
-                    'relname': "dw.fact_pca_yield_unit",
-                    'condition': "udt < '2021-10-01 00:00:00'",
+                    'relname': "manager.change_data_record",
+                    'condition': "cdt < date_trunc('day', now() - interval '15 days')",
                     'relispartition': False,
                     'pretest': [], # 预留检查入口
                 }
@@ -88,7 +108,7 @@ if __name__ == '__main__':
             print(db.get('dsn'))
             print('*' * 100)
 
-            conn = psycopg2.connect(db.get('dsn'))
+            conn = psycopg2.connect(dsn=db.get('dsn'), connection_factory=LoggingConnection)
             conn.initialize(logger)
 
             for tbl in db.get('tables'):
@@ -103,5 +123,4 @@ if __name__ == '__main__':
 
         except (Exception, psycopg2.Error) as error:
             print("Oops! An exception has occured:", error)
-            print("Exception TYPE:", type(error))
         
