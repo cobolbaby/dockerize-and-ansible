@@ -1,3 +1,6 @@
+# Ref: 
+# https://gitlab.com/gitlab-org/omnibus-gitlab/-/blob/master/doc/build/build_docker_image.md
+# https://packages.gitlab.com/gitlab/gitlab-ce/packages/ubuntu/focal/gitlab-ce_14.10.5-ce.0_amd64.deb
 RELEASE_PACKAGE=gitlab-ce
 RELEASE_VERSION=14.10.5-ce.0
-DOWNLOAD_URL=https://packages.gitlab.com/gitlab/gitlab-ce/packages/ubuntu/focal/gitlab-ce_14.10.5-ce.0_amd64.deb/download.deb
+DOWNLOAD_URL=https://infra-oss.itc.inventec.net/public/gitlab-ce_14.10.5-ce.0_amd64.deb
