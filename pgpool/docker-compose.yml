@@ -1,0 +1,16 @@
+version: '2.3'
+
+services:
+  pgpool:
+    image: registry.inventec/infra/pgpool:4.3.1
+    container_name: pgpool
+    hostname: pgpool
+    ports:
+      - "5494:5432"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      PATRONI_NAMESPACE: 
+      PATRONI_SCOPE: 
+      ETCDCTL_ENDPOINTS: 
+    restart: always
