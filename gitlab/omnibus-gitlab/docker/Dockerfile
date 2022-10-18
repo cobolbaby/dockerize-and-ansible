@@ -27,6 +27,7 @@ RUN apt-get update -q \
     && mkdir /var/lib/sshd \
     && chmod -R 700 /var/lib/sshd \
     && chown -R root:sys /var/lib/sshd \
+    && useradd -c "sshd privsep" -r -U -d /var/lib/sshd -s /usr/sbin/nologin -u 990 sshd \
     && cd /tmp/ \
     && wget --quiet https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-8.9p1.tar.gz \
     && tar -xzf openssh-8.9p1.tar.gz \
@@ -34,9 +35,9 @@ RUN apt-get update -q \
     && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
       libpam0g-dev \
       libselinux1-dev \
-      libkrb5-dev \
-    && ./configure --with-kerberos5 --with-md5-passwords --with-pam --with-selinux --with-privsep-path=/var/lib/sshd --sysconfdir=/etc/ssh \
+    && ./configure --with-md5-passwords --with-pam --with-selinux --with-privsep-path=/var/lib/sshd --sysconfdir=/etc/ssh \
     && make && make install \
+    && rm -rf /tmp/openssh-8.9p1* \
     && rm -rf /var/lib/apt/lists/*
 
 # Use BusyBox
