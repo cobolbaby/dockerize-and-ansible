@@ -3,12 +3,17 @@
 from __future__ import print_function
 
 import logging
+import sys
 
 import psycopg2
-from psycopg2.extras import LoggingConnection
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+# 控制台日志
+console_handler = logging.StreamHandler(sys.stdout)
+# 为logger添加的日志处理器，可以自定义日志处理器让其输出到其他地方
+logger.addHandler(console_handler)
 
 def delete_table(conn, tbl):
     # https://stackoverflow.com/questions/5170546/how-do-i-delete-a-fixed-number-of-rows-with-sorting-in-postgresql
@@ -26,15 +31,18 @@ def delete_table(conn, tbl):
     counter_num = 0
 
     with conn.cursor() as cur:
+        # TODO:如果删除 Table 的操作超时了，则直接跳过
+        cur.execute('set statement_timeout = 60000;')
+
         while True:
             cur.execute(q)
-            conn.commit()
+            # conn.commit()
 
             counter_num += 1
             counter_size += cur.rowcount
-            print(f'Loop delete {counter_num} times from table {tbl.get("relname")}, clean {counter_size} rows.')
+            logger.info(f'Loop delete {counter_num} times from table {tbl.get("relname")}, clean {counter_size} rows.')
             
-            if cur.rowcount == 0:
+            if cur.rowcount < 100000:
                 break
 
     return True
@@ -81,8 +89,20 @@ def vacuum_table(conn, tbl):
     q = "VACUUM ANALYSE {};".format(tbl.get("relname"))
 
     with conn.cursor() as cur:
+        cur.execute('set statement_timeout = 1800000;')
         cur.execute(q)
-        conn.commit()
+        # conn.commit()
+
+    return True
+
+def reindex_table(conn, tbl):
+
+    q = "REINDEX TABLE {};".format(tbl.get("relname"))
+
+    with conn.cursor() as cur:
+        cur.execute('set statement_timeout = 600000;')
+        cur.execute(q)
+        # conn.commit()
 
     return True
 
@@ -90,10 +110,10 @@ if __name__ == '__main__':
 
     db_archive = [
         {
-            'dsn': 'postgresql://<username>:<password>@<host>:<port>/<dbname>?application_name=cleaner&options=-c%20statement_timeout%3D30000',
+            'dsn': 'postgresql://<username>:<password>@<host>:<port>/<dbname>?application_name=cleaner',
             'tables': [
                 {
-                    'relname': "manager.change_data_record",
+                    'relname': "public.cdc",
                     'condition': "cdt < date_trunc('day', now() - interval '15 days')",
                     'relispartition': False,
                     'pretest': [], # 预留检查入口
@@ -102,25 +122,38 @@ if __name__ == '__main__':
         }
     ]
 
+    # TODO:读取 json 配置，然后循环。。。
+
     for db in db_archive:
         try:
-            print('*' * 100)
-            print(db.get('dsn'))
-            print('*' * 100)
+            logger.info('*' * 100)
+            logger.info(db.get('dsn'))
+            logger.info('*' * 100)
 
-            conn = psycopg2.connect(dsn=db.get('dsn'), connection_factory=LoggingConnection)
-            conn.initialize(logger)
+            conn = psycopg2.connect(dsn=db.get('dsn'))
+
+            # fix: VACUUM cannot run inside a transaction block
+            # which psycopg2 uses by default.
+            # http://bit.ly/1OUbYB3
+            conn.set_isolation_level(
+                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             for tbl in db.get('tables'):
                 # 优化时间分区表数据清理过程
                 if tbl.get('relispartition'):
                     drop_partition(conn, tbl)
                 else:
-                    delete_table(conn, tbl)
+                    try:
+                        delete_table(conn, tbl)
+                    except (Exception, psycopg2.Error) as error:
+                        logger.warn(error)
+                    # TODO:借助 pg_repack 进行索引重建，否则会锁表
+                    # pg_repack 提供 Pl/SQL 方式吗？
                     vacuum_table(conn, tbl)
+                    reindex_table(conn, tbl)
 
             conn.close()
 
         except (Exception, psycopg2.Error) as error:
-            print("Oops! An exception has occured:", error)
+            logger.error(error)
         
