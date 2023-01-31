@@ -1,0 +1,384 @@
+gp_postmaster:
+  query: "SELECT EXTRACT(EPOCH FROM pg_postmaster_start_time) AS start_time_seconds FROM pg_postmaster_start_time()"
+  master: true
+  cache_seconds: 3600
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "Time at which postmaster started"
+
+gp_stat_activity:
+  query: |
+    SELECT 
+      usename,
+      client_addr,
+      CASE
+        WHEN application_name ~* 'pgAdmin' THEN 'pgAdmin'
+        ELSE application_name
+      END AS application_name,
+      datname,
+      state,
+      waiting,
+      COUNT(1) AS count
+    FROM pg_stat_activity
+    WHERE pid <> pg_backend_pid()
+    -- and application_name = ''
+    GROUP BY 1,2,3,4,5,6;
+  master: true
+  metrics:
+    - usename:
+        usage: "LABEL"
+        description: "User name"
+    - client_addr:
+        usage: "LABEL"
+        description: "Client address"
+    - application_name:
+        usage: "LABEL"
+        description: "Application name"
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - state:
+        usage: "LABEL"
+        description: "State of the session"
+    - waiting:
+        usage: "LABEL"
+        description: "Is the session waiting for a lock?"
+    - count:
+        usage: "GAUGE"
+        description: "Number of sessions"
+
+gp_stat_activity_active:
+  query: |
+    SELECT 
+      usename,
+      client_addr,
+      CASE
+        WHEN application_name ~* 'pgAdmin' THEN 'pgAdmin'
+        ELSE application_name
+      END AS application_name,
+      datname,
+      waiting,
+      MAX(EXTRACT(EPOCH FROM now() - xact_start))::float AS max_tx_duration
+    FROM pg_stat_activity
+    WHERE pid <> pg_backend_pid()
+    -- AND application_name = ''
+    AND state = 'active'
+    GROUP BY 1,2,3,4,5;
+  master: true
+  metrics:
+    - usename:
+        usage: "LABEL"
+        description: "User name"
+    - client_addr:
+        usage: "LABEL"
+        description: "Client address"
+    - application_name:
+        usage: "LABEL"
+        description: "Application name"
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - waiting:
+        usage: "LABEL"
+        description: "Is the session waiting for a lock?"
+    - max_tx_duration:
+        usage: "GAUGE"
+        description: "Maximum transaction duration"
+
+# cat $MASTER_DATA_DIRECTORY/postgresql.conf | grep -A100 'gp_contentid=-1' | grep -vE '^#' | sort -n
+# checkpoint_segments=32
+# checkpoint_timeout=20min
+# enable_nestloop=on
+# gp_autostats_mode_in_functions=ON_NO_STATS
+# gp_contentid=-1
+# gp_enable_global_deadlock_detector=on
+# gp_fts_probe_retries=100
+# gp_interconnect_queue_depth=10
+# gp_interconnect_transmit_timeout=600
+# gp_resqueue_memory_policy=eager_free
+# gp_udp_bufsize_k=4096
+# gp_vmem_protect_limit=15500
+# gp_workfile_compression=true
+# lock_timeout=300000
+# log_min_messages=error
+# log_statement=none
+# maintenance_work_mem=2GB
+# max_connections=500
+# max_prepared_transactions=500
+# random_page_cost=10
+# shared_buffers=4GB
+# statement_mem=200MB
+# statement_timeout=1200000
+# temp_buffers=64MB
+# temp_tablespaces='tbs_ssd01'
+gp_settings:
+  query: |
+    SELECT 
+        name, COALESCE(unit, '') AS unit, vartype,
+        case 
+            when vartype = 'bool' and setting = 'on' then '1'
+            when vartype = 'bool' and setting = 'off' then '0'
+            else setting 
+        end as param
+    FROM pg_settings 
+    WHERE name in (
+        'max_connections', 'superuser_reserved_connections',
+        -- max_wal_size 在PostgreSQL 9.5之前是checkpoint_segments
+        'checkpoint_segments', 'checkpoint_timeout', 'checkpoint_completion_target',
+        'wal_keep_segments',
+        'statement_timeout', 'lock_timeout', 'idle_in_transaction_session_timeout',
+        'log_min_duration_statement', -- 'log_min_messages', 'log_statement'
+        'gp_fts_probe_retries',
+        'gp_interconnect_transmit_timeout', 'gp_interconnect_queue_depth', 'gp_max_packet_size', 'gp_udp_bufsize_k',
+        'gp_vmem_protect_limit', 'shared_buffers', 'maintenance_work_mem', 'temp_buffers', 'statement_mem', 'gp_workfile_compression',
+        -- 'gp_recursive_cte',
+        'optimizer_nestloop_factor', 'optimizer_parallel_union', 'enable_nestloop', 
+        'gp_enable_global_deadlock_detector'
+    );
+  master: true
+  cache_seconds: 3600
+  metrics:
+    - name:
+        usage: "LABEL"
+        description: "Name of the setting"
+    - vartype:
+        usage: "LABEL"
+        description: "Type of the setting"
+    - unit:
+        usage: "LABEL"
+        description: "Unit of the setting"
+    - param:
+        usage: "GAUGE"
+        description: "Value of the setting"
+
+gp_resqueue_status:
+  query: |
+    SELECT rsqname, rsqcountlimit, rsqcountvalue, rsqmemorylimit, rsqmemoryvalue, rsqwaiters, rsqholders FROM gp_toolkit.gp_resqueue_status;
+  master: true
+  metrics:
+    - rsqname:
+        usage: "LABEL"
+        description: "Name of the resource queue"
+    - rsqcountlimit:
+        usage: "GAUGE"
+        description: "The active query threshold of the resource queue. A value of -1 means no limit."
+    - rsqcountvalue:
+        usage: "GAUGE"
+        description: "The number of active query slots currently being used in the resource queue."
+    - rsqmemorylimit:
+        usage: "GAUGE"
+        description: "The memory limit for the resource queue."
+    - rsqmemoryvalue:
+        usage: "GAUGE"
+        description: "The total memory used by all statements currently in the resource queue."
+    - rsqwaiters:
+        usage: "GAUGE"
+        description: "The number of statements currently waiting in the resource queue."
+    - rsqholders:
+        usage: "GAUGE"
+        description: "The number of statements currently running on the system from this resource queue."
+
+gp_database:
+  query: |
+    SELECT sodddatname as datname,sodddatsize as size_bytes from gp_toolkit.gp_size_of_database;
+  master: true
+  cache_seconds: 600
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Size of the database"
+
+gp:
+  query: |
+    -- SELECT (regexp_matches((select version()), 'Greenplum Database (\d+\.\d+\.\d+)'))[1] AS version, 1 AS up
+    select unnest(v.version) as version, 1 as up from (SELECT regexp_matches((select version()), 'Greenplum Database (\d+\.\d+\.\d+)') version) v;
+  master: true
+  metrics:
+    - version:
+        usage: "LABEL"
+        description: "Greenplum version"
+    - up:
+        usage: "GAUGE"
+        description: "Is the instance up?"
+
+# Segment 节点状态
+# Standby 节点状态
+gp_segment:
+  query: |
+    select dbid,content,preferred_role,hostname,address,datadir,
+    case when role = preferred_role then 0 else 1 end role_change,
+    case when status = 'u' then 1 else 0 end up,
+    case when content = -1 then -1 when mode = 's' then 1 else 0 end in_sync
+    from gp_segment_configuration;
+  master: true
+  metrics:
+    - dbid:
+        usage: "LABEL"
+        description: "Database ID"    
+    - content:
+        usage: "LABEL"
+        description: "Content ID"
+    - preferred_role:
+        usage: "LABEL"
+        description: "Preferred role"
+    - role_change:
+        usage: "GAUGE"
+        description: "Role"
+    - up: 
+        usage: "GAUGE"
+        description: "Status"
+    - in_sync:
+        usage: "GAUGE"
+        description: "In sync"
+    - hostname: 
+        usage: "LABEL"
+        description: "Hostname"
+    - address: 
+        usage: "LABEL"
+        description: "Address"
+    - datadir: 
+        usage: "LABEL"
+        description: "Data directory"
+
+gp_workfile:
+  query: |
+    SELECT WUPS.*, SC.HOSTNAME
+    FROM gp_toolkit.gp_workfile_usage_per_segment WUPS
+    JOIN gp_segment_configuration SC ON WUPS.SEGID = SC.CONTENT
+    WHERE SC.ROLE = 'p' AND SEGID <> -1
+  master: true
+  metrics:
+    - segid:
+        usage: "LABEL"
+        description: "ID of the segment"
+    - hostname:
+        usage: "LABEL"
+        description: "Hostname of the segment"
+    - size:
+        usage: "GAUGE"
+        description: "Size of the workfiles"
+    - numfiles:
+        usage: "GAUGE"
+        description: "Number of workfiles"
+
+gp_locks:
+  query: |
+    SELECT 
+        blocking_locks.mode                       AS lock,
+        blocked_locks.mode                        AS waiting_lock,
+        blocking_activity.datname                 AS datname,
+        blocking_locks.relation::regclass         AS relation,
+        blocking_locks.pid                        AS pid,
+        blocking_activity.application_name        AS application_name,
+        blocking_activity.query                   AS query,
+        blocked_locks.pid                         AS waiting_pid,
+        blocked_activity.application_name         AS waiting_application_name,
+        blocked_activity.query                    AS waiting_query,
+        EXTRACT(EPOCH FROM now() - blocked_activity.query_start)::float AS waiting_duration_seconds
+    FROM pg_catalog.pg_locks              blocked_locks
+        JOIN pg_catalog.pg_stat_activity  blocked_activity ON blocked_activity.pid = blocked_locks.pid
+        JOIN pg_catalog.pg_locks          blocking_locks 
+            ON blocking_locks.locktype = blocked_locks.locktype
+            AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
+            AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+            AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
+            AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
+            AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid
+            AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
+            AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
+            AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
+            AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
+            AND blocking_locks.pid != blocked_locks.pid
+        JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
+    WHERE NOT blocked_locks.granted
+  master: true
+  metrics:
+    - lock:
+        usage: "LABEL"
+        description: "Current lock"
+    - waiting_lock:
+        usage: "LABEL"
+        description: "Waiting lock"
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - relation:
+        usage: "LABEL"
+        description: "Relation name"
+    - pid:
+        usage: "DISCARD"
+        description: "Running PID"
+    - application_name:
+        usage: "LABEL"
+        description: "Application name"
+    - query:
+        usage: "LABEL"
+        description: "Current query"
+    - waiting_pid:
+        usage: "DISCARD"
+        description: "Waiting PID"
+    - waiting_application_name:
+        usage: "LABEL"
+        description: "Waiting application"
+    - waiting_query:
+        usage: "LABEL"
+        description: "Waiting query"  
+    - waiting_duration_seconds:
+        usage: "GAUGE"
+        description: "Waiting duration"
+
+# gp_schema:
+#   query: |
+#     SELECT current_database() datname, sosdnsp AS nspname, sosdschematablesize AS table_size_bytes, sosdschemaidxsize AS idx_size_bytes FROM gp_toolkit.gp_size_of_schema_disk
+#   cache_seconds: 3600
+#   metrics:
+#     - datname:
+#         usage: "LABEL"
+#         description: "Database name"
+#     - nspname:
+#         usage: "LABEL"
+#         description: "Schema name"
+#     - table_size_bytes:
+#         usage: "GAUGE"
+#         description: "Table size"
+#     - idx_size_bytes:
+#         usage: "GAUGE"
+#         description: "idx size"
+
+# TimeZone
+# 通过 SELECT now() 可以直接看出来是哪个时区，不是单纯依靠 timezone 来判定的
+
+# 模型资产统计
+gp_tables:
+  query: |
+    select table_catalog as datname, table_schema as nspname, table_type, count(1) as count from information_schema.tables
+    where table_schema not in (
+      'information_schema','pg_catalog',
+      'gp_toolkit','pg_bitmapindex',
+      'partman',
+      'debug'
+    )
+    group by 1, 2, 3
+  master: false
+  cache_seconds: 3600
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - nspname:
+        usage: "LABEL"
+        description: "Name of the namespace"
+    - table_type:
+        usage: "LABEL"
+        description: "BASE TABLE/VIEW/FOREIGN"
+    - count:
+        usage: "GAUGE"
+        description: "Number of table/view"
+
+# TODO:表大小是否超过一定阈值(2亿)，是否需要拆解
+
+# TODO:有哪些 Tablespace
