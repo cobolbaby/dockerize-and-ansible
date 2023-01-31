@@ -1,5 +1,5 @@
 ARG VERSION
-FROM registry.inventec/hub/gitlab/gitlab-ce:${VERSION}
+FROM registry.inventec/proxy/gitlab/gitlab-ce:${VERSION}
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 ARG VERSION
 
