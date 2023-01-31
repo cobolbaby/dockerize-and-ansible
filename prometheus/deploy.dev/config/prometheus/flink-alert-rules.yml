@@ -1,0 +1,38 @@
+groups:
+- name: flink-alerting
+  rules:
+  - alert: flink-no-running-job
+    expr: sum(flink_jobmanager_numRunningJobs) by (instance, host) == 0
+    for: 2m
+    labels:
+      severity: yellow
+    annotations:
+      summary: "No running jobs on flink ({{ $labels.host }})"
+      description: "No running jobs on flink ({{ $labels.host }})"
+
+  - alert: flink-restarting-job
+    expr: increase(flink_jobmanager_job_numRestarts[5m]) > 0
+    for: 2m
+    labels:
+      severity: yellow
+    annotations:
+      summary: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"
+      description: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"
+
+  - alert: flink-restarting-job
+    expr: increase(flink_jobmanager_job_numRestarts[5m]) > 0
+    for: 10m
+    labels:
+      severity: orange
+    annotations:
+      summary: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"
+      description: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"
+
+  - alert: flink-restarting-job
+    expr: increase(flink_jobmanager_job_numRestarts[5m]) > 0
+    for: 30m
+    labels:
+      severity: red
+    annotations:
+      summary: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"
+      description: "Job {{ $labels.job_name }} is restarted on flink ({{ $labels.host }})"

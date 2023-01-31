@@ -1,32 +1,55 @@
 groups:
 - name: common-alerting
   rules:
-  # down了超过30秒
+  # down了超过120秒
   - alert: instance-down
     expr: up == 0
-    for: 30s
+    # 通过 `for` 参数来指定报警被触发的持续时间，从而避免数据短暂的异常后又很快恢复的情况
+    for: 2m
     labels:
       severity: yellow
     annotations:
       summary: "Instance {{ $labels.instance }} down"
-      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 30 seconds."
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 120 seconds."
 
-  # down了超过1分钟
+  # down了超过10分钟
   - alert: instance-down
     expr: up == 0
-    for: 1m
+    for: 10m
     labels:
       severity: orange
     annotations:
       summary: "Instance {{ $labels.instance }} down"
-      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minutes."
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 10 minutes."
 
-  # down了超过5分钟
+  # down了超过30分钟
   - alert: instance-down
     expr: up == 0
-    for: 5m
+    for: 30m
     labels:
       severity: red
     annotations:
       summary: "Instance {{ $labels.instance }} down"
-      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 30 minutes."
+
+  # https://awesome-prometheus-alerts.grep.to/rules
+  # Please add ignored mountpoints in node_exporter parameters like
+  # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
+  # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
+  - alert: HostDiskWillFillIn1Week
+    expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 20 and predict_linear(node_filesystem_avail_bytes{fstype=~"xfs|ext4"}[14d], 7 * 24 * 3600) < 0
+    for: 30m
+    labels:
+      severity: red
+    annotations:
+      summary: "Host disk will fill in the next week (instance {{ $labels.instance }})"
+      description: "Filesystem of {{ $labels.instance }} is predicted to run out of space within the next week at current write rate {{ $value }}"
+
+  - alert: HostDiskWillFillIn24Hours
+    expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 20 and predict_linear(node_filesystem_avail_bytes{fstype=~"xfs|ext4"}[2d], 24 * 3600) < 0
+    for: 30m
+    labels:
+      severity: red
+    annotations:
+      summary: "Host disk will fill in 24 hours (instance {{ $labels.instance }})"
+      description: "Filesystem of {{ $labels.instance }} is predicted to run out of space within the next 24 hours at current write rate {{ $value }}"

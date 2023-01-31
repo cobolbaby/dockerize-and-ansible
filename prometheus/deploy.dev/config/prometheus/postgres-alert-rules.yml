@@ -1,0 +1,16 @@
+groups:
+- name: postgres-alerting
+  rules:
+  - alert: PostgresqlTooManyConnections
+    expr: sum by (job, instance, server) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.9
+    for: 10m
+    labels:
+      severity: orange
+    annotations:
+      summary: Postgresql too many connections (instance {{ $labels.server }})
+      description: "PostgreSQL instance {{ $labels.server }} has too many connections ({{ $value }})"
+
+  # TODO:GP 如果出现 down 掉的节点则告警
+  # - alert: 
+
+  # TODO:PG 主从同步延迟超过 100MB

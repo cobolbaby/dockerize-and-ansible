@@ -4,7 +4,7 @@ groups:
   rules:
   # 堆空间使用超过50%
   - alert: heap-usage-too-much
-    expr: jvm_memory_bytes_used{job="jmx", area="heap"} / jvm_memory_bytes_max * 100 > 50
+    expr: jvm_memory_bytes_used{area="heap"} / jvm_memory_bytes_max * 100 > 50
     for: 1m
     labels:
       severity: yellow
@@ -14,7 +14,7 @@ groups:
 
   # 堆空间使用超过80%
   - alert: heap-usage-too-much
-    expr: jvm_memory_bytes_used{job="jmx", area="heap"} / jvm_memory_bytes_max * 100 > 80
+    expr: jvm_memory_bytes_used{area="heap"} / jvm_memory_bytes_max * 100 > 80
     for: 1m
     labels:
       severity: orange
@@ -24,7 +24,7 @@ groups:
   
   # 堆空间使用超过90%
   - alert: heap-usage-too-much
-    expr: jvm_memory_bytes_used{job="jmx", area="heap"} / jvm_memory_bytes_max * 100 > 90
+    expr: jvm_memory_bytes_used{area="heap"} / jvm_memory_bytes_max * 100 > 90
     for: 1m
     labels:
       severity: red
