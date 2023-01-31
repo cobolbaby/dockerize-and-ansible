@@ -2,12 +2,11 @@
 set -e
 cd `dirname $0`
 
-export PG_URI=postgresql://${USERNAME1}:${PASSWORD1}@${IP4}:5493/postgres?sslmode=disable
-export ES_URI=http://${IP5}:9200
-export MYSQL_URI="${USERNAME2}:${PASSWORD2}@(${IP6}:3306)/"
-export MONGODB_URI=mongodb://${USERNAME3}:${PASSWORD3}@${IP7}:28028
+export PG_MONITOR_USER=pgexporter PG_MONITOR_PASS=pgexporter
+export PG_URI=${PG_HOST}:${PG_PORT}
+export GP_URI=${GP_HOST}:${GP_PORT}
 
-docker stack deploy -c docker-compose-prometheus.yml monitor
+docker stack deploy -c docker-compose-prometheus.yml prometheus
 
 sleep 10
 sh reload.sh

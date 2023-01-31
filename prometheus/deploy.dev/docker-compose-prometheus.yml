@@ -10,28 +10,9 @@ x-default:
 
 services:
 
-  visualizer:
-    image: registry.inventec/hub/dockersamples/visualizer:latest
-    networks:
-      - overlay
-    ports:
-      - "38080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      restart_policy:
-        condition: on-failure
-      placement:
-        constraints: 
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 128M
-
   prometheus:
     << : *default_cfg
-    image: registry.inventec/hub/prom/prometheus:v2.13.1
+    image: registry.inventec/hub/prom/prometheus:v2.36.2
     hostname: prometheus
     networks:
       - overlay
@@ -42,153 +23,77 @@ services:
         mode: host
     volumes:
       - ./config/prometheus:/config:ro
-      - /mnt/cephfs/prometheus/data:/data
+      - /data/hdd4/prometheus/data:/data
+      - /etc/localtime:/etc/localtime:ro
     command:
       - --config.file=/config/prometheus.yml
       - --web.enable-lifecycle
       - --storage.tsdb.path=/data
-      - --storage.tsdb.retention.time=14d
+      - --storage.tsdb.retention.time=365d
+      - --web.enable-remote-write-receiver
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: 
-          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
+          - node.role == manager
+          - node.labels.alias == infra01.dev.itc.inventec
+      resources:
+        limits:
+          cpus: "2"
+          memory: 8g
     
-  redis-exporter:
+  postgres-exporter:
     << : *default_cfg
-    image: registry.inventec/hub/oliver006/redis_exporter:v1.3.4
-    hostname: redis-exporter
+    image: registry.inventec/hub/prometheuscommunity/postgres-exporter:v0.10.1
     networks:
       - overlay
-    # ports:
-    #   - "9121:9121"
-    environment:
-      # REDIS_PASSWORD: xxxxxx
-    deploy:
-      restart_policy:
-        condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
-
-  node-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/prom/node-exporter:v0.18.1
-    hostname: node-exporter
-    networks:
-      hostnet: {}
-    # pid: host
-    # ports:
-    #   - "9100:9100"
     volumes:
-      - /:/host:ro,rslave
+      - ./config/postgres_exporter:/config:ro  
+    environment:
+      DATA_SOURCE_URI: ${PG_URI}/postgres?sslmode=disable
+      DATA_SOURCE_USER: ${PG_MONITOR_USER}
+      DATA_SOURCE_PASS: ${PG_MONITOR_PASS}
     command:
-      - --path.rootfs=/host
-    deploy:
-      mode: global
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
- 
-  pg-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/wrouesnel/postgres_exporter:v0.8.0
-    hostname: pg-exporter
-    networks:
-      - overlay
-    # ports:
-    #   - "9187:9187"
-    environment:
-      DATA_SOURCE_NAME: ${PG_URI}
+      - --extend.query-path=/config/custom-queries.yaml
+      - --auto-discover-databases
+      - --include-databases=bdc
     deploy:
       restart_policy:
         condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
+      resources:
+        limits:
+          cpus: "1"
+          memory: 128m
 
-  es-exporter:
+  greenplum-exporter:
     << : *default_cfg
-    image: registry.inventec/hub/justwatch/elasticsearch_exporter:1.1.0
-    hostname: es-exporter
+    image: registry.inventec/hub/prometheuscommunity/postgres-exporter:v0.10.1
     networks:
       - overlay
-    # ports:
-    # - "9114:9114"
+    volumes:
+      - ./config/greenplum_exporter:/config:ro
     environment:
-      ES_URI: ${ES_URI}
+      DATA_SOURCE_URI: ${GP_URI}/postgres?sslmode=disable
+      DATA_SOURCE_USER: ${PG_MONITOR_USER}
+      DATA_SOURCE_PASS: ${PG_MONITOR_PASS}
+    command:
+      - --disable-default-metrics
+      - --disable-settings-metrics
+      - --auto-discover-databases
+      - --exclude-databases=gpperfmon
+      - --extend.query-path=/config/custom-queries.yaml
     deploy:
       restart_policy:
         condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
-
-  mongo-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/bitnami/mongodb-exporter:0.10.0
-    hostname: mongo-exporter
-    networks:
-      - overlay
-    # ports:
-    # - "9216:9216"
-    environment:
-      MONGODB_URI: ${MONGODB_URI}
-    deploy:
-      restart_policy:
-        condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
-
-  mysql-exporter:
-    << : *default_cfg
-    image: registry.inventec/hub/prom/mysqld-exporter:v0.12.1
-    hostname: mysql-exporter
-    networks:
-      - overlay
-    # ports:
-    # - "9104:9104"
-    environment:
-      DATA_SOURCE_NAME: ${MYSQL_URI}
-    deploy:
-      restart_policy:
-        condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
-
-  # grafana:
-  #   image: registry.inventec/hub/grafana/grafana:6.4.4
-  #   hostname: grafana
-  #   networks:
-  #     hostnet: {}
-  #   # ports:
-  #   #   - "3000:3000"
-  #   # volumes:
-  #   #   - ./config:/config:ro
-  #   #   - ./data:/data
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #     placement:
-  #       constraints: 
-  #         - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+      resources:
+        limits:
+          cpus: "1"
+          memory: 128m
 
   alertmanager:
     << : *default_cfg
-    image: registry.inventec/hub/prom/alertmanager:v0.19.0
+    image: registry.inventec/hub/prom/alertmanager:v0.24.0
     hostname: alertmanager
     networks:
       - overlay
@@ -199,6 +104,8 @@ services:
         mode: host
     volumes:
       - ./config/alertmanager:/etc/alertmanager
+      - /data/hdd4/alertmanager:/alertmanager
+      - /etc/localtime:/etc/localtime:ro
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
@@ -208,16 +115,33 @@ services:
         condition: on-failure
       placement:
         constraints: 
-          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
-      # resources:
-      #   limits:
-      #     cpus: "2"
-      #     memory: 2g
+          - node.labels.alias == infra01.dev.itc.inventec
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1g
+
+  kafka-lag-exporter:
+    << : *default_cfg
+    image: registry.inventec/hub/seglo/kafka-lag-exporter:0.7.1
+    hostname: kafka-lag-exporter
+    networks:
+      - overlay
+    volumes:
+      - ./config/kafka-lag-exporter:/opt/docker/conf
+    command: 
+      - /opt/docker/bin/kafka-lag-exporter
+      - -Dconfig.file=/opt/docker/conf/application.conf
+      - -Dlogback.configurationFile=/opt/docker/conf/logback.xml
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512m
 
 networks:
-  hostnet:
-    external: true
-    name: host
   overlay:
     external: true
     name: bdc
