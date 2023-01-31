@@ -3,11 +3,11 @@ global:
   wechat_api_url: 'https://qyapi.weixin.qq.com/cgi-bin/'
   wechat_api_corp_id: ''
   http_config:
-    proxy_url: 'http://10.190.40.39:12306/'
+    proxy_url: ''
 
 # The directory from which notification templates are read.
-# templates: 
-# - '/alertmanager-config/*.tmpl'
+templates: 
+- '/etc/alertmanager/config/*.tmpl'
 
 route:
   # A default receiver
@@ -16,28 +16,36 @@ route:
   # The labels by which incoming alerts are grouped together. For example,
   # multiple alerts coming in for cluster=A and alertname=LatencyHigh would
   # be batched into a single group.
-  group_by: ['alertname', 'instance']
+  # group_by: ['alertname', 'instance']
+  group_by: ['instance']
  
   # When a new group of alerts is created by an incoming alert, wait at
   # least 'group_wait' to send the initial notification.
   # This way ensures that you get multiple alerts for the same group that start
   # firing shortly after another are batched together on the first 
   # notification.
-  group_wait: 10s
+  group_wait: 30s
  
   # When the first notification was sent, wait 'group_interval' to send a batch
   # of new alerts that started firing for that group.
-  group_interval: 10s
+  # Ref: https://mp.weixin.qq.com/s?__biz=MzI3MTAxMTY5OA==&mid=2671914612&idx=1&sn=288d777186a32b2bb5377e3c2c50eefa
+  group_interval: 2m
  
   # If an alert has successfully been sent, wait 'repeat_interval' to
   # resend them.
-  repeat_interval: 1h
+  repeat_interval: 60m
 
-  # routes:
-  # - match_re:
-  #     severity: ^(orange|red)$
-  #   receiver: 'wechat'
-  #   continue: true
+  routes:
+  - matchers:
+      - job=~"dcagent|greenplum"
+    mute_time_intervals:
+      - offhours
+      - weekends
+
+  # not work here
+  # mute_time_intervals:
+  #   - weekends
+  #   - offhours
 
 receivers:
 - name: 'webhook'
@@ -49,6 +57,7 @@ receivers:
   - agent_id: ''
     api_secret: ''
     to_user: '@all'
+    message: '{{ template "wechat.default.message" . }}'
 
 # Inhibition rules allow to mute a set of alerts given that another alert is firing.
 # We use this to mute any warning-level notifications if the same alert is already critical.
@@ -74,3 +83,17 @@ inhibit_rules:
     severity: ^(blue)$
   # Apply inhibition if the alertname and instance is the same.
   equal: ['alertname', 'instance']
+
+# 暂不支持本地时区，所以 start_time 需要减 8 小时
+time_intervals:
+  - name: weekends
+    time_intervals:
+      - weekdays: ['sunday']
+        times:
+          - start_time: '00:00'
+            end_time: '23:59'
+  - name: offhours
+    time_intervals:
+      - times:
+        - start_time: '17:00'
+          end_time: '18:00'
