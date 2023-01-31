@@ -1,86 +1,127 @@
-hostPort: 127.0.0.1:9999
+# https://github.com/jianzhiunique/kafka-jmx-exporter/blob/master/example_configs/config-2.5.1.yaml
 lowercaseOutputName: true
-
+lowercaseOutputLabelNames: true
+# Ref: https://github.com/prometheus/jmx_exporter/issues/175
+whitelistObjectNames:
+  # 1. 流量相关：消息速率、字节流入、字节流出
+  - "kafka.server:type=BrokerTopicMetrics,*"
+  # 3. 网络请求相关：网络处理器空闲、请求处理池空闲、请求队列长度、相应队列长度
+  - "kafka.network:type=RequestMetrics,name=ErrorsPerSec,*"
+  - "kafka.network:type=RequestMetrics,name=RequestsPerSec,*"
+  - "kafka.network:type=RequestMetrics,name=*TimeMs,*"
+  - "kafka.network:type=RequestChannel,name=RequestQueueSize"
+  - "kafka.network:type=RequestChannel,name=ResponseQueueSize"
+  - "kafka.network:type=SocketServer,name=NetworkProcessorAvgIdlePercent"
+  - "kafka.server:type=KafkaRequestHandlerPool,name=RequestHandlerAvgIdlePercent"
+  # 4. 控制器相关：活跃控制器、优先副本偏移数、Leader选举速率、离线分区数量
+  - "kafka.controller:type=KafkaController,*"
+  - "kafka.controller:type=ControllerStats,name=LeaderElectionRateAndTimeMs"
+  - "kafka.controller:type=ControllerStats,name=AutoLeaderBalanceRateAndTimeMs"
+  # 5. 副本相关：ISR变化、UR数量、分区数量、Leader数量、follower最大lag、每个follower的lag、LEO、LSO、日志段数量
+  - "kafka.server:type=ReplicaManager,name=*"
+  - "kafka.cluster:type=Partition,name=ReplicasCount,*"
+  # 6. 日志相关：日志大小、日志刷盘
+  - "kafka.log:type=LogCleaner,*"
+  # 7. 炼狱相关：延迟生产炼狱长度、延迟消费炼狱长度
+  - "kafka.server:type=DelayedOperationPurgatory,name=PurgatorySize,delayedOperation=Produce"
+  - "kafka.server:type=DelayedOperationPurgatory,name=PurgatorySize,delayedOperation=Fetch"
+  # 8. zookeeper相关
+  - "kafka.server:type=SessionExpireListener,name=ZooKeeperDisconnectsPerSec"
+  - "kafka.server:type=SessionExpireListener,name=ZooKeeperExpiresPerSec"
+  
 rules:
-# Special cases and very specific rules
-- pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
-  name: kafka_server_$1_$2
-  type: GAUGE
-  labels:
-    clientId: "$3"
-    topic: "$4"
-    partition: "$5"
-- pattern : kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>Value
-  name: kafka_server_$1_$2
-  type: GAUGE
-  labels:
-    clientId: "$3"
-    broker: "$4:$5"
 
 # Generic per-second counters with 0-2 key/value pairs
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_total
+# kafka.server<type=BrokerTopicMetrics, name=BytesInPerSec, topic=infra.monitor.web><>Count
+# kafka.server<type=BrokerTopicMetrics, name=BytesOutPerSec, topic=infra.minio.fis.notify><>Count
+# kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec, topic=ict-3070-f3><>Count
+# kafka.server<type=ReplicaManager, name=IsrShrinksPerSec><>Count
+# kafka.network<type=RequestMetrics, name=RequestsPerSec, request=FetchFollower, version=11><>Count
+# kafka.network<type=RequestMetrics, name=ErrorsPerSec, request=FindCoordinator, error=COORDINATOR_NOT_AVAILABLE><>Count
+
+- pattern: kafka.network<type=RequestMetrics, name=RequestsPerSec, (.+)=(.+), (.+)=(.+)><>Count
+  name: kafka_network_requestmetrics_requests_total
   type: COUNTER
   labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_total
+    "$1": "$2"
+    "$3": "$4"
+- pattern: kafka.network<type=RequestMetrics, name=ErrorsPerSec, (.+)=(.+), (.+)=(.+)><>Count
+  name: kafka_network_requestmetrics_errors_total
   type: COUNTER
   labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
-  name: kafka_$1_$2_$3_total
+    "$1": "$2"
+    "$3": "$4"
+- pattern: kafka.server<type=BrokerTopicMetrics, name=(MessagesIn|BytesIn|BytesOut)PerSec\w*, (.+)=(.+)><>Count
+  name: kafka_server_brokertopicmetrics_$1_total
+  type: COUNTER
+  labels:
+    "$2": "$3"
+- pattern: kafka.server<type=ReplicaManager, name=(.+)PerSec\w*><>Count
+  name: kafka_server_replicamanager_$1_total
+  type: COUNTER
+- pattern: kafka.controller<type=ControllerStats, name=(.+)><>Count #4 leader选举、不完全副本选举次数
+  name: kafka_controller_ControllerStats_$1_total
+  type: COUNTER
+- pattern : kafka.server<type=SessionExpireListener, name=(.+)PerSec><>Count #8 zookeeper会话计数
+  name: kafka_server_SessionExpireListener_$1
   type: COUNTER
 
 # Generic gauges with 0-2 key/value pairs
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3
+# kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value
+# kafka.controller<type=KafkaController, name=GlobalTopicCount><>Value
+# kafka.controller<type=KafkaController, name=OfflinePartitionsCount><>Value
+# kafka.server<type=ReplicaManager, name=PartitionCount><>Value
+# kafka.server<type=ReplicaManager, name=LeaderCount><>Value
+# kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value
+# kafka.log<type=Log, name=Size, topic=ict-3070-f3-v3, partition=5><>Value
+# kafka.log<type=LogCleaner, name=max-clean-time-secs><>Value
+# kafka.cluster<type=Partition, name=ReplicasCount, topic=f6-spi-pemtron-solder-spc, partition=0><>Value
+
+# - pattern: kafka.log<type=Log, name=Size, topic=(.+), partition=(.+)><>Value
+#   name: kafka_log_log_size
+#   type: GAUGE
+#   labels:
+#     topic: "$1"
+#     partition: "$2"
+- pattern: kafka.log<type=LogCleaner, name=(.+)><>Value
+  name: kafka_log_logcleaner_$1
+  type: GAUGE
+- pattern: kafka.controller<type=KafkaController, name=(.+)><>Value
+  name: kafka_controller_kafkacontroller_$1
+  type: GAUGE
+- pattern: kafka.controller<type=ControllerStats, name=(.+)><>OneMinuteRate #4 leader选举、不完全副本选举速率
+  name: kafka_controller_ControllerStats_$1
+  type: GAUGE
+- pattern: kafka.network<type=RequestChannel, name=(.+)><>Value
+  name: kafka_network_requestchannel_$1
+  type: GAUGE
+- pattern: kafka.network<type=SocketServer, name=NetworkProcessorAvgIdlePercent><>Value
+  name: kafka_network_SocketServer_NetworkProcessorAvgIdlePercent
+  type: GAUGE
+- pattern: kafka.server<type=ReplicaManager, name=(.+)><>Value
+  name: kafka_server_replicamanager_$1
+  type: GAUGE
+- pattern: kafka.server<type=KafkaRequestHandlerPool, name=RequestHandlerAvgIdlePercent><>OneMinuteRate
+  name: kafka_server_KafkaRequestHandlerPool_RequestHandlerAvgIdlePercent
+  type: GAUGE
+- pattern: kafka.server<type=DelayedOperationPurgatory, name=PurgatorySize, delayedOperation=(.+)><>Value #7 炼狱
+  name: kafka_server_DelayedOperationPurgatory_PurgatorySize_$1
+  type: GAUGE
+- pattern: kafka.cluster<type=Partition, name=ReplicasCount, topic=(.+), partition=(.+)><>Value
+  name: kafka_cluster_partition_replicascount
   type: GAUGE
   labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Value
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>Value
-  name: kafka_$1_$2_$3
-  type: GAUGE
+    topic: "$1"
+    partition: "$2"
 
 # Emulate Prometheus 'Summary' metrics for the exported 'Histogram's.
 #
 # Note that these are missing the '_sum' metric!
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_count
-  type: COUNTER
-  labels:
-    "$4": "$5"
-    "$6": "$7"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*), (.+)=(.+)><>(\d+)thPercentile
-  name: kafka_$1_$2_$3
+# kafka.network<type=RequestMetrics, name=TotalTimeMs, request=OffsetCommit><>50thPercentile
+
+- pattern: kafka.network<type=RequestMetrics, name=(.+TimeMs), request=(SaslAuthenticate|Produce|FetchConsumer|FetchFollower|OffsetCommit|ApiVersions|JoinGroup)><>(\d+)thPercentile
+  name: kafka_network_requestmetrics_$1
   type: GAUGE
   labels:
-    "$4": "$5"
-    "$6": "$7"
-    quantile: "0.$8"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Count
-  name: kafka_$1_$2_$3_count
-  type: COUNTER
-  labels:
-    "$4": "$5"
-- pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.*)><>(\d+)thPercentile
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  labels:
-    "$4": "$5"
-    quantile: "0.$6"
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>Count
-  name: kafka_$1_$2_$3_count
-  type: COUNTER
-- pattern: kafka.(\w+)<type=(.+), name=(.+)><>(\d+)thPercentile
-  name: kafka_$1_$2_$3
-  type: GAUGE
-  labels:
-    quantile: "0.$4"
+    request: "$2"
+    quantile: "0.$3"
