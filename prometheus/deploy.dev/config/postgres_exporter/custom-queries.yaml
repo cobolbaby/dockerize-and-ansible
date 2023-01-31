@@ -1,0 +1,147 @@
+pg_postmaster:
+  query: "SELECT pg_postmaster_start_time as start_time_seconds from pg_postmaster_start_time()"
+  master: true
+  cache_seconds: 3600
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "Time at which postmaster started"
+
+pg_database:
+  query: "SELECT datname, pg_database_size(datname) as size_bytes FROM pg_database"
+  master: true
+  cache_seconds: 600
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Disk space used by the database"
+
+# https://github.com/prometheus-community/postgres_exporter/blob/master/queries.yaml
+# pg_process_idle:
+#   query: |
+#     WITH
+#       metrics AS (
+#         SELECT
+#           application_name,
+#           SUM(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - state_change))::bigint)::float AS process_idle_seconds_sum,
+#           COUNT(*) AS process_idle_seconds_count
+#         FROM pg_stat_activity
+#         WHERE state = 'idle'
+#         GROUP BY application_name
+#       ),
+#       buckets AS (
+#         SELECT
+#           application_name,
+#           le,
+#           SUM(
+#             CASE WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - state_change)) <= le
+#               THEN 1
+#               ELSE 0
+#             END
+#           )::bigint AS bucket
+#         FROM
+#           pg_stat_activity,
+#           UNNEST(ARRAY[1, 2, 5, 15, 30, 60, 90, 120, 300]) AS le
+#         GROUP BY application_name, le
+#         ORDER BY application_name, le
+#       )
+#     SELECT
+#       application_name,
+#       process_idle_seconds_sum as seconds_sum,
+#       process_idle_seconds_count as seconds_count,
+#       ARRAY_AGG(le) AS seconds,
+#       ARRAY_AGG(bucket) AS seconds_bucket
+#     FROM metrics JOIN buckets USING (application_name)
+#     GROUP BY 1, 2, 3
+#   metrics:
+#     - application_name:
+#         usage: "LABEL"
+#         description: "Application Name"
+#     - seconds:
+#         usage: "HISTOGRAM"
+#         description: "Idle time of server processes"
+
+pg_stat_activity_idle:
+  query: |
+    select 
+      usename,
+      client_addr,
+      case
+        when application_name ~* 'pgAdmin' then 'pgAdmin'
+        else application_name
+      end as application_name,
+      datname,
+      count(1) as count
+    from
+        pg_stat_activity
+    where
+        state = 'idle'
+    group by 1,2,3,4
+  master: true
+  metrics:
+    - usename:
+        usage: "LABEL"
+        description: "Application name"
+    - client_addr:
+        usage: "LABEL"
+        description: "Client IP"
+    - application_name:
+        usage: "LABEL"
+        description: "Application name"
+    - datname:
+        usage: "LABEL"
+        description: "Name of the database"
+    - count:
+        usage: "GAUGE"
+        description: "Number of idle connections"
+
+# 模型资产统计，但因为权限问题只能看到赋权的表
+# pg_tables:
+#   query: |
+#     select table_catalog as datname, table_schema as nspname, table_type, count(1) as count from information_schema.tables
+#     where table_schema not in (
+#       'information_schema','pg_catalog',
+#       'gp_toolkit','partman',
+#       'debug'
+#     )
+#     group by 1, 2, 3
+#   cache_seconds: 3600
+#   metrics:
+#     - datname:
+#         usage: "LABEL"
+#         description: "Name of the database"
+#     - nspname:
+#         usage: "LABEL"
+#         description: "Name of the namespace"
+#     - table_type:
+#         usage: "LABEL"
+#         description: "BASE TABLE/VIEW/FOREIGN"
+#     - count:
+#         usage: "GAUGE"
+#         description: "Number of table/view"
+
+# TODO:统计 PG 服务端主动杀掉 Connection 的数量
+# 看到一种情况: PG 杀掉连接然后重启，不知道有没有类似的监控指标
+
+# 服务开发者反馈，服务访问 PG VIP 入口，遇到 ERROR:  cannot execute DELETE in a read-only transaction
+# 访问 VIP 却访问到了 PG 的从节点，说明 VIP 的漂移机制有问题，特此增加该监控项
+pg:
+  query: "SELECT CASE pg_is_in_recovery() WHEN 't' THEN 1 ELSE 0 END AS is_in_recovery"
+  master: true
+  metrics:
+    - is_in_recovery:
+        usage: "GAUGE"
+        description: "True if recovery is still in progress. It can be used to determine whether the current access node is master or slave"
+
+# 统计 WAL 每10分钟的增长量
+pg_stat_wal:
+  query: "SELECT count(1) as increase_segments FROM pg_ls_waldir() WHERE modification > now() - interval '10 minutes'"
+  master: true
+  cache_seconds: 600
+  metrics:
+    - increase_segments:
+        usage: "GAUGE"
+        description: "Growth of WAL per minute"
