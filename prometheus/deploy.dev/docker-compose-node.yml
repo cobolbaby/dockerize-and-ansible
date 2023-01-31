@@ -1,0 +1,22 @@
+version: '2.3'
+
+services:
+  # Ref: https://github.com/prometheus/node_exporter/blob/master/README.md#using-docker
+  node-exporter:
+    image: registry.inventec/hub/prom/node-exporter:v1.0.1
+    container_name: node-exporter
+    network_mode: host
+    # Swarm: Ignoring unsupported options: pid 
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - --path.rootfs=/host
+      # 解决因 df cifs (smb目录) 引起的接口响应延迟，跳过挂载的 smb 目录
+      - --collector.filesystem.ignored-fs-types=^(devtmpfs|tmpfs|squashfs|vfat|fuse.lxcfs|cifs|overlay)$$
+      - --collector.netdev.device-blacklist=^(veth|br-|lxc|docker_gwbridge).*$$
+      - --no-collector.netclass
+      - --collector.textfile.directory=/host/opt/prometheus/textfile
+    restart: unless-stopped
+    cpu_count: 2
+    mem_limit: 128M
