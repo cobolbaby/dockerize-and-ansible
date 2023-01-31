@@ -97,11 +97,13 @@ class PartitionManager(object):
         partitionrangeend = datetime.strptime(subpartition['partitionrangeend'].strip(
             "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
 
-        partenttablename = subpartition['schemaname'] + '.' + subpartition['tablename']
+        partenttablename = subpartition['schemaname'] + \
+            '.' + subpartition['tablename']
         threadhold = self.whitelist.get(partenttablename, 180)
 
         if partitionrangeend < datetime.now() - timedelta(days=threadhold):
-            print(f"Partitionrangeend of subpartition: {partitionrangeend}(< -{threadhold}days)")
+            print(
+                f"Partitionrangeend of subpartition: {partitionrangeend}(< -{threadhold}days)")
             return True
 
         return False
@@ -147,14 +149,13 @@ class PartitionManager(object):
     def migrate_subpartition_tablespace(self, subpartition, rank=1):
         """
         Get all tables in database's schema.
-
-        CREATE TABLESPACE tbs_hdd01 OWNER ??? LOCATION '???';
         """
 
         COLD_TABLESPACE = 'tbs_hdd01'
 
         if subpartition['tablespace'] == COLD_TABLESPACE:
-            print(f"The subpartition {subpartition['partitiontablename']} is already in {COLD_TABLESPACE} tablespace.")
+            print(
+                f"The subpartition {subpartition['partitiontablename']} is already in {COLD_TABLESPACE} tablespace.")
             return True
 
         query = """
@@ -169,53 +170,91 @@ class PartitionManager(object):
 
         return True
 
+    def check_subpartition_needclean(self, subpartition):
+        """
+        判断最新分区是否创建的合理，暂定规则:
+        如果可用分区数超过 20 个，或者提前一年创建出来，就先清理掉
+        """
 
-def partition_cleaner(dsn, whitelist=None):
+        partitionrangestart = datetime.strptime(subpartition['partitionrangestart'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeend = datetime.strptime(subpartition['partitionrangeend'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeinterval = partitionrangeend - partitionrangestart
 
-    if whitelist is None or len(whitelist) == 0:
-        print("No whitelist provided, skipping.")
-        return
+        if partitionrangeend - datetime.now() > 20 * partitionrangeinterval \
+                or partitionrangeend - datetime.now() > timedelta(days=365):
+            print(f"Partitionrangeend of subpartition: {partitionrangeend}")
+            return True
 
-    try:
-        archiver = PartitionManager(dsn, whitelist)
+        return False
 
-        for partition_table in archiver.get_partition_tables():
-            print("Archive partition table: ", partition_table)
+    def check_subpartition_needprecreate(self, subpartition):
+        """
+        确保可用分区数不超过 20 个，且最远不超过1年
+        """
 
-            subpartitions = archiver.get_partition_table_subpartitions(
-                partition_table, sort='desc')
+        partitionrangestart = datetime.strptime(subpartition['partitionrangestart'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeend = datetime.strptime(subpartition['partitionrangeend'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeinterval = partitionrangeend - partitionrangestart
 
-            part_rank = len(subpartitions)
+        if partitionrangeend - datetime.now() < 20 * partitionrangeinterval \
+                and partitionrangeend - datetime.now() < timedelta(days=365):
+            print(f"Partitionrangeend of subpartition: {partitionrangeend}")
+            return True
 
-            for p in subpartitions:
+        return False
 
-                is_empty = archiver.check_subpartition_isempty(p)
-                if is_empty is False:
-                    break
+    def precreate_subpartition(self, subpartition):
+        """
+        ALTER TABLE spi.testlogsolder ADD PARTITION 
+        START ('2022-12-31 00:00:00') INCLUSIVE 
+        END ('2023-01-03 00:00:00') EXCLUSIVE;
+        -- ERROR:  cannot add RANGE partition to relation "testlogsolder" with DEFAULT partition "extra"
+        -- HINT:  need to SPLIT partition "extra"
+        -- SQL state: 42P16
 
-                archiver.drop_subpartition(p, part_rank)
-                part_rank -= 1
+        ALTER TABLE spi.testlogsolder SPLIT DEFAULT PARTITION 
+        START ('2022-12-31 00:00:00') INCLUSIVE 
+        END ('2023-01-03 00:00:00') EXCLUSIVE 
+        INTO (PARTITION solder_20221231, default partition);
+        """
 
-            subpartitions = archiver.get_partition_table_subpartitions(
-                partition_table, sort='asc')
+        partitionrangestart = datetime.strptime(subpartition['partitionrangestart'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeend = datetime.strptime(subpartition['partitionrangeend'].strip(
+            "::timestamp without time zone").strip("'"), "%Y-%m-%d %H:%M:%S")
+        partitionrangeinterval = partitionrangeend - partitionrangestart
+        partitionname = subpartition['tablename'] + '_' + datetime.strftime(partitionrangeend, '%Y%m%d')
 
-            for p in subpartitions:
+        query = """
+            ALTER TABLE {nspname}.{relname} SPLIT DEFAULT PARTITION
+            START ('{partitionrangestart}') INCLUSIVE 
+            END ('{partitionrangeend}') EXCLUSIVE 
+            INTO (PARTITION {partitionname}, default partition);
+        """.format(nspname=subpartition['schemaname'], relname=subpartition['tablename'],
+                   partitionrangestart=partitionrangeend,
+                   partitionrangeend=partitionrangeend+partitionrangeinterval,
+                   partitionname=partitionname)
 
-                is_empty = archiver.check_subpartition_isempty(p)
-                if is_empty is False:
-                    break
+        print(query)
 
-                archiver.drop_subpartition(p, part_rank=1)
+        cur = self.conn.cursor()
+        cur.execute(query)
 
-            # 最后一次性 commit
-            archiver.commit_tx()
+        r = {
+            'schemaname': subpartition['schemaname'],
+            'tablename': subpartition['tablename'],
+            'partitionrangestart': datetime.strftime(partitionrangeend, "%Y-%m-%d %H:%M:%S"),
+            'partitionrangeend': datetime.strftime(partitionrangeend+partitionrangeinterval, "%Y-%m-%d %H:%M:%S"),
+        }
 
-    except (Exception, psycopg2.Error) as error:
-        print("Oops! An exception has occured:", error)
-        print("Exception TYPE:", type(error))
+        return r
 
 
-def partition_migrate(dsn, whitelist=None):
+def partition_migrate(dsn, whitelist=None, maintain_window={"start_time": "00:00:00", "end_time": "23:59:59"}):
 
     if whitelist is None or len(whitelist) == 0:
         print("No whitelist provided, skipping.")
@@ -233,9 +272,7 @@ def partition_migrate(dsn, whitelist=None):
             part_rank = 1
 
             for p in subpartitions:
-
-                can_archive = archiver.check_subpartition_canarchive(p)
-                if can_archive is False:
+                if archiver.check_subpartition_canarchive(p) is False:
                     break
 
                 # archiver.migrate_subpartition_s3(p, part_rank)
@@ -250,6 +287,55 @@ def partition_migrate(dsn, whitelist=None):
         print("Exception TYPE:", type(error))
 
 
+def partition_governance(dsn, whitelist=None, maintain_window={"start_time": "00:00:00", "end_time": "23:59:59"}):
+
+    if whitelist is None or len(whitelist) == 0:
+        print("No whitelist provided, skipping.")
+        return
+
+    try:
+        archiver = PartitionManager(dsn, whitelist)
+
+        for partition_table in archiver.get_partition_tables():
+            print("Archive partition table: ", partition_table)
+
+            subpartitions = archiver.get_partition_table_subpartitions(
+                partition_table, sort='desc')
+
+            part_rank = len(subpartitions)
+
+            for p in subpartitions:
+                if archiver.check_subpartition_needclean(p) is False:
+                    break
+
+                if archiver.check_subpartition_isempty(p) is False:
+                    break
+
+                archiver.drop_subpartition(p, part_rank)
+                part_rank -= 1
+
+            latest_subpartition = subpartitions[0]
+            while archiver.check_subpartition_needprecreate(latest_subpartition):
+                latest_subpartition = archiver.precreate_subpartition(
+                    latest_subpartition)
+
+            subpartitions = archiver.get_partition_table_subpartitions(
+                partition_table, sort='asc')
+
+            for p in subpartitions:
+                if archiver.check_subpartition_isempty(p) is False:
+                    break
+
+                archiver.drop_subpartition(p, 1)
+
+            # 最后一次性 commit
+            archiver.commit_tx()
+
+    except (Exception, psycopg2.Error) as error:
+        print("Oops! An exception has occured:", error)
+        print("Exception TYPE:", type(error))
+
+
 if __name__ == '__main__':
 
     dsns = [
@@ -257,10 +343,15 @@ if __name__ == '__main__':
     ]
 
     whitelist_clean = [
-        'public.demo',
+        'ict.ictlogtestpart_ao_old',
     ]
     whitelist_migrate = {
-        'public.demo2': 90,
+        'ict.ictlogtestpart_ao': 90,
+    }
+
+    maintain_window = {
+        'start_time': '01:00',
+        'end_time': '02:30'
     }
 
     for dsn in dsns:
@@ -268,5 +359,5 @@ if __name__ == '__main__':
         print(dsn)
         print('*' * 100)
 
-        # partition_cleaner(dsn, whitelist_clean)
-        partition_migrate(dsn, whitelist_migrate)
+        partition_migrate(dsn, whitelist_migrate, maintain_window)
+        partition_governance(dsn, whitelist_migrate, maintain_window)
