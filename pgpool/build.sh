@@ -1,3 +1,10 @@
 #!/bin/bash
+set -e
+cd `dirname $0`
 
-docker build --rm -t registry.inventec/infra/pgpool:4.3.1 .
+PGPOOL_VERSION=4.3.1
+
+docker build --rm -f Dockerfile \
+            -t registry.inventec/infra/pgpool:${PGPOOL_VERSION} \
+            --build-arg PGPOOL_VERSION=${PGPOOL_VERSION} \
+            .
