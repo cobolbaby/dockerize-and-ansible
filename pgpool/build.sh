@@ -2,9 +2,21 @@
 set -e
 cd `dirname $0`
 
-PGPOOL_VERSION=4.3.1
+PGPOOL_VER=4.3.5
 
-docker build --rm -f Dockerfile \
-            -t registry.inventec/infra/pgpool:${PGPOOL_VERSION} \
-            --build-arg PGPOOL_VERSION=${PGPOOL_VERSION} \
+# git clone https://github.com/pgpool/pgpool2_on_k8s.git
+cd pgpool2_on_k8s/pgpool.docker
+docker build --rm -f Dockerfile.pgpool \
+            -t pgpool/pgpool:${PGPOOL_VER} \
+            --build-arg PGPOOL_VER=${PGPOOL_VER} \
             .
+
+cd -
+
+cd build
+docker build --rm -f Dockerfile \
+            -t registry.inventec/infra/pgpool:${PGPOOL_VER} \
+            --build-arg PGPOOL_VER=${PGPOOL_VER} \
+            .
+
+docker push registry.inventec/infra/pgpool:${PGPOOL_VER}
