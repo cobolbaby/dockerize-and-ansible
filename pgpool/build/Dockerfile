@@ -1,5 +1,5 @@
-ARG PGPOOL_VERSION
-FROM registry.inventec/proxy/pgpool/pgpool:${PGPOOL_VERSION}
+ARG PGPOOL_VER
+FROM pgpool/pgpool:${PGPOOL_VER}
 
 WORKDIR /opt/confd/bin/
 
