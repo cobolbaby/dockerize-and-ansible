@@ -1,0 +1,28 @@
+# See: https://github.com/cloudhut/kowl/tree/master/docs/config for reference config files.
+kafka:
+  brokers:
+    - 10.190.5.106:30001
+    - 10.190.5.106:30002
+  # sasl:
+  #   enabled: true
+  #   mechanism: PLAIN
+  #   username: ???
+  #   password: ???
+
+# server:
+  # listenPort: 8080
+
+# connect:
+#   enabled: false
+#   clusters: 
+#     - name: 10.190.5.106
+#       url: http://10.190.5.106:8083
+#       tls:
+#         enabled: false
+#         # caFilepath:
+#         # certFilepath:
+#         # keyFilepath:
+#         # insecureSkipTlsVerify: false
+#       # username: admin
+#       # password: # This can be set via the via the --connect.clusters.i.password flag as well (i to be replaced with the array index)
+#       # token: # This can be set via the via the --connect.clusters.i.token flag as well (i to be replaced with the array index)

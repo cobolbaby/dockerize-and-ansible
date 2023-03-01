@@ -1,0 +1,18 @@
+version: '3.6'
+
+services:
+  
+  kowl:
+    image: registry.inventec/infra/cloudhut/kowl:v1.5.2
+    container_name: kowl
+    ports:
+      - 9001:8080
+    # volumes:
+    #   - ./kowl.yaml:/etc/kowl/config.yaml
+    # entrypoint: ./kowl --config.filepath=/etc/kowl/config.yaml
+    environment:
+      - KAFKA_BROKERS=10.190.5.106:30001,10.190.5.106:30002
+      - KAFKA_SASL_ENABLED=
+      - KAFKA_SASL_USERNAME=
+      - KAFKA_SASL_PASSWORD=
+    restart: on-failure
