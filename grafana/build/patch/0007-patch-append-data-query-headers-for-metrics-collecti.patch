@@ -1,0 +1,304 @@
+diff --git a/Makefile b/Makefile
+index 45544ca5e8..810cbf3d6c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -97,7 +97,7 @@ shellcheck: $(SH_FILES) ## Run checks for shell scripts.
+ 
+ build-docker-full: ## Build Docker image for development.
+ 	@echo "build docker container"
+-	docker build --tag grafana/grafana:dev .
++	docker build --rm --tag grafana/grafana:dev .
+ 
+ ##@ Services
+ 
+diff --git a/packages/grafana-runtime/src/utils/DataSourceWithBackend.ts b/packages/grafana-runtime/src/utils/DataSourceWithBackend.ts
+index 844e2a7ee0..fe440dfcea 100644
+--- a/packages/grafana-runtime/src/utils/DataSourceWithBackend.ts
++++ b/packages/grafana-runtime/src/utils/DataSourceWithBackend.ts
+@@ -59,6 +59,17 @@ export enum HealthStatus {
+   Error = 'ERROR',
+ }
+ 
++enum PluginRequestHeaders {
++  // can be used for routing
++  PluginID = 'X-Plugin-Id',
++  // can be used for routing/load balancing
++  DatasourceUID = 'X-Datasource-Uid',
++  // mainly useful for debuging slow queries
++  DashboardID = 'X-Dashboard-Id',
++  // mainly useful for debuging slow queries
++  PanelID = 'X-Panel-Id',
++}
++
+ /**
+  * Describes the details in the payload returned when checking the health of a data source
+  * plugin.
+@@ -107,6 +118,9 @@ class DataSourceWithBackend<
+       targets = targets.filter((q) => this.filterQuery!(q));
+     }
+ 
++    const pluginIDs = new Set<string>();
++    const dsUIDs = new Set<string>();
++
+     const queries = targets.map((q) => {
+       let datasource = this.getRef();
+       let datasourceId = this.id;
+@@ -129,6 +143,13 @@ class DataSourceWithBackend<
+         datasourceId = ds.id;
+       }
+ 
++      if (datasource.type?.length) {
++        pluginIDs.add(datasource.type);
++      }
++      if (datasource.uid?.length) {
++        dsUIDs.add(datasource.uid);
++      }
++
+       return {
+         ...this.applyTemplateVariables(q, request.scopedVars),
+         datasource,
+@@ -150,6 +171,16 @@ class DataSourceWithBackend<
+       body.from = range.from.valueOf().toString();
+       body.to = range.to.valueOf().toString();
+     }
++ 
++    const headers: Record<string, string> = {};
++    headers[PluginRequestHeaders.PluginID] = Array.from(pluginIDs).join(', ');
++    headers[PluginRequestHeaders.DatasourceUID] = Array.from(dsUIDs).join(', ');
++    if (request.dashboardId) {
++      headers[PluginRequestHeaders.DashboardID] = String(request.dashboardId);
++    }
++    if (request.panelId) {
++      headers[PluginRequestHeaders.PanelID] = String(request.panelId);
++    }
+ 
+     return getBackendSrv()
+       .fetch<BackendDataSourceResponse>({
+@@ -157,6 +188,7 @@ class DataSourceWithBackend<
+         method: 'POST',
+         data: body,
+         requestId,
++        headers,
+       })
+       .pipe(
+         switchMap((raw) => {
+diff --git a/pkg/infra/metrics/metrics.go b/pkg/infra/metrics/metrics.go
+index 1feca5c9ff..cc0ca1b55d 100644
+--- a/pkg/infra/metrics/metrics.go
++++ b/pkg/infra/metrics/metrics.go
+@@ -25,11 +25,15 @@ var (
+ 	// MProxyStatus is a metric proxy http response status
+ 	MProxyStatus *prometheus.CounterVec
+ 
+-	// MHttpRequestTotal is a metric http request counter
+-	MHttpRequestTotal *prometheus.CounterVec
++	// MDsQueryRequestTotal is a metric http request counter
++	MDsQueryRequestTotal *prometheus.CounterVec
+ 
+-	// MHttpRequestSummary is a metric http request summary
+-	MHttpRequestSummary *prometheus.SummaryVec
++	MDsQueryRequestGauge *prometheus.GaugeVec
++
++	// MHttpRequestHistogram is a metric http request summary
++	MHttpRequestHistogram *prometheus.HistogramVec
++
++	MHttpRequestInFlight prometheus.Gauge
+ 
+ 	// MApiUserSignUpStarted is a metric amount of users who started the signup flow
+ 	MApiUserSignUpStarted prometheus.Counter
+@@ -196,6 +200,9 @@ var (
+ func init() {
+ 	httpStatusCodes := []string{"200", "404", "500", "unknown"}
+ 	objectiveMap := map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}
++	// DefBuckets are histogram buckets for the response time (in seconds)
++	// of a network service, including one that is responding very slowly.
++	defBuckets := []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 25, 60}
+ 
+ 	MInstanceStart = prometheus.NewCounter(prometheus.CounterOpts{
+ 		Name:      "instance_start_total",
+@@ -224,21 +231,40 @@ func init() {
+ 			Namespace: ExporterName,
+ 		}, []string{"code"}, httpStatusCodes...)
+ 
+-	MHttpRequestTotal = prometheus.NewCounterVec(
++	MDsQueryRequestTotal = prometheus.NewCounterVec(
+ 		prometheus.CounterOpts{
+-			Name: "http_request_total",
+-			Help: "http request counter",
++			Name:      "ds_query_total",
++			Help:      "/api/ds/query http request counter",
++			Namespace: ExporterName,
+ 		},
+-		[]string{"handler", "statuscode", "method"},
++		[]string{"handler", "status_code", "method", "dashboardID", "panelID"},
+ 	)
+ 
+-	MHttpRequestSummary = prometheus.NewSummaryVec(
+-		prometheus.SummaryOpts{
+-			Name:       "http_request_duration_milliseconds",
+-			Help:       "http request summary",
+-			Objectives: objectiveMap,
++	MDsQueryRequestGauge = prometheus.NewGaugeVec(
++		prometheus.GaugeOpts{
++			Name:      "ds_query_duration_seconds",
++			Help:      "/api/ds/query http request latency",
++			Namespace: ExporterName,
++		},
++		[]string{"handler", "status_code", "method", "dashboardID", "panelID"},
++	)
++
++	MHttpRequestHistogram = prometheus.NewHistogramVec(
++		prometheus.HistogramOpts{
++			Name:      "http_request_duration_seconds",
++			Help:      "Histogram of latencies for HTTP requests.",
++			Namespace: ExporterName,
++			Buckets:   defBuckets,
++		},
++		[]string{"handler", "status_code", "method"},
++	)
++
++	MHttpRequestInFlight = prometheus.NewGauge(
++		prometheus.GaugeOpts{
++			Name:      "http_request_in_flight",
++			Help:      "A gauge of requests currently being served by Grafana.",
++			Namespace: ExporterName,
+ 		},
+-		[]string{"handler", "statuscode", "method"},
+ 	)
+ 
+ 	MApiUserSignUpStarted = newCounterStartingAtZero(prometheus.CounterOpts{
+@@ -607,8 +633,10 @@ func initMetricVars() {
+ 		MPageStatus,
+ 		MApiStatus,
+ 		MProxyStatus,
+-		MHttpRequestTotal,
+-		MHttpRequestSummary,
++		MDsQueryRequestTotal,
++		MDsQueryRequestGauge,
++		MHttpRequestHistogram,
++		MHttpRequestInFlight,
+ 		MApiUserSignUpStarted,
+ 		MApiUserSignUpCompleted,
+ 		MApiUserSignUpInvite,
+diff --git a/pkg/middleware/request_metrics.go b/pkg/middleware/request_metrics.go
+index a29ef94f0a..07d377db8a 100644
+--- a/pkg/middleware/request_metrics.go
++++ b/pkg/middleware/request_metrics.go
+@@ -13,73 +13,44 @@ import (
+ 	cw "github.com/weaveworks/common/tracing"
+ )
+ 
+-var (
+-	httpRequestsInFlight         prometheus.Gauge
+-	httpRequestDurationHistogram *prometheus.HistogramVec
+-
+-	// DefBuckets are histogram buckets for the response time (in seconds)
+-	// of a network service, including one that is responding very slowly.
+-	defBuckets = []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5}
+-)
+-
+-func init() {
+-	httpRequestsInFlight = prometheus.NewGauge(
+-		prometheus.GaugeOpts{
+-			Namespace: "grafana",
+-			Name:      "http_request_in_flight",
+-			Help:      "A gauge of requests currently being served by Grafana.",
+-		},
+-	)
+-
+-	httpRequestDurationHistogram = prometheus.NewHistogramVec(
+-		prometheus.HistogramOpts{
+-			Namespace: "grafana",
+-			Name:      "http_request_duration_seconds",
+-			Help:      "Histogram of latencies for HTTP requests.",
+-			Buckets:   defBuckets,
+-		},
+-		[]string{"handler", "status_code", "method"},
+-	)
+-
+-	prometheus.MustRegister(httpRequestsInFlight, httpRequestDurationHistogram)
+-}
+-
+ // RequestMetrics is a middleware handler that instruments the request.
+ func RequestMetrics(cfg *setting.Cfg) func(handler string) web.Handler {
+ 	return func(handler string) web.Handler {
+ 		return func(res http.ResponseWriter, req *http.Request, c *web.Context) {
+ 			rw := res.(web.ResponseWriter)
++
+ 			now := time.Now()
+-			httpRequestsInFlight.Inc()
+-			defer httpRequestsInFlight.Dec()
++			metrics.MHttpRequestInFlight.Inc()
++			defer metrics.MHttpRequestInFlight.Dec()
++
+ 			c.Next()
+ 
+ 			status := rw.Status()
+-
++			// avoiding the sanitize functions for in the new instrumentation
++			// since they dont make much sense. We should remove them later.
+ 			code := sanitizeCode(status)
+ 			method := sanitizeMethod(req.Method)
+ 
+-			// enable histogram and disable summaries + counters for http requests.
+-			if cfg.IsHTTPRequestHistogramDisabled() {
+-				duration := time.Since(now).Nanoseconds() / int64(time.Millisecond)
+-				metrics.MHttpRequestTotal.WithLabelValues(handler, code, method).Inc()
+-				metrics.MHttpRequestSummary.WithLabelValues(handler, code, method).Observe(float64(duration))
+-			} else {
+-				// avoiding the sanitize functions for in the new instrumentation
+-				// since they dont make much sense. We should remove them later.
+-				histogram := httpRequestDurationHistogram.
+-					WithLabelValues(handler, strconv.Itoa(rw.Status()), req.Method)
+-				if traceID, ok := cw.ExtractSampledTraceID(c.Req.Context()); ok {
+-					// Need to type-convert the Observer to an
+-					// ExemplarObserver. This will always work for a
+-					// HistogramVec.
+-					histogram.(prometheus.ExemplarObserver).ObserveWithExemplar(
+-						time.Since(now).Seconds(), prometheus.Labels{"traceID": traceID},
+-					)
+-					return
+-				}
+-				histogram.Observe(time.Since(now).Seconds())
++			duration := time.Since(now).Seconds()
++
++			if dashboardInfo, ok := ExtractDashboardInfo(req); ok {
++				metrics.MDsQueryRequestTotal.WithLabelValues(handler, code, method,
++					dashboardInfo["dashboardID"], dashboardInfo["panelID"]).Inc()
++				metrics.MDsQueryRequestGauge.WithLabelValues(handler, code, method,
++					dashboardInfo["dashboardID"], dashboardInfo["panelID"]).Set(float64(duration))
++			}
++
++			histogram := metrics.MHttpRequestHistogram.WithLabelValues(handler, code, method)
++			if traceID, ok := cw.ExtractSampledTraceID(c.Req.Context()); ok {
++				// Need to type-convert the Observer to an
++				// ExemplarObserver. This will always work for a
++				// HistogramVec.
++				histogram.(prometheus.ExemplarObserver).ObserveWithExemplar(
++					float64(duration), prometheus.Labels{"traceID": traceID},
++				)
++				return
+ 			}
++			histogram.Observe(float64(duration))
+ 
+ 			switch {
+ 			case strings.HasPrefix(req.RequestURI, "/api/datasources/proxy"):
+@@ -145,3 +116,18 @@ func sanitizeCode(s int) string {
+ 	}
+ 	return strconv.Itoa(s)
+ }
++
++// ExtractDashboardInfo like ExtractTraceID
++func ExtractDashboardInfo(req *http.Request) (map[string]string, bool) {
++
++	if req.RequestURI == "/api/ds/query" && req.Header.Get("X-Panel-Id") != "" {
++		return map[string]string{
++			"dashboardID":   req.Header.Get("X-Dashboard-Id"),
++			"panelID":       req.Header.Get("X-Panel-Id"),
++			"datasourceUID": req.Header.Get("X-Datasource-Uid"),
++			"pluginID":      req.Header.Get("X-Plugin-Id"),
++		}, true
++	}
++	return nil, false
++
++}
