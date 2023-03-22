@@ -188,7 +188,7 @@ read_only_function_list = ''
                                    # Comma separated list of function names
                                    # that don't write to database
                                    # Regexp are accepted
-write_function_list = 'nextval,setval,.*\.func_insert_.*,.*\.func_delete_.*,.*\.func_update_.*,.*\.func_nlb_.*,(scc|report_query)\..*'
+write_function_list = 'nextval,setval,.*\.func_insert_.*,.*\.func_delete_.*,.*\.func_update_.*,.*\.func_nlb_.*,(scc|report|report_query)\..*'
                                    # Comma separated list of function names
                                    # that write to database
                                    # Regexp are accepted
@@ -257,7 +257,7 @@ dml_adaptive_object_relationship_list= ''
                                    # the write_function_list
                                    # only valid for disable_load_balance_on_write = 'dml_adaptive'.
 
-statement_level_load_balance = off
+statement_level_load_balance = on
                                    # Enables statement level load balancing
 
 #------------------------------------------------------------------------------
@@ -282,7 +282,7 @@ sr_check_password = ''
 # HEALTH CHECK GLOBAL PARAMETERS
 #------------------------------------------------------------------------------
 
-health_check_period = 0                                                              
+health_check_period = 10                                                              
                                    # Health check period                                   
                                    # Disabled (0) by default                                   
 health_check_timeout = 20                                                                        
@@ -299,7 +299,95 @@ health_check_password = ''
 # FAILOVER AND FAILBACK
 #------------------------------------------------------------------------------
 
-failover_on_backend_error = off
+#failover_command = ''
+                                   # Executes this command at failover
+                                   # Special values:
+                                   #   %d = failed node id
+                                   #   %h = failed node host name
+                                   #   %p = failed node port number
+                                   #   %D = failed node database cluster path
+                                   #   %m = new main node id
+                                   #   %H = new main node hostname
+                                   #   %M = old main node id
+                                   #   %P = old primary node id
+                                   #   %r = new main port number
+                                   #   %R = new main database cluster path
+                                   #   %N = old primary node hostname
+                                   #   %S = old primary node port number
+                                   #   %% = '%' character
+#failback_command = ''
+                                   # Executes this command at failback.
+                                   # Special values:
+                                   #   %d = failed node id
+                                   #   %h = failed node host name
+                                   #   %p = failed node port number
+                                   #   %D = failed node database cluster path
+                                   #   %m = new main node id
+                                   #   %H = new main node hostname
+                                   #   %M = old main node id
+                                   #   %P = old primary node id
+                                   #   %r = new main port number
+                                   #   %R = new main database cluster path
+                                   #   %N = old primary node hostname
+                                   #   %S = old primary node port number
+                                   #   %% = '%' character
+
+failover_on_backend_error = on
+                                   # Initiates failover when reading/writing to the
+                                   # backend communication socket fails
+                                   # If set to off, pgpool will report an
+                                   # error and disconnect the session.
+
+#failover_on_backend_shutdown = off
+                                   # Initiates failover when backend is shutdown,
+                                   # or backend process is killed.
+                                   # If set to off, pgpool will report an
+                                   # error and disconnect the session.
+
+#detach_false_primary = off
+                                   # Detach false primary if on. Only
+                                   # valid in streaming replicaton
+                                   # mode and with PostgreSQL 9.6 or
+                                   # after.
+
+#search_primary_node_timeout = 5min
+                                   # Timeout in seconds to search for the
+                                   # primary node when a failover occurs.
+                                   # 0 means no timeout, keep searching
+                                   # for a primary node forever.
+
+#------------------------------------------------------------------------------
+# ONLINE RECOVERY
+#------------------------------------------------------------------------------
+
+#recovery_user = 'nobody'
+                                   # Online recovery user
+#recovery_password = ''
+                                   # Online recovery password
+                                   # Leaving it empty will make Pgpool-II to first look for the
+                                   # Password in pool_passwd file before using the empty password
+
+#recovery_1st_stage_command = ''
+                                   # Executes a command in first stage
+#recovery_2nd_stage_command = ''
+                                   # Executes a command in second stage
+#recovery_timeout = 90
+                                   # Timeout in seconds to wait for the
+                                   # recovering node's postmaster to start up
+                                   # 0 means no wait
+#client_idle_limit_in_recovery = 0
+                                   # Client is disconnected after being idle
+                                   # for that many seconds in the second stage
+                                   # of online recovery
+                                   # 0 means no disconnection
+                                   # -1 means immediate disconnection
+auto_failback = on
+                                   # https://b-peng.blogspot.com/2022/02/auto-failback.html
+                                   # Dettached backend node reattach automatically
+                                   # if replication_state is 'streaming'.
+auto_failback_interval = 1min
+                                   # Min interval of executing auto_failback in
+                                   # seconds.
 
 #------------------------------------------------------------------------------
 # OTHERS
