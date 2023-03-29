@@ -19,7 +19,7 @@ done
 
 source .env
 
-archive_local_path=/tmp/hdd/postgres/11
+archive_local_path=/pgbackup/11
 # archive_s3_bucket=infra-backup
 # archive_s3_path=/postgres/11
 
@@ -63,7 +63,7 @@ for partition_table in $partition_tables; do
         # ...
 
         echo "Drop partition: $part"
-        # $psql_cmd "DROP TABLE IF EXISTS $part"
+        $psql_cmd "DROP TABLE IF EXISTS $part"
     done
 
     # 预创建新分区，每次执行创建一个
