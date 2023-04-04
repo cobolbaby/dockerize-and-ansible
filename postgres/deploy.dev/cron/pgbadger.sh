@@ -1,4 +1,5 @@
 #!/bin/sh
+cd `dirname $0`
 
 # apt update
 # apt install -y wget perl make libtext-csv-perl
@@ -7,10 +8,5 @@
 # cd pgbadger-11.7/
 # perl Makefile.PL
 # make && make install
-# apt purge -y make
 
-exec docker run --rm \
-                -v "$PWD":"$PWD" \
-                -w "$PWD" \
-                registry.inventec/infra/pgbadger:11.7 \
-                "$@"
+pgbadger --exclude-query="^(Query Text|COPY|COMMIT)" -f csv $PGDATA/log/postgresql-*.csv
