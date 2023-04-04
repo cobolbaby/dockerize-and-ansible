@@ -5,7 +5,7 @@ x-patroni:
   PATRONI_ENABLE: 'true'
   PATRONI_NAMESPACE: pgcluster
   PATRONI_SCOPE: pgcluster_itc_12
-  PATRONI_ETCD_HOSTS: "'etcd1:8917','etcd2:8917','etcd3:8917'"
+  PATRONI_ETCD3_HOSTS: "'etcd1:8917','etcd2:8917','etcd3:8917'"
   PATRONI_SUPERUSER_USERNAME: postgres
   PATRONI_SUPERUSER_PASSWORD: ******
   PATRONI_REPLICATION_USERNAME: replicator
