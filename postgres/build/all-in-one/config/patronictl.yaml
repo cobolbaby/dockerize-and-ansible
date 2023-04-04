@@ -1,0 +1,169 @@
+scope: batman
+# namespace: /service/
+name: postgresql0
+
+restapi:
+  listen: 0.0.0.0:8008
+  # connect_address: 127.0.0.1:8008
+  # certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
+  # keyfile: /etc/ssl/private/ssl-cert-snakeoil.key
+  # authentication:
+  #   username: username
+  #   password: password
+
+# ctl:
+#   insecure: false # Allow connections to SSL sites without certs
+#   certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
+#   cacert: /etc/ssl/certs/ssl-cacert-snakeoil.pem
+
+# etcd:
+  #Provide host to do the initial discovery of the cluster topology:
+  # host: 127.0.0.1:2379
+  #Or use "hosts" to provide multiple endpoints
+  #Could be a comma separated string:
+  #hosts: host1:port1,host2:port2
+  #or an actual yaml list:
+  #hosts:
+  #- host1:port1
+  #- host2:port2
+  #Once discovery is complete Patroni will use the list of advertised clientURLs
+  #It is possible to change this behavior through by setting:
+  #use_proxies: true
+
+bootstrap:
+  # this section will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
+  # and all other cluster members will use it as a `global configuration`
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    # master_start_timeout: 300
+    # synchronous_mode: false
+    # standby_cluster:
+    #   host: 127.0.0.1
+    #   port: 1111
+    #   primary_slot_name: patroni
+    postgresql:
+      use_pg_rewind: true
+      # use_slots: true
+      pg_hba:
+      - local all postgres trust
+      - local replication postgres ident
+      - host replication all all md5
+      - host all all all md5
+      parameters:
+        auto_explain.log_analyze: true
+        auto_explain.log_min_duration: 10s
+        auto_explain.log_nested_statements: true
+        checkpoint_completion_target: 0.9
+        checkpoint_timeout: 30min
+        default_statistics_target: 100
+        effective_cache_size: 4GB
+        hot_standby_feedback: true
+        idle_in_transaction_session_timeout: 600000
+        jit: 'off'
+        lock_timeout: 120000
+        log_autovacuum_min_duration: 60000
+        log_destination: csvlog
+        log_lock_waits: true
+        log_min_duration_statement: 3000
+        log_min_messages: warning
+        log_statement: none
+        log_timezone: UTC
+        logging_collector: 'on'
+        maintenance_work_mem: 1GB
+        max_connections: 1000
+        max_parallel_workers: 16
+        max_parallel_workers_per_gather: 4
+        max_standby_streaming_delay: 300s
+        max_wal_size: 8GB
+        max_worker_processes: 16
+        min_wal_size: 1GB
+        pg_stat_statements.max: 10000
+        pg_stat_statements.track: all
+        random_page_cost: 4
+        shared_buffers: 4GB
+        shared_preload_libraries: pg_stat_statements,auto_explain,plugin_debugger
+        statement_timeout: 300000
+        synchronous_commit: 'off'
+        synchronous_standby_names: ANY 1(*)
+        temp_buffers: 32MB
+        track_functions: all
+        track_io_timing: true
+        wal_compression: true
+        wal_keep_segments: 2000
+        wal_level: logical
+        work_mem: 16MB
+        # wal_level: hot_standby
+        # hot_standby: "on"
+        # wal_keep_segments: 8
+        # max_wal_senders: 10
+        # max_replication_slots: 10
+        # wal_log_hints: "on"
+        # archive_mode: "on"
+        # archive_timeout: 1800s
+        # archive_command: pgbackrest --stanza=demo archive-push %p
+      # recovery_conf:
+      #   restore_command: pgbackrest --stanza=demo archive-get %f "%p"
+
+  # some desired options for 'initdb'
+  initdb:  # Note: It needs to be a list (some options need values, others are switches)
+  - locale: en_US.UTF-8
+  - encoding: UTF8
+  - data-checksums
+
+  # pg_hba:  # Add following lines to pg_hba.conf after running 'initdb'
+  # For kerberos gss based connectivity (discard @.*$)
+  # - host replication replicator 127.0.0.1/32 gss include_realm=0
+  # - host all all 0.0.0.0/0 gss include_realm=0
+  # - host replication replicator 0.0.0.0/0 md5
+  # - host all all 0.0.0.0/0 md5
+  # - hostssl all all 0.0.0.0/0 md5
+
+  # Additional script to be launched after initial cluster creation (will be passed the connection URL as parameter)
+  # post_init: /usr/local/bin/setup_cluster.sh
+
+  # Some additional users users which needs to be created after initializing new cluster
+  users:
+    admin:
+      # password: admin
+      options:
+        - createrole
+        - createdb
+
+postgresql:
+  listen: 0.0.0.0:5432
+  # connect_address: 127.0.0.1:5432
+  data_dir: /home/postgres/data
+  # bin_dir:
+  # config_dir:
+  pgpass: /tmp/pgpass0
+  # authentication:
+  #   replication:
+  #     username: replicator
+  #     password: rep-pass
+  #   superuser:
+  #     username: postgres
+  #     password: zalando
+  #   rewind:  # Has no effect on postgres 10 and lower
+  #     username: rewind_user
+  #     password: rewind_password
+  # Server side kerberos spn
+  # krbsrvname: postgres
+  # parameters:
+    # Fully qualified kerberos ticket file for the running user
+    # same as KRB5CCNAME used by the GSS
+    # krb_server_keyfile: /var/spool/keytabs/postgres
+    # unix_socket_directories: '.'
+
+#watchdog:
+#  mode: automatic # Allowed values: off, automatic, required
+#  device: /dev/watchdog
+#  safety_margin: 5
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: true
+  nosync: false

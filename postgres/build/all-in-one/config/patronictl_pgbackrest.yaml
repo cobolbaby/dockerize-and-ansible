@@ -93,9 +93,9 @@ bootstrap:
         # wal_log_hints: "on"
         # archive_mode: "on"
         # archive_timeout: 1800s
-        # archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
+        # archive_command: pgbackrest --stanza=demo archive-push %p
       # recovery_conf:
-        # restore_command: cp ../wal_archive/%f %p
+      #   restore_command: pgbackrest --stanza=demo archive-get %f "%p"
 
   # some desired options for 'initdb'
   initdb:  # Note: It needs to be a list (some options need values, others are switches)
@@ -141,11 +141,22 @@ postgresql:
   #     password: rewind_password
   # Server side kerberos spn
   # krbsrvname: postgres
-  # parameters:
+  parameters:
     # Fully qualified kerberos ticket file for the running user
     # same as KRB5CCNAME used by the GSS
     # krb_server_keyfile: /var/spool/keytabs/postgres
     # unix_socket_directories: '.'
+    archive_command: pgbackrest --stanza=${PG_RESTORE_STANZA} archive-push %p
+    archive_mode: 'on'
+  create_replica_methods:
+  - pgbackrest
+  - basebackup
+  pgbackrest:
+    command: /home/postgres/reinit_script.sh
+    keep_data: False
+    no_params: True
+  basebackup:
+    max-rate: 100M
 
 #watchdog:
 #  mode: automatic # Allowed values: off, automatic, required
@@ -155,5 +166,5 @@ postgresql:
 tags:
   nofailover: false
   noloadbalance: false
-  clonefrom: false
+  clonefrom: true
   nosync: false

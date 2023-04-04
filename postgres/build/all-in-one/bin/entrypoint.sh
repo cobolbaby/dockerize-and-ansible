@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 用于支持pgbackrest备份
+sudo /usr/sbin/sshd
+
 # 获取启动模式，采用Patroni Or Not
 
 # 如果采用 Patroni 则执行 patroni + yaml
@@ -10,7 +13,7 @@ readonly PATRONI_ENABLE=${PATRONI_ENABLE:-false}
 if [ "$PATRONI_ENABLE" != "true" ]
 then
     echo "【`date`】Start a single instance..."
-    /docker-entrypoint.sh postgres
+    docker-entrypoint.sh postgres
     exit
 fi
 
@@ -36,4 +39,18 @@ export PATRONI_REPLICATION_PASSWORD="${PATRONI_REPLICATION_PASSWORD:-replicate}"
 export PATRONI_SUPERUSER_USERNAME="${PATRONI_SUPERUSER_USERNAME:-postgres}"
 export PATRONI_SUPERUSER_PASSWORD="${PATRONI_SUPERUSER_PASSWORD:-admin123}"
 
-exec patroni /home/postgres/.config/patroni/patronictl.yaml 2>&1
+readonly PATRONI_CLUSTER_MODE=${PATRONI_CLUSTER_MODE:-normal}
+
+case $PATRONI_CLUSTER_MODE in
+    "normal")
+        exec patroni /home/postgres/.config/patroni/patronictl.yaml 2>&1
+    ;;
+    # "pgbackrest")
+    #     # 如果配置为 pgbackrest，则需要校验 stanza 的配置是否存在，如果不存在，则需要创建？
+    #     # 但貌似创建的时候需要数据库处于启动状态，所以没办法在集群没有创建的时候配置 stanza 
+    #     exec patroni /home/postgres/.config/patroni/patronictl_pgbackrest.yaml 2>&1
+    # ;;
+    "restore")
+        exec patroni /home/postgres/.config/patroni/patronictl_pgbackrest_restore.yaml 2>&1
+    ;;
+esac
