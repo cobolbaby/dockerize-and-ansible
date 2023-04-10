@@ -37,8 +37,10 @@ nginx -t
 
 nginx -s reload
 
+sleep 5
+
 sed -i "s|\"id\": \"\"|\"id\": \"$(xray uuid)\"|" $XRAY_CONF
 sed -i "s|\"certificateFile\": \".*\"|\"certificateFile\": \"$CERTBOT_SSL_CERT_PATH\"|" $XRAY_CONF
 sed -i "s|\"keyFile\": \".*\"|\"keyFile\": \"$CERTBOT_SSL_KEY_PATH\"|" $XRAY_CONF
 
-xray -config $XRAY_CONF
+xray run -config $XRAY_CONF
