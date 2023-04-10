@@ -29,7 +29,7 @@
                 "decryption": "none",
                 "fallbacks": [
                     {
-                        "dest": "8443",
+                        "dest": "8001",
                         "xver": 1
                     }
                 ]
