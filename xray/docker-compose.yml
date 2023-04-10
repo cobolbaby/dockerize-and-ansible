@@ -6,13 +6,16 @@ services:
       context: ./build
       dockerfile: Dockerfile
       args:
-        NGINX_VERSION: 1.20
-        XRAY_VERSION: v1.17.5
+        NGINX_VERSION: 1.22
+        XRAY_VERSION: v1.7.5
     container_name: nginx
     hostname: nginx
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - ./certbot/www/:/usr/share/nginx/html/
+      - ./certbot/conf/:/etc/letsencrypt/
     environment:
       - CERTBOT_DOMAIN=cobolbaby.xyz
       - CERTBOT_EMAIL=cobolbaby@qq.com
