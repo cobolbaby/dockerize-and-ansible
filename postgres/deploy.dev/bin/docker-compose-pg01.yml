@@ -1,0 +1,26 @@
+version: '2.3'
+
+services:
+  postgres:
+    image: registry.inventec/infra/postgres:12.14
+    container_name: pg01
+    hostname: pg01
+    ports:
+      - 5493:5432
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /data/ssd/pg/12/data:/var/lib/postgresql/12/data
+    env_file: .env
+    environment:
+      PATRONI_NAME: pg01
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: 10.191.7.12:5493
+    user: postgres
+    restart: always
+    # cpu_count: 4
+    # mem_limit: 8g
+    shm_size: 1g
+
+networks:
+  default:
+    external:
+      name: infra
