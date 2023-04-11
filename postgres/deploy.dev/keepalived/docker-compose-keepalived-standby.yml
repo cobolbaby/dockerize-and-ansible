@@ -6,8 +6,8 @@ services:
     container_name: keepalived
     hostname: keepalived
     volumes:
-      - "/opt/patroni/keepalived/volumes/pgkeepa_backup.conf:/container/service/keepalived/assets/keepalived.conf:ro"
-      - "/opt/patroni/keepalived/volumes/check.sh:/check.sh"
+      - "/opt/postgres/keepalived/volumes/pgkeepa_backup.conf:/container/service/keepalived/assets/keepalived.conf:ro"
+      - "/opt/postgres/keepalived/volumes/check.sh:/check.sh"
     network_mode: host
     cap_add:
       - NET_ADMIN
