@@ -1,46 +1,68 @@
-FROM centos:7
+ARG OPENJDK_VERSION
+FROM registry.inventec/proxy/library/openjdk:${OPENJDK_VERSION}
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
-ARG DOCKER_VERSION=cli-19.03.9
+ARG PG_VERSION=12
+ARG DOCKER_VERSION=19.03.15
 ARG DKRON_VERSION
 
-COPY pkgs /tmp
+ENV SHELL /bin/bash
+ENV LANG C.UTF-8
 
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo 'Asia/Shanghai' > /etc/timezone \
-    && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
-    && yum install -y https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-${DOCKER_VERSION}-3.el7.x86_64.rpm \
-                      net-tools jq  \
-\
-    # 添加分布式任务管理组件 - Dkron
-    && mkdir -p /opt/local/dkron \
-    && cd /opt/local/dkron \
-    && mv /tmp/dkron_${DKRON_VERSION}_linux_amd64.tar.gz dkron.tar.gz \
-    && tar -zxvf dkron.tar.gz \
-    && rm *.tar.gz \
-\
-    # # 添加S3备份所需必要的命令 - s3cmd
-    && yum install -y python-pip \
-    && pip install --upgrade pip \
-    && pip install s3cmd \
+# 通用配置
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
+    && apt-get update -y \
+    # 通用包
+    && apt-get install -y vim-tiny curl jq pigz net-tools unzip procps --fix-missing \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo 'Asia/Shanghai' > /etc/timezone
+    
+RUN apt-get install -y wget gnupg lsb-release && \
+    # PG https://www.postgresql.org/download/linux/ubuntu/
+    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+    apt-get update && \
+    apt-get -y install postgresql-client-${PG_VERSION} && \
 \
     # 添加S3备份所需必要的命令 - mc
-    && mkdir -p /opt/local/mc \
-    && cd /opt/local/mc \
-    && curl -sSL -o mc https://dl.min.io/client/mc/release/linux-amd64/mc \
-    && chmod +x mc \
+    # https://docs.min.io/docs/minio-client-quickstart-guide.html
+    wget https://dl.min.io/client/mc/release/linux-amd64/mc -P /usr/local/bin/ && \
+    chmod +x /usr/local/bin/mc && \
 \
-    && yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
-    && yum install -y postgresql10 \
-    && yum clean all \
+    # 添加 Python 环境
+    apt-get -y install -y python3 python3-pip && \
+    pip3 install --upgrade pip && \
+\    
+    # Docker https://docs.docker.com/engine/install/debian/
+    apt-get update && \
+    apt-get install -y ca-certificates curl gnupg && \
+    mkdir -m 0755 -p /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo \
+    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli=$(apt-cache madison docker-ce | awk '{ print $3 }' | grep $DOCKER_VERSION) && \
 \
-    && pip install psycopg2-binary
+    # 添加分布式任务管理组件 - Dkron
+    mkdir -p /opt/dkron && \
+    cd /opt/dkron && \
+    wget -O dkron.tar.gz https://github.com/distribworks/dkron/releases/download/v${DKRON_VERSION}/dkron_${DKRON_VERSION}_linux_amd64.tar.gz && \
+    tar -zxvf dkron.tar.gz && \
+    rm *.tar.gz && \
+\
+    # Cleaner
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /root/.cache
 
-EXPOSE 8080 8946
+WORKDIR /opt/dkron-resource
 
-ENV SHELL /bin/bash
-ENV LANG en_US.UTF-8
-WORKDIR /opt/local/dkron
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-ENTRYPOINT ["/opt/local/dkron/dkron"]
+WORKDIR /opt/dkron
+ENTRYPOINT ["/opt/dkron/dkron"]
 CMD ["--help"]
