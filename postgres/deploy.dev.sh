@@ -11,7 +11,7 @@ ansible -i $INVENTORY_FILE postgres -m file -a "dest=/data/hdd/pg/12/data owner=
 ansible -i $INVENTORY_FILE postgres -m file -a "dest=/data/ssd/pg/12/data owner=999 group=999 mode=700 state=directory" -b
 
 # 传出配置文件
-ansible -i $INVENTORY_FILE postgres -m copy -a "src=deploy.dev/ dest=/opt/postgres"
+ansible -i $INVENTORY_FILE postgres -m copy -a "src=deploy.dev/ dest=/opt/postgres" -b
 
 # 执行启动命令
 ansible -i $INVENTORY_FILE pg01 -m raw -a "cd /opt/postgres/bin && docker-compose -f docker-compose-pg01.yml up -d"

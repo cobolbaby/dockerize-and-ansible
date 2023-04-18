@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load Env
-export PGPORT=5493
+export PGPORT=5432
 export PGUSER=postgres
 export PGPASSWORD=******
 
