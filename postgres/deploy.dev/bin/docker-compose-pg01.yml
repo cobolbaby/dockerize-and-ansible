@@ -6,15 +6,17 @@ services:
     container_name: pg01
     hostname: pg01
     ports:
-      - 5493:5432
+      - 5432:5432
+      - 8008:8008
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /data/ssd/pg/12/data:/var/lib/postgresql/12/data
-    # https://docs.docker.com/compose/compose-file/05-services/#env_file
+      # https://docs.docker.com/compose/compose-file/05-services/#env_file
     env_file: .env
     environment:
       PATRONI_NAME: pg01
-      PATRONI_POSTGRESQL_CONNECT_ADDRESS: 10.191.7.12:5493
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: 10.190.50.51:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: 10.190.50.51:8008
     user: postgres
     restart: always
     # cpu_count: 4
@@ -24,4 +26,4 @@ services:
 networks:
   default:
     external:
-      name: infra
+      name: tpm

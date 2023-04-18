@@ -6,14 +6,16 @@ services:
     container_name: pg02
     hostname: pg02
     ports:
-      - 5493:5432
+      - 5432:5432
+      - 8008:8008
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /data/ssd/pg/12/data:/var/lib/postgresql/12/data
     env_file: .env
     environment:
       PATRONI_NAME: pg02
-      PATRONI_POSTGRESQL_CONNECT_ADDRESS: 10.191.7.14:5493
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: 10.190.50.58:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: 10.190.50.58:8008
     user: postgres
     restart: always
     # cpu_count: 4
@@ -23,4 +25,4 @@ services:
 networks:
   default:
     external:
-      name: infra
+      name: tpm
