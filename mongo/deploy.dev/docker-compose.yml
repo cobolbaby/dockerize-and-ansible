@@ -14,7 +14,7 @@ services:
       - /data/ssd1/mongo/logs:/data/logs
       - /etc/localtime:/etc/localtime:ro
       - ./setup:/docker-entrypoint-initdb.d
-    command: --port 27017 --dbpath /data/db --logpath /data/logs/mongod.log --auth
+    command: --port 27017 --dbpath /data/db --logpath /data/logs/mongod.log --logappend --auth
     restart: always
     cpu_count: 2
     mem_limit: 4g

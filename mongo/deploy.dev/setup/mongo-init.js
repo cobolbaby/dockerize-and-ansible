@@ -19,3 +19,6 @@ db.createUser(
 // To enable free monitoring, run the following command: db.enableFreeMonitoring()
 // To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
 db.disableFreeMonitoring()
+
+// Sort operation used more than the maximum 33554432 bytes of RAM. Add an index, or specify a smaller limit.
+db.adminCommand({setParameter:1, internalQueryExecMaxBlockingSortBytes:335544320})
