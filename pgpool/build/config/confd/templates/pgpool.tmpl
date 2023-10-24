@@ -526,8 +526,12 @@ memqcache_oiddir = '/tmp/oiddir'
 {{range $index, $member := (gets "/members/*")}}
 {{$data := json $member.Value}}
 {{if eq $data.state "running"}}
-backend_hostname{{$index}} = '{{base $member.Key}}'
-backend_port{{$index}} = 5432
+# backend{{$index}} = '{{$data.conn_url}}'
+{{$conn_url := replace $data.conn_url "postgres://" "" -1}}
+{{$conn_url := replace $conn_url "/postgres" "" -1}}
+{{$conn_url := split $conn_url ":"}}
+backend_hostname{{$index}} = '{{index $conn_url 0}}'
+backend_port{{$index}} = {{index $conn_url 1}}
 backend_weight{{$index}} = {{ if eq $data.role "master" }} 0 {{ else }} 1 {{ end }}
 backend_application_name{{$index}} = '{{base $member.Key}}'
 {{end}}
