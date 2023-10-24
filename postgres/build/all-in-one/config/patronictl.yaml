@@ -34,9 +34,9 @@ bootstrap:
   # this section will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
   # and all other cluster members will use it as a `global configuration`
   dcs:
-    ttl: 30
-    loop_wait: 10
-    retry_timeout: 10
+    ttl: 60
+    loop_wait: 20
+    retry_timeout: 20
     maximum_lag_on_failover: 1048576
     # master_start_timeout: 300
     # synchronous_mode: false
@@ -65,30 +65,35 @@ bootstrap:
         jit: 'off'
         lock_timeout: 120000
         log_autovacuum_min_duration: 60000
+        log_checkpoints: true
+        log_connections: false
         log_destination: csvlog
         log_lock_waits: true
-        log_min_duration_statement: 3000
+        log_min_duration_statement: 2000
         log_min_messages: warning
         log_statement: none
         log_timezone: UTC
         logging_collector: 'on'
         maintenance_work_mem: 1GB
-        max_connections: 1000
+        max_connections: 800
         max_parallel_workers: 16
         max_parallel_workers_per_gather: 4
         max_standby_streaming_delay: 300s
         max_wal_size: 8GB
         max_worker_processes: 16
         min_wal_size: 1GB
-        pg_stat_statements.max: 10000
+        # pgaudit.log: DDL
+        pg_stat_statements.max: 5000
         pg_stat_statements.track: all
         random_page_cost: 4
         shared_buffers: 4GB
-        shared_preload_libraries: pg_stat_statements,auto_explain,plugin_debugger
+        # shared_preload_libraries: pg_stat_statements,auto_explain,pg_hint_plan,pgaudit,pg_cron
+        shared_preload_libraries: pg_stat_statements,auto_explain,pg_hint_plan,pg_cron
         statement_timeout: 300000
         synchronous_commit: 'off'
         synchronous_standby_names: ANY 1(*)
         temp_buffers: 32MB
+        # track_activity_query_size: 16384
         track_functions: all
         track_io_timing: true
         wal_compression: true

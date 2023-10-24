@@ -10,8 +10,7 @@ sudo /usr/sbin/sshd
 # 如果是启动单点，则参考 PG 原始镜像的写法
 readonly PATRONI_ENABLE=${PATRONI_ENABLE:-false}
 
-if [ "$PATRONI_ENABLE" != "true" ]
-then
+if [[ "$PATRONI_ENABLE" != "true" ]]; then
     echo "【`date`】Start a single instance..."
     docker-entrypoint.sh postgres
     exit
@@ -19,25 +18,29 @@ fi
 
 echo "【`date`】Start Patroni..."
 
-readonly PATRONI_SCOPE=${PATRONI_SCOPE:-patroni}
-PATRONI_NAMESPACE=${PATRONI_NAMESPACE:-/pgcluster}
 # Ref: https://www.cyberciti.biz/tips/bash-shell-parameter-substitution-2.html
 # Remove Pattern (Back of $VAR)
-readonly PATRONI_NAMESPACE=${PATRONI_NAMESPACE%/}
-readonly DOCKER_IP=$(hostname --ip-address)
+PATRONI_NAMESPACE=${PATRONI_NAMESPACE:-/pgcluster}
+DOCKER_HOSTNAME=$(hostname -I | cut -d' ' -f1)
 
-export PATRONI_NAMESPACE
-export PATRONI_SCOPE
+export PATRONI_NAMESPACE=${PATRONI_NAMESPACE%/}
+export PATRONI_SCOPE=${PATRONI_SCOPE:-pgcluster_dev_12}
 export PATRONI_NAME="${PATRONI_NAME:-$(hostname)}"
 export PATRONI_RESTAPI_LISTEN="0.0.0.0:8008"
-export PATRONI_RESTAPI_CONNECT_ADDRESS="$DOCKER_IP:8008"
+export PATRONI_RESTAPI_CONNECT_ADDRESS="${PATRONI_RESTAPI_CONNECT_ADDRESS:-$DOCKER_HOSTNAME:8008}"
 export PATRONI_POSTGRESQL_LISTEN="0.0.0.0:5432"
-export PATRONI_POSTGRESQL_CONNECT_ADDRESS="$DOCKER_IP:5432"
+export PATRONI_POSTGRESQL_CONNECT_ADDRESS="${PATRONI_POSTGRESQL_CONNECT_ADDRESS:-$DOCKER_HOSTNAME:5432}"
 export PATRONI_POSTGRESQL_DATA_DIR="${PATRONI_POSTGRESQL_DATA_DIR:-$PGDATA}"
 export PATRONI_REPLICATION_USERNAME="${PATRONI_REPLICATION_USERNAME:-replicator}"
-export PATRONI_REPLICATION_PASSWORD="${PATRONI_REPLICATION_PASSWORD:-replicate}"
+export PATRONI_REPLICATION_PASSWORD="${PATRONI_REPLICATION_PASSWORD:-1Password}"
 export PATRONI_SUPERUSER_USERNAME="${PATRONI_SUPERUSER_USERNAME:-postgres}"
-export PATRONI_SUPERUSER_PASSWORD="${PATRONI_SUPERUSER_PASSWORD:-admin123}"
+export PATRONI_SUPERUSER_PASSWORD="${PATRONI_SUPERUSER_PASSWORD:-1Password}"
+
+PATRONI_TAGS_NOFAILOVER=${PATRONI_TAGS_NOFAILOVER:-false}
+
+if [[ "$PATRONI_TAGS_NOFAILOVER" == "true" ]]; then
+    sed -i 's/nofailover: false/nofailover: true/' /home/postgres/.config/patroni/patronictl.yaml
+fi
 
 readonly PATRONI_CLUSTER_MODE=${PATRONI_CLUSTER_MODE:-normal}
 
