@@ -35,13 +35,13 @@ WHERE m.indexrelid = s.indexrelid;
 
 
 CREATE VIEW gp_toolkit.gp_stat_sys_indexes AS 
-    SELECT * FROM gp_stat_all_indexes
+    SELECT * FROM gp_toolkit.gp_stat_all_indexes
     WHERE schemaname IN ('pg_catalog', 'information_schema') OR
           schemaname ~ '^pg_toast';
 
 
 CREATE VIEW gp_toolkit.gp_stat_user_indexes AS 
-    SELECT * FROM gp_stat_all_indexes
+    SELECT * FROM gp_toolkit.gp_stat_all_indexes
     WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND
           schemaname !~ '^pg_toast';
 
@@ -105,13 +105,13 @@ FROM
 
 
 CREATE VIEW gp_toolkit.gp_stat_sys_tables AS 
-    SELECT * FROM gp_stat_all_tables
+    SELECT * FROM gp_toolkit.gp_stat_all_tables
     WHERE schemaname IN ('pg_catalog', 'information_schema') OR
           schemaname ~ '^pg_toast';
 
 
 CREATE VIEW gp_toolkit.gp_stat_user_tables AS 
-    SELECT * FROM gp_stat_all_tables
+    SELECT * FROM gp_toolkit.gp_stat_all_tables
     WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND
           schemaname !~ '^pg_toast';
 
