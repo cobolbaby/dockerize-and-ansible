@@ -337,10 +337,10 @@ sr_check_password = ''
 # HEALTH CHECK GLOBAL PARAMETERS
 #------------------------------------------------------------------------------
 
-health_check_period = 10
+health_check_period = 30
                                    # Health check period
                                    # Disabled (0) by default
-health_check_timeout = 20
+health_check_timeout = 60
                                    # Health check timeout
                                    # 0 means no timeout
 health_check_user = 'nobody'
@@ -352,7 +352,7 @@ health_check_password = ''
 
 #health_check_database = ''
                                    # Database name for health check. If '', tries 'postgres' frist, 
-health_check_max_retries = 2
+health_check_max_retries = 3
                                    # Maximum number of times to retry a failed health check before giving up.
 #health_check_retry_delay = 1
                                    # Amount of time to wait (in seconds) between retries.
@@ -400,7 +400,7 @@ health_check_max_retries = 2
                                    #   %S = old primary node port number
                                    #   %% = '%' character
 
-failover_on_backend_error = off
+failover_on_backend_error = on
                                    # Initiates failover when reading/writing to the
                                    # backend communication socket fails
                                    # If set to off, pgpool will report an
