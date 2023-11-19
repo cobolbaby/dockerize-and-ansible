@@ -12,6 +12,7 @@ services:
       - /data/ssd/mysql/data:/var/lib/mysql
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      LANG: "en_US.UTF-8"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_general_ci
