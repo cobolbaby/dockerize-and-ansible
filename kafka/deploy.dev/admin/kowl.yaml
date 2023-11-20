@@ -26,3 +26,8 @@ kafka:
 #       # username: admin
 #       # password: # This can be set via the via the --connect.clusters.i.password flag as well (i to be replaced with the array index)
 #       # token: # This can be set via the via the --connect.clusters.i.token flag as well (i to be replaced with the array index)
+
+# Analytics configures the telemetry service that sends anonymized usage statistics to Redpanda.
+# Redpanda uses these statistics to evaluate feature usage.
+analytics:
+  enabled: false
