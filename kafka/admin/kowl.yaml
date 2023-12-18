@@ -31,3 +31,7 @@ kafka:
 # Redpanda uses these statistics to evaluate feature usage.
 analytics:
   enabled: false
+
+console:
+  # 5MB
+  maxDeserializationPayloadSize: 5120000

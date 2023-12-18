@@ -3,7 +3,7 @@ version: '3.6'
 services:
   
   kowl:
-    image: registry.inventec/hub/redpandadata/console:v2.3.3
+    image: registry.inventec/hub/redpandadata/console-unstable:master-81e6897
     container_name: kowl
     # ports:
     #   - 9001:8080
