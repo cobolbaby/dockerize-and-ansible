@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  streampark-console:
+    image: registry.inventec/infra/streampark:v2.1.2
+    command: ${RUN_COMMAND}
+    container_name: streampark
+    ports:
+      - 10000:10000
+      - 10030:10030
+    env_file: .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.kube:/root/.kube:ro
+      - ./streampark_workspace:/opt/streampark_workspace
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - streampark
+
+networks:
+  streampark:
+    driver: bridge
