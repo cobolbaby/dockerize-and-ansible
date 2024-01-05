@@ -1,0 +1,26 @@
+version: "2.3"
+services:
+  
+  gp6smdw:
+    image: ${REGISTRY}/${TAGNAME}
+    container_name: gp6smdw
+    hostname: gp6smdw
+    ports:
+      - 5483:5432
+    volumes:
+      - /opt/bdcc/greenplum6/config:/opt/greenplum/config
+      - /data/ssd2/gp6data:/disk1/gpdata
+    restart: always
+    # privileged: true
+    # cpu_count: 28
+    # mem_limit: 160g
+    sysctls:
+      - net.ipv4.ipfrag_time=60
+      - net.ipv4.ipfrag_high_thresh=12480000
+    cap_add:
+      - SYS_PTRACE
+
+networks:
+  default:
+    external: true
+    name: bdc

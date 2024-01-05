@@ -1,0 +1,25 @@
+version: "2.3"
+services:
+
+  gp6sdw1:
+    image: ${REGISTRY}/${TAGNAME}
+    container_name: gp6sdw1
+    hostname: gp6sdw1
+    volumes:
+      - /data/hdd3/gp6data:/disk1/gpdata
+      - /data/hdd4/gp6data:/disk2/gpdata
+      - /data/ssd3/gp6space:/gp6space
+    restart: always
+    # privileged: true
+    # cpu_count: 28
+    # mem_limit: 160g
+    sysctls:
+      - net.ipv4.ipfrag_time=60
+      - net.ipv4.ipfrag_high_thresh=12480000
+    cap_add:
+      - SYS_PTRACE
+
+networks:
+  default:
+    external: true
+    name: bdc

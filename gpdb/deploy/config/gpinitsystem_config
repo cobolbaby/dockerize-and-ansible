@@ -25,7 +25,7 @@ PORT_BASE=40000
 declare -a DATA_DIRECTORY=(/disk1/gpdata/gpsegment/primary /disk2/gpdata/gpsegment/primary)
 
 #### OS-configured hostname or IP address of the master host.
-MASTER_HOSTNAME=mdw
+MASTER_HOSTNAME=gp6mdw
 
 #### File system location where the master data directory
 #### will be created.
