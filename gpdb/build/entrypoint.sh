@@ -36,6 +36,7 @@ if [ "$IS_MASTER" == true ]; then
     # 遍历config/hostlist
     for host in $(cat config/hostlist)
     do
+        # https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/install_guide-install_gpdb.html#enabling-passwordless-ssh
         sshpass -p "Ho1Z9JO7AoC90jA2" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub gpadmin@$host
     done
 
