@@ -2,7 +2,7 @@ version: '2.3'
 services:
 
   jenkins:
-    image: registry.inventec/development/jenkins:2.204.1-centos
+    image: registry.inventec/infra/jenkins:2.204.1-centos
     container_name: jenkins
     network_mode: host
     # ports:
