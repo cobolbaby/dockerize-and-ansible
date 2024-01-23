@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>国际化切换</title>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+</head>
+
+<body>
+    <div class="i18n">
+        <link rel="stylesheet" href="./style.css">
+        <style>
+        .i18n {
+            font-size: 14px;
+        }
+        
+        .i18n .i18n-select {
+            width: 97px;
+            height: 16px;
+        }
+        
+        .i18n .i18n-select .i18n-icon {
+            line-height: 16px;
+            /*font-size: 12px;*/
+        }
+        
+        .i18n .i18n-select .i18n-lang {
+            color: #696969;
+            font-weight: 300;
+            font-style: normal;
+            display: inline-block;
+            padding-left: 10px;
+            line-height: 16px;
+        }
+        
+        .i18n .i18n-select .i18n-dropdown-select {
+            line-height: 16px;
+            font-size: 12px;
+            float: right;
+        }
+        
+        .i18n .i18n-langs {
+            width: 160px;
+            height: 72px;
+            border-radius: 4px;
+            box-shadow: 0px 2px 10px 0 rgba(0, 0, 0, 0.2);
+            background-color: #FFFFFF;
+            padding: 10px 0px;
+            display: none;
+        }
+        
+        .i18n .i18n-langs li {
+            list-style-type: none;
+            width: 160px;
+            height: 36px;
+        }
+        
+        .i18n .i18n-langs li:hover {
+            background-color: #f2f2f2;
+        }
+        
+        .i18n .i18n-langs li a {
+            text-decoration: none;
+        }
+        
+        .i18n .i18n-langs li a div {
+            line-height: 36px;
+            font-weight: 300;
+            font-style: normal;
+            text-align: left;
+            color: #393939;
+            float: left;
+        }
+        
+        .i18n .i18n-langs li a div.iconfont {
+            width: 36px;
+        }
+        
+        .i18n .i18n-langs li a div.iconfont i {
+            width: 12px;
+            margin: 0 12px;
+        }
+        </style>
+        <div class="i18n-select">
+            <i class='icon-language i18n-icon'></i>
+            <div class='i18n-lang'></div>
+            <i class='icon-down i18n-dropdown-select'></i>
+        </div>
+        <ul class="i18n-langs">
+            <li class="zh">
+                <a href="?lang=zh">
+                    <div class="iconfont"><i></i></div>
+                    <div>中文</div>
+                </a>
+            </li>
+            <li class="en">
+                <a href="?lang=en">
+                    <div class="iconfont"><i></i></div>
+                    <div>English</div>
+                </a>
+            </li>
+        </ul>
+        <script>
+        function parseQueryString(argu) {
+            var str = argu.split('?')[1].split('#')[0];
+            var result = {};
+            var temp = str.split('&');
+            for (var i = 0; i < temp.length; i++) {
+                var temp2 = temp[i].split('=');
+                result[temp2[0]] = temp2[1];
+            }
+            return result;
+        }
+        $(function() {
+            var params = window.location.search ? parseQueryString(window.location.search) : '';
+            var lang = params.lang || params.l || 'zh';
+            var i18ns = {
+                zh: "中文",
+                en: "English"
+            }
+            lang = i18ns[lang] ? lang : "zh";
+            $(".i18n .i18n-lang").html(i18ns[lang]);
+            $(".i18n .i18n-langs").find("li." + lang + " i").addClass("icon-done");
+            $('.i18n .i18n-select').click(function() {
+                $('.i18n .i18n-langs').toggle();
+            });
+        });
+        </script>
+    </div>
+</body>
+
+</html>
