@@ -11,3 +11,6 @@ RUN apk add patch \
     && patch -p2 < /tmp/gpdb6-support.patch
 
 USER pgadmin
+
+# 升级 psycopg 依赖的版本，解决文件描述符用尽的问题，但总是失败
+# RUN /venv/bin/python3 -m pip install --no-cache-dir --upgrade psycopg2-binary
