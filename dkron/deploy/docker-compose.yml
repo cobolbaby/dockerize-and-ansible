@@ -1,0 +1,47 @@
+version: "2.3"
+services:
+  worker:
+    container_name: dkron
+    hostname: dkron
+    image: dkron/dkron:4.0.0-beta4-light
+    restart: always
+    cpu_count: 1
+    mem_limit: 2g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 2m
+    network_mode: host
+    # environment:
+    #   TZ: Asia/Shanghai
+    volumes:
+      # - dkron-resource:/opt/dkron-resource:rw
+      - /etc/localtime:/etc/localtime:ro
+      # - ./volume/dkron/data:/var/lib/dkron/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      agent
+      --server
+      --log-level debug
+      --tag docker-cli=true
+      --tag python=true
+      --tag kettle=worker
+      --bind-addr localhost:6231
+      --rpc-port 6232
+      --enable-prometheus
+      --disable-usage-stats
+      --bootstrap-expect=1
+      --http-addr :6230
+      --data-dir /var/lib/dkron/data
+
+# networks:
+#   default:
+#     external: true
+#     name: infra
+
+# volumes:
+#   dkron-resource:      
+#     name: dkron-resource
+
+# curl -v 'https://infra-datajob.ipt.inventec.net/v1/jobs' > backup.json
+# curl -v http://localhost:6230/v1/restore --form 'file=@backup.json'
