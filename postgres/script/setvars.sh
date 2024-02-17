@@ -29,8 +29,18 @@ pg_get_expired_partitions=$(cat <<-EOF
     FROM
         q_expired_part
     WHERE
-        part_end < CURRENT_DATE - '6 month'::interval
+        part_end < CURRENT_DATE - interval '2 months'
         and part_name !~* '(his|default|extra)$';
+EOF
+)
+
+# 获取过期分区
+pg_get_retention_partitions=$(cat <<-EOF
+    select format('%I.%I', n.nspname, c.relname) as part_name
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where c.relname like '${relname}%' and n.nspname = '${nspname}' 
+    and c.relkind = 'r' and c.relispartition = false
+    order by part_name asc
 EOF
 )
 

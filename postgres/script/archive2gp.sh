@@ -22,8 +22,43 @@ source .env
 
 psql_cmd="psql -Atc"
 
+
 # 获取全部的分区表
-partition_tables=(dw.fact_yield_unit sajet.g_sn_travel ict.ict_component_log ate.chroma_test_log dw.fact_ate_log)
+partition_tables=()
+
+for partition_table in ${partition_tables[@]}; do
+    # 获取表名和Schema名
+    # Ref: https://www.delftstack.com/howto/linux/split-string-into-array-in-bash/
+    t=(`echo $partition_table | tr '.' ' '`)
+
+    relname=${t[1]}
+    nspname=${t[0]}
+    echo "Archive relname: $relname, nspname: $nspname"
+    
+    . ./setvars.sh
+    # echo "pg_get_retention_partitions: $pg_get_retention_partitions"
+
+    # 获取过期分区，归档并删除
+    retention_partitions=`$psql_cmd """${pg_get_retention_partitions}"""`
+    
+    for part in $retention_partitions; do
+        echo "Archive partition: $part"
+        # pg_dump -Fc -t $part > $archive_path/$part.dump
+
+        echo "Sync dump to GP"
+        psql -c "COPY ${part} TO STDOUT" | \
+        psql -h ${GPHOST} -p ${GPPORT} -d ${GPDATABASE} -U ${GPUSER} \
+             -c "COPY ${partition_table} FROM STDIN"
+
+        echo "Drop partition: $part"
+        $psql_cmd "DROP TABLE IF EXISTS $part"
+    done
+
+    
+done
+
+# 获取全部的分区表
+partition_tables=(dw.fact_yield_unit ict.ict_component_log)
 
 for partition_table in ${partition_tables[@]}; do
     # 获取表名和Schema名
