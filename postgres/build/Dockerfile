@@ -42,10 +42,11 @@ RUN apt-get update \
     && rm -rf /tmp/pg_partman-4.7.4* \
 \
     # 表，索引在线重建工具 https://pgxn.org/dist/pg_repack/
+    # https://github.com/hartmut-co-uk/pg-repack-docker/blob/master/scripts/install_pg_repack.sh
     && curl -sSL -o /tmp/pg_repack-1.5.0.zip https://api.pgxn.org/dist/pg_repack/1.5.0/pg_repack-1.5.0.zip \
     && unzip /tmp/pg_repack-1.5.0.zip -d /tmp/ \
     && cd /tmp/pg_repack-1.5.0 \
-    && apt-get install -y libssl-dev zlib1g-dev \
+    && apt-get install -y libssl-dev zlib1g-dev liblz4-dev libreadline-dev libzstd-dev \
     && make && make install \
     && rm -rf /tmp/pg_repack-1.5.0* \
 \
@@ -165,7 +166,7 @@ RUN apt-get update \
     && apt-get install -y cmake g++ git \
     && cd /tmp/ && git clone --depth 1 https://github.com/jaiminpan/pg_jieba \
     && cd pg_jieba && git submodule update --init --recursive \
-    && mkdir build && cd build && cmake .. \
+    && mkdir build && cd build && cmake -DPostgreSQL_TYPE_INCLUDE_DIR=/usr/include/postgresql/${PG_MAJOR}/server .. \
     && make && make install \
     && rm -rf /tmp/pg_jieba \
     # && apt-get purge -y git \
