@@ -30,8 +30,6 @@ RUN set -eux; \
 	mkdir -p "$PGDATAOLD" "$PGDATANEW"; \
 	chown -R postgres:postgres /var/lib/postgresql
 
-USER postgres
-
 WORKDIR /var/lib/postgresql
 
 COPY docker-upgrade /usr/local/bin/
