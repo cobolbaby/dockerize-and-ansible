@@ -28,4 +28,7 @@ docker run -d --name pgadmin8 \
     --restart always \
     registry.inventec/proxy/dpage/pgadmin4:8.3
 
+# 直接将 pgadmin 从 5.7 升级到 8.3 会有坑，会遇到 Server Parameter 无法修改的情况
+# 需要将 Server 配置进行一个导出，修正，再导入。
+
 comment
