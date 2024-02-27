@@ -1,8 +1,8 @@
--- FUNCTION: public.find_24_point_solutions(integer[])
+-- FUNCTION: public.find_24point_solutions(integer[])
 
--- DROP FUNCTION public.find_24_point_solutions(integer[]);
+-- DROP FUNCTION public.find_24point_solutions(integer[]);
 
-CREATE OR REPLACE FUNCTION public.find_24_point_solutions(
+CREATE OR REPLACE FUNCTION public.find_24point_solutions(
 	elements integer[])
     RETURNS text
     LANGUAGE 'plpgsql'
@@ -78,4 +78,4 @@ BEGIN
 END;
 $BODY$;
 
--- select * from find_24_point_solutions(ARRAY[1, 2, 3, 4, 5, 6 ,7 ,8, 9, 10, 11, 12, 13])
+-- select * from find_24point_solutions(ARRAY[1, 2, 3, 4, 5, 6 ,7 ,8, 9, 10, 11, 12, 13])
