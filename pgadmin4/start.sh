@@ -25,10 +25,14 @@ docker run -d --name pgadmin8 \
     -e "PGADMIN_DEFAULT_EMAIL=cobolbaby@qq.com" \
     -e "PGADMIN_DEFAULT_PASSWORD=123456" \
     -e "GUNICORN_THREADS=50" \
+    -e "MAX_LOGIN_ATTEMPTS=10" \
     --restart always \
     registry.inventec/proxy/dpage/pgadmin4:8.3
 
-# 直接将 pgadmin 从 5.7 升级到 8.3 会有坑，会遇到 Server Parameter 无法修改的情况
+# 1) 直接将 pgadmin 从 5.7 升级到 8.3 会有坑，会遇到 Server Parameter 无法修改的情况
 # 需要将 Server 配置进行一个导出，修正，再导入。
+
+# 2) 如果因为忘记了超管用户的密码而造成账户被锁，请参考
+# https://www.pgadmin.org/docs/pgadmin4/development/restore_locked_user.html
 
 comment
