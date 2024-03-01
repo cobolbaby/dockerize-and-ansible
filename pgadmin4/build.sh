@@ -2,12 +2,12 @@
 cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
-VERSION=5.7
+VERSION=8.3
 
 # git clone https://github.com/pgadmin-org/pgadmin4.git
 # cd pgadmin4
-# git checkout REL-5_7
-# git apply gpdb6-support.patch
+# git checkout REL-8_3
+# git apply pgadmin8-support-gpdb6.patch
 # make docker
 
 docker build --rm -f Dockerfile \

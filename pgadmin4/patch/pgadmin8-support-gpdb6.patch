@@ -1,0 +1,632 @@
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/templates/functions/pg/sql/gpdb6/properties.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/templates/functions/pg/sql/gpdb6/properties.sql
+new file mode 100644
+index 000000000..6d8357008
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/functions/templates/functions/pg/sql/gpdb6/properties.sql
+@@ -0,0 +1,36 @@
++SELECT
++    pr.oid, pr.xmin,
++    -- CASE WHEN pr.prokind = 'w' THEN true ELSE false END AS proiswindow,
++    pr.prosrc, pr.prosrc AS prosrc_c, pr.pronamespace, pr.prolang, pr.procost, pr.prorows,-- pr.prokind,
++    pr.prosecdef, pr.proleakproof, pr.proisstrict, pr.proretset, pr.provolatile,-- pr.proparallel,
++    pr.pronargs, pr.prorettype, pr.proallargtypes, pr.proargmodes, pr.probin, pr.proacl,
++    pr.proname, pr.proname AS name, pg_catalog.pg_get_function_result(pr.oid) AS prorettypename,
++    typns.nspname AS typnsp, lanname, proargnames, pg_catalog.oidvectortypes(proargtypes) AS proargtypenames,
++    pg_catalog.pg_get_expr(proargdefaults, 'pg_catalog.pg_class'::regclass) AS proargdefaultvals,
++    pr.pronargdefaults, proconfig, pg_catalog.pg_get_userbyid(proowner) AS funcowner, description,
++    (SELECT
++        pg_catalog.array_agg(provider || '=' || label)
++    FROM
++        pg_catalog.pg_seclabel sl1
++    WHERE
++        sl1.objoid=pr.oid) AS seclabels
++FROM
++    pg_catalog.pg_proc pr
++JOIN
++    pg_catalog.pg_type typ ON typ.oid=prorettype
++JOIN
++    pg_catalog.pg_namespace typns ON typns.oid=typ.typnamespace
++JOIN
++    pg_catalog.pg_language lng ON lng.oid=prolang
++LEFT OUTER JOIN
++    pg_catalog.pg_description des ON (des.objoid=pr.oid AND des.classoid='pg_proc'::regclass and des.objsubid = 0)
++WHERE
++    -- pr.prokind IN ('f', 'w')
++    typname NOT IN ('trigger', 'event_trigger')
++{% if fnid %}
++    AND pr.oid = {{fnid}}::oid
++{% else %}
++    AND pronamespace = {{scid}}::oid
++{% endif %}
++ORDER BY
++    proname;
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/nodes.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/nodes.sql
+new file mode 100644
+index 000000000..c2fd74e2e
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/nodes.sql
+@@ -0,0 +1,35 @@
++SELECT DISTINCT att.attname as name, att.attnum as OID, pg_catalog.format_type(ty.oid,NULL) AS datatype,
++att.attnotnull as not_null, att.atthasdef as has_default_val, des.description, '' as seqtypid
++FROM pg_catalog.pg_attribute att
++    JOIN pg_catalog.pg_type ty ON ty.oid=atttypid
++    JOIN pg_catalog.pg_namespace tn ON tn.oid=ty.typnamespace
++    JOIN pg_catalog.pg_class cl ON cl.oid=att.attrelid
++    JOIN pg_catalog.pg_namespace na ON na.oid=cl.relnamespace
++    LEFT OUTER JOIN pg_catalog.pg_type et ON et.oid=ty.typelem
++    LEFT OUTER JOIN pg_catalog.pg_attrdef def ON adrelid=att.attrelid AND adnum=att.attnum
++    LEFT OUTER JOIN (pg_catalog.pg_depend JOIN pg_catalog.pg_class cs ON classid='pg_class'::regclass AND objid=cs.oid AND cs.relkind='S') ON refobjid=att.attrelid AND refobjsubid=att.attnum
++    LEFT OUTER JOIN pg_catalog.pg_namespace ns ON ns.oid=cs.relnamespace
++    LEFT OUTER JOIN pg_catalog.pg_index pi ON pi.indrelid=att.attrelid AND indisprimary
++    LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=att.attrelid AND des.objsubid=att.attnum AND des.classoid='pg_class'::regclass)
++    -- LEFT OUTER JOIN pg_catalog.pg_sequence seq ON cs.oid=seq.seqrelid
++WHERE
++
++{% if tid %}
++    att.attrelid = {{ tid|qtLiteral(conn) }}::oid
++{% endif %}
++{% if table_name and table_nspname %}
++    cl.relname= {{table_name |qtLiteral(conn)}} and na.nspname={{table_nspname|qtLiteral(conn)}}
++{% endif %}
++{% if clid %}
++    AND att.attnum = {{ clid|qtLiteral(conn) }}
++{% endif %}
++{### To show system objects ###}
++{% if not show_sys_objects and not has_oids %}
++    AND att.attnum > 0
++{% endif %}
++{### To show oids in view data ###}
++{% if has_oids %}
++    AND (att.attnum > 0 OR (att.attname = 'oid' AND att.attnum < 0))
++{% endif %}
++    AND att.attisdropped IS FALSE
++ORDER BY att.attnum
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/properties.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/properties.sql
+new file mode 100644
+index 000000000..543281969
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/columns/sql/gpdb6/properties.sql
+@@ -0,0 +1,41 @@
++SELECT att.attname as name, att.atttypid, att.attlen, att.attnum, att.attndims,
++		att.atttypmod, att.attacl, att.attnotnull, att.attoptions, att.attfdwoptions, att.attstattarget,
++		att.attstorage,-- att.attidentity,
++		pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS defval,
++		pg_catalog.format_type(ty.oid,NULL) AS typname,
++        pg_catalog.format_type(ty.oid,att.atttypmod) AS displaytypname,
++		pg_catalog.format_type(ty.oid,att.atttypmod) AS cltype,
++        CASE WHEN ty.typelem > 0 THEN ty.typelem ELSE ty.oid END as elemoid,
++		(SELECT nspname FROM pg_catalog.pg_namespace WHERE oid = ty.typnamespace) as typnspname,
++        ty.typstorage AS defaultstorage,
++		description, pi.indkey,
++	(SELECT count(1) FROM pg_catalog.pg_type t2 WHERE t2.typname=ty.typname) > 1 AS isdup,
++	CASE WHEN length(coll.collname::text) > 0 AND length(nspc.nspname::text) > 0  THEN
++	  pg_catalog.concat(pg_catalog.quote_ident(nspc.nspname),'.',pg_catalog.quote_ident(coll.collname))
++	ELSE '' END AS collspcname,
++	EXISTS(SELECT 1 FROM pg_catalog.pg_constraint WHERE conrelid=att.attrelid AND contype='f' AND att.attnum=ANY(conkey)) As is_fk,
++	(SELECT pg_catalog.array_agg(provider || '=' || label) FROM pg_catalog.pg_seclabels sl1 WHERE sl1.objoid=att.attrelid AND sl1.objsubid=att.attnum) AS seclabels,
++	(CASE WHEN (att.attnum < 1) THEN true ElSE false END) AS is_sys_column,
++	'n' AS colconstype, tab.relname as relname,
++	(CASE WHEN tab.relkind = 'v' THEN true ELSE false END) AS is_view_only
++	-- ,seq.*
++FROM pg_catalog.pg_attribute att
++	JOIN pg_catalog.pg_type ty ON ty.oid=atttypid
++	LEFT OUTER JOIN pg_catalog.pg_attrdef def ON adrelid=att.attrelid AND adnum=att.attnum
++	LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=att.attrelid AND des.objsubid=att.attnum AND des.classoid='pg_class'::regclass)
++	LEFT OUTER JOIN (pg_catalog.pg_depend dep JOIN pg_catalog.pg_class cs ON dep.classid='pg_class'::regclass AND dep.objid=cs.oid AND cs.relkind='S') ON dep.refobjid=att.attrelid AND dep.refobjsubid=att.attnum
++	LEFT OUTER JOIN pg_catalog.pg_index pi ON pi.indrelid=att.attrelid AND indisprimary
++	LEFT OUTER JOIN pg_catalog.pg_collation coll ON att.attcollation=coll.oid
++	LEFT OUTER JOIN pg_catalog.pg_namespace nspc ON coll.collnamespace=nspc.oid
++	-- LEFT OUTER JOIN pg_catalog.pg_sequence seq ON cs.oid=seq.seqrelid
++	LEFT OUTER JOIN pg_catalog.pg_class tab on tab.oid = att.attrelid
++WHERE att.attrelid = {{tid}}::oid
++{% if clid %}
++    AND att.attnum = {{clid}}::int
++{% endif %}
++{### To show system objects ###}
++{% if not show_sys_objects %}
++    AND att.attnum > 0
++{% endif %}
++    AND att.attisdropped IS FALSE
++    ORDER BY att.attnum;
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/nodes.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/nodes.sql
+new file mode 100644
+index 000000000..9240d2a63
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/nodes.sql
+@@ -0,0 +1,63 @@
++SELECT rel.oid, partitions.partitiontablename AS name,
++    0 AS triggercount,
++    0 AS has_enable_triggers,
++    partitions.partitionboundary AS partition_value,
++    partitions.relnamespace AS schema_id,
++    partitions.partitionschemaname AS schema_name,
++    CASE WHEN sub_partitions.n > 0 THEN TRUE ELSE FALSE END AS is_partitioned,
++    CASE WHEN sub_partitions.n > 0 THEN TRUE ELSE FALSE END AS is_sub_partitioned,
++    '' AS partition_scheme,
++    '' AS sub_partition_scheme,
++    (CASE WHEN rel.relpersistence = 'u' THEN true ELSE false END) AS relpersistence,
++  	(CASE WHEN length(spc.spcname::text) > 0 THEN spc.spcname ELSE
++    (SELECT sp.spcname FROM pg_catalog.pg_database dtb
++    JOIN pg_catalog.pg_tablespace sp ON dtb.dattablespace=sp.oid
++    WHERE dtb.oid = {{ did }}::oid)
++  	END) as spcname,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'fillfactor=([0-9]*)') AS fillfactor,
++	(substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS autovacuum_enabled,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS autovacuum_vacuum_threshold,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_vacuum_scale_factor,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS autovacuum_analyze_threshold,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_analyze_scale_factor,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS autovacuum_vacuum_cost_delay,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS autovacuum_vacuum_cost_limit,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS autovacuum_freeze_min_age,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS autovacuum_freeze_max_age,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS autovacuum_freeze_table_age,
++	(substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS toast_autovacuum_enabled,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS toast_autovacuum_vacuum_threshold,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_vacuum_scale_factor,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS toast_autovacuum_analyze_threshold,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_analyze_scale_factor,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS toast_autovacuum_vacuum_cost_delay,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS toast_autovacuum_vacuum_cost_limit,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS toast_autovacuum_freeze_min_age,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS toast_autovacuum_freeze_max_age,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS toast_autovacuum_freeze_table_age,
++	rel.reloptions AS reloptions, tst.reloptions AS toast_reloptions,
++    des.description, pg_catalog.pg_get_userbyid(rel.relowner) AS relowner
++FROM
++  (SELECT
++     partitions.partitiontablename,
++     partitions.partitionboundary,
++     rel.relnamespace,
++     partitions.partitionschemaname
++   FROM pg_class rel
++     INNER JOIN pg_partitions partitions
++       ON (relname = tablename AND parentpartitiontablename IS NULL) OR relname = parentpartitiontablename
++   WHERE
++    {% if ptid %} rel.oid = {{ ptid }}::OID {% endif %}
++    {% if not ptid %} rel.oid = {{ tid }}::OID {% endif %}
++  ) AS partitions
++  LEFT JOIN (SELECT
++               parentpartitiontablename,
++               count(*) AS n
++             FROM pg_partitions
++             GROUP BY parentpartitiontablename) sub_partitions
++    ON partitions.partitiontablename = sub_partitions.parentpartitiontablename
++  LEFT OUTER JOIN pg_catalog.pg_class rel ON partitions.relnamespace = rel.relnamespace AND partitions.partitiontablename = rel.relname
++  LEFT OUTER JOIN pg_catalog.pg_class tst ON tst.oid = rel.reltoastrelid
++  LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=rel.oid AND des.objsubid=0 AND des.classoid='pg_class'::regclass)
++  LEFT OUTER JOIN pg_catalog.pg_tablespace spc on spc.oid=rel.reltablespace
++ORDER BY partitions.partitiontablename;
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/properties.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/properties.sql
+new file mode 100644
+index 000000000..bef42da72
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/partitions/sql/pg/gpdb6/properties.sql
+@@ -0,0 +1,64 @@
++SELECT rel.oid, rel.relname AS name, rel.reltablespace AS spcoid, rel.relacl AS relacl_str,
++  	(CASE WHEN length(spc.spcname::text) > 0 THEN spc.spcname ELSE
++    (SELECT sp.spcname FROM pg_catalog.pg_database dtb
++    JOIN pg_catalog.pg_tablespace sp ON dtb.dattablespace=sp.oid
++    WHERE dtb.oid = {{ did }}::oid)
++  	END) as spcname,
++	(SELECT nspname FROM pg_catalog.pg_namespace WHERE oid = {{ scid }}::oid ) as parent_schema,
++  	nsp.nspname as schema,
++  	pg_catalog.pg_get_userbyid(rel.relowner) AS relowner, rel.relhasoids, rel.relkind,
++  	rel.relhassubclass, rel.reltuples::bigint, des.description, con.conname, con.conkey,
++	false AS isrepl,
++	0 AS triggercount,
++	ARRAY[]::varchar[] AS coll_inherits,
++	0 AS inherited_tables_cnt,
++  	(CASE WHEN rel.relpersistence = 'u' THEN true ELSE false END) AS relpersistence,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'fillfactor=([0-9]*)') AS fillfactor,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'compresslevel=([0-9]*)') AS compresslevel,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'blocksize=([0-9]*)') AS blocksize,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'orientation=(row|column)') AS orientation,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'appendonly=(true|false)')::boolean AS appendonly,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'compresstype=(zlib|quicklz|rle_type|none)') AS compresstype,
++	(substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS autovacuum_enabled,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS autovacuum_vacuum_threshold,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_vacuum_scale_factor,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS autovacuum_analyze_threshold,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_analyze_scale_factor,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS autovacuum_vacuum_cost_delay,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS autovacuum_vacuum_cost_limit,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS autovacuum_freeze_min_age,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS autovacuum_freeze_max_age,
++	substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS autovacuum_freeze_table_age,
++	(substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS toast_autovacuum_enabled,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS toast_autovacuum_vacuum_threshold,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_vacuum_scale_factor,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS toast_autovacuum_analyze_threshold,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_analyze_scale_factor,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS toast_autovacuum_vacuum_cost_delay,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS toast_autovacuum_vacuum_cost_limit,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS toast_autovacuum_freeze_min_age,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS toast_autovacuum_freeze_max_age,
++	substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS toast_autovacuum_freeze_table_age,
++	rel.reloptions AS reloptions, tst.reloptions AS toast_reloptions,
++	(CASE WHEN rel.reltoastrelid = 0 THEN false ELSE true END) AS hastoasttable,
++	(CASE WHEN rel.oid <= {{ datlastsysoid }}::oid THEN true ElSE false END) AS is_sys_table,
++	-- Added for partition table
++	(CASE WHEN partitions.number_of_partitions > 0 THEN true ELSE false END) AS is_partitioned,
++	'' AS partition_scheme,
++	{% if ptid %}
++		(CASE WHEN partitions.number_of_partitions > 0 THEN partitions.expression ELSE '' END) AS partition_value,
++		(SELECT relname FROM pg_class WHERE oid = {{ tid }}::oid) AS partitioned_table_name
++	{% else %}
++		partitions.expression AS partition_value
++	{% endif %}
++FROM pg_catalog.pg_class rel
++	LEFT OUTER JOIN pg_catalog.pg_tablespace spc on spc.oid=rel.reltablespace
++	LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=rel.oid AND des.objsubid=0 AND des.classoid='pg_class'::regclass)
++	LEFT OUTER JOIN pg_catalog.pg_constraint con ON con.conrelid=rel.oid AND con.contype='p'
++	LEFT OUTER JOIN pg_catalog.pg_class tst ON tst.oid = rel.reltoastrelid
++	LEFT OUTER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = rel.relnamespace
++	LEFT OUTER JOIN (SELECT tablename, partitionboundary as expression, count(*) number_of_partitions FROM pg_partitions GROUP BY tablename, expression) partitions ON rel.relname = tablename
++	LEFT OUTER JOIN pg_catalog.pg_inherits inh ON inh.inhrelid = rel.oid
++WHERE inh.inhparent = {{ tid }}::oid
++	{% if ptid %}  AND rel.oid = {{ ptid }}::oid {% endif %}
++ORDER BY rel.relname;
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/create.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/create.sql
+new file mode 100644
+index 000000000..921337b4f
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/create.sql
+@@ -0,0 +1,136 @@
++{% import 'macros/schemas/security.macros' as SECLABEL %}
++{% import 'macros/schemas/privilege.macros' as PRIVILEGE %}
++{% import 'macros/variable.macros' as VARIABLE %}
++{% import 'columns/macros/security.macros' as COLUMN_SECLABEL %}
++{% import 'columns/macros/privilege.macros' as COLUMN_PRIVILEGE %}
++{% import 'tables/sql/macros/constraints.macro' as CONSTRAINTS %}
++{% import 'types/macros/get_full_type_sql_format.macros' as GET_TYPE %}
++{#===========================================#}
++{#====== MAIN TABLE TEMPLATE STARTS HERE ======#}
++{#===========================================#}
++{#
++ If user has not provided any details but only name then
++ add empty bracket with table name
++#}
++{% set empty_bracket = ""%}
++{% if data.coll_inherits|length == 0 and  data.columns|length == 0 and not data.typname and not data.like_relation and data.primary_key|length == 0 and data.unique_constraint|length == 0 and data.foreign_key|length == 0 and data.check_constraint|length == 0 and data.exclude_constraint|length == 0 %}
++{% set empty_bracket = "\n(\n)"%}
++{% endif %}
++CREATE {% if data.relpersistence %}UNLOGGED {% endif %}TABLE{% if add_not_exists_clause %} IF NOT EXISTS{% endif %} {{conn|qtIdent(data.schema, data.name)}}{{empty_bracket}}
++{% if data.typname %}
++    OF {{ data.typname }}
++{% endif %}
++{% if data.like_relation or data.coll_inherits or data.columns|length > 0 or data.primary_key|length > 0 or data.unique_constraint|length > 0 or data.foreign_key|length > 0 or data.check_constraint|length > 0 or data.exclude_constraint|length > 0 %}
++(
++{% endif %}
++{% if data.like_relation %}
++    LIKE {{ data.like_relation }}{% if data.like_default_value %}
++
++    INCLUDING DEFAULTS{% endif %}{% if data.like_constraints %}
++
++    INCLUDING CONSTRAINTS{% endif %}{% if data.like_indexes %}
++
++    INCLUDING INDEXES{% endif %}{% if data.like_storage %}
++
++    INCLUDING STORAGE{% endif %}{% if data.like_comments %}
++
++    INCLUDING COMMENTS{% endif %}{% if data.columns|length > 0 %},
++{% endif %}
++
++{% endif %}
++{### Add columns ###}
++{% if data.columns and data.columns|length > 0 %}
++{% for c in data.columns %}
++{% if c.name and c.cltype and not c.inheritedfrom %}
++    {{conn|qtIdent(c.name)}} {% if is_sql %}{{c.displaytypname}}{% else %}{{ GET_TYPE.CREATE_TYPE_SQL(conn, c.cltype, c.attlen, c.attprecision, c.hasSqrBracket) }}{% endif %}{% if c.attnotnull %} NOT NULL{% endif %}{% if c.defval %} DEFAULT {{c.defval}}{% endif %}
++{% if not loop.last %},
++{% endif %}
++{% endif %}
++{% endfor %}
++{% endif %}
++{# Macro to render for constraints #}
++{% if data.primary_key|length > 0 %}{% if data.columns|length > 0 %},{% endif %}
++{{CONSTRAINTS.PRIMARY_KEY(conn, data.primary_key[0])}}{% endif %}{% if data.unique_constraint|length > 0 %}{% if data.columns|length > 0 or data.primary_key|length > 0 %},{% endif %}
++{{CONSTRAINTS.UNIQUE(conn, data.unique_constraint)}}{% endif %}{% if data.foreign_key|length > 0 %}{% if data.columns|length > 0 or data.primary_key|length > 0 or data.unique_constraint|length > 0 %},{% endif %}
++{{CONSTRAINTS.FOREIGN_KEY(conn, data.foreign_key)}}{% endif %}{% if data.check_constraint|length > 0 %}{% if data.columns|length > 0 or data.primary_key|length > 0 or data.unique_constraint|length > 0 or data.foreign_key|length > 0 %},{% endif %}
++{{CONSTRAINTS.CHECK(conn, data.check_constraint)}}{% endif %}{% if data.exclude_constraint|length > 0 %}{% if data.columns|length > 0 or data.primary_key|length > 0 or data.unique_constraint|length > 0 or data.foreign_key|length > 0 or data.check_constraint|length > 0 %},{% endif %}
++{{CONSTRAINTS.EXCLUDE(conn, data.exclude_constraint)}}{% endif %}
++{% if data.like_relation or data.coll_inherits or data.columns|length > 0 or data.primary_key|length > 0 or data.unique_constraint|length > 0 or data.foreign_key|length > 0 or data.check_constraint|length > 0 or data.exclude_constraint|length > 0 %}
++)
++{% endif %}
++
++{### If we are inheriting it from another table(s) ###}
++{% if data.coll_inherits %}
++    INHERITS ({% for val in data.coll_inherits %}{% if loop.index != 1 %}, {% endif %}{{val}}{% endfor %})
++{% endif %}
++WITH (
++    OIDS = {% if data.relhasoids %}TRUE{% else %}FALSE{% endif %}{% if data.fillfactor %},
++    FILLFACTOR = {{ data.fillfactor }}{% endif %}{% if data.appendonly %},
++    APPENDONLY = TRUE{% endif %}{% if data.compresslevel %},
++    COMPRESSLEVEL = {{ data.compresslevel }}{% endif %}{% if data.blocksize %},
++    BLOCKSIZE = {{ data.blocksize }}{% endif %}{% if data.orientation %},
++    ORIENTATION = {{ data.orientation.upper() }}{% endif %}{% if data.compresstype %},
++    COMPRESSTYPE = {{ data.compresstype.upper() }}{% endif %}{% if data.autovacuum_custom %}
++{% endif %}
++
++)
++{### SQL for Tablespace ###}
++{% if data.spcname %}
++TABLESPACE {{ conn|qtIdent(data.spcname) }}
++{% endif %}
++{### SQL for Distribution ###}
++{% if data.distribution %}
++{{ data.distribution }}
++{% endif %}
++{### SQL for Partitioning ###}
++{% if data.is_partitioned %}
++{{ data.partition_scheme }}
++{% endif %}
++;
++
++{### Alter SQL for Owner ###}
++{% if data.relowner %}
++
++ALTER TABLE {{conn|qtIdent(data.schema, data.name)}}
++    OWNER to {{conn|qtIdent(data.relowner)}};
++{% endif %}
++
++{###  ACL on Table ###}
++{% if data.relacl %}
++{% for priv in data.relacl %}
++
++{{ PRIVILEGE.SET(conn, 'TABLE', priv.grantee, data.name, priv.without_grant, priv.with_grant, data.schema) }}
++{% endfor %}
++{% endif %}
++
++{### SQL for COMMENT ###}
++{% if data.description %}
++COMMENT ON TABLE {{conn|qtIdent(data.schema, data.name)}}
++    IS {{data.description|qtLiteral(conn)}};
++{% endif %}
++{#===========================================#}
++{#====== MAIN TABLE TEMPLATE ENDS HERE ======#}
++{#===========================================#}
++{#===========================================#}
++{#  COLUMN SPECIFIC TEMPLATES STARTS HERE    #}
++{#===========================================#}
++{% if data.columns and data.columns|length > 0 %}
++{% for c in data.columns %}
++{% if c.description %}
++
++COMMENT ON COLUMN {{conn|qtIdent(data.schema, data.name, c.name)}}
++    IS {{c.description|qtLiteral(conn)}};
++{% endif %}
++{% endfor %}
++{% endif %}
++{#===========================================#}
++{#   COLUMN SPECIFIC TEMPLATES ENDS HERE     #}
++{#===========================================#}
++{#======================================#}
++{#   CONSTRAINTS SPECIFIC TEMPLATES     #}
++{#======================================#}
++{{CONSTRAINTS.CONSTRAINT_COMMENTS(conn, data.schema, data.name, data.primary_key)}}
++{{CONSTRAINTS.CONSTRAINT_COMMENTS(conn, data.schema, data.name, data.unique_constraint)}}
++{{CONSTRAINTS.CONSTRAINT_COMMENTS(conn, data.schema, data.name, data.foreign_key)}}
++{{CONSTRAINTS.CONSTRAINT_COMMENTS(conn, data.schema, data.name, data.check_constraint)}}
++{{CONSTRAINTS.CONSTRAINT_COMMENTS(conn, data.schema, data.name, data.exclude_constraint)}}
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/get_columns_for_table.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/get_columns_for_table.sql
+new file mode 100644
+index 000000000..e77bd5029
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/get_columns_for_table.sql
+@@ -0,0 +1,19 @@
++SELECT
++    a.attname AS name, pg_catalog.format_type(a.atttypid, NULL) AS cltype,
++    pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS defval,-- a.attidentity as clidentity,
++    pg_catalog.quote_ident(n.nspname)||'.'||pg_catalog.quote_ident(c.relname) as inheritedfrom,
++    c.oid as inheritedid
++FROM
++    pg_catalog.pg_class c
++JOIN
++    pg_catalog.pg_namespace n ON c.relnamespace=n.oid
++JOIN
++    pg_catalog.pg_attribute a ON a.attrelid = c.oid AND NOT a.attisdropped AND a.attnum > 0
++LEFT OUTER JOIN
++    pg_catalog.pg_attrdef def ON adrelid=a.attrelid AND adnum=a.attnum
++WHERE
++{% if tid %}
++    c.oid = {{tid}}::OID
++{% else %}
++    c.relname = {{tname|qtLiteral(conn)}}
++{% endif %}
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/nodes.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/nodes.sql
+new file mode 100644
+index 000000000..c7e7e26b1
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/nodes.sql
+@@ -0,0 +1,13 @@
++SELECT rel.oid, rel.relname AS name,
++    (SELECT count(*) FROM pg_catalog.pg_trigger WHERE tgrelid=rel.oid AND tgisinternal = FALSE) AS triggercount,
++    (SELECT count(*) FROM pg_catalog.pg_trigger WHERE tgrelid=rel.oid AND tgisinternal = FALSE AND tgenabled = 'O') AS has_enable_triggers,
++    (CASE WHEN (SELECT count(*) from pg_catalog.pg_partition where parrelid = rel.oid) > 0 THEN true ELSE false END) AS is_partitioned,
++    (SELECT count(1) FROM pg_catalog.pg_inherits WHERE inhrelid=rel.oid LIMIT 1) as is_inherits,
++    (SELECT count(1) FROM pg_catalog.pg_inherits WHERE inhparent=rel.oid LIMIT 1) as is_inherited,
++    des.description
++FROM pg_catalog.pg_class rel
++    LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=rel.oid AND des.objsubid=0 AND des.classoid='pg_class'::regclass)
++WHERE rel.relkind IN ('r','s','t') AND rel.relnamespace = {{ scid }}::oid
++    AND rel.relname NOT IN (SELECT partitiontablename FROM pg_catalog.pg_partitions)
++    {% if tid %} AND rel.oid = {{tid}}::OID {% endif %}
++ORDER BY rel.relname;
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/properties.sql b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/properties.sql
+new file mode 100644
+index 000000000..0be53d786
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/templates/tables/sql/gpdb6/properties.sql
+@@ -0,0 +1,67 @@
++SELECT rel.oid, rel.relname AS name, rel.reltablespace AS spcoid, rel.relacl AS relacl_str,
++    (CASE WHEN length(spc.spcname::text) > 0 THEN spc.spcname ELSE
++        (SELECT sp.spcname FROM pg_catalog.pg_database dtb
++        JOIN pg_catalog.pg_tablespace sp ON dtb.dattablespace=sp.oid
++        WHERE dtb.oid = {{ did }}::oid)
++    END) as spcname,
++    (CASE rel.relreplident
++            WHEN 'd' THEN 'default'
++            WHEN 'n' THEN 'nothing'
++            WHEN 'f' THEN 'full'
++            WHEN 'i' THEN 'index'
++    END) as replica_identity,
++    nsp.nspname as schema,
++    pg_catalog.pg_get_userbyid(rel.relowner) AS relowner, rel.relhasoids, rel.relkind,
++    rel.relhassubclass, rel.reltuples::bigint, des.description, con.conname, con.conkey,
++    false AS isrepl,
++    0 AS triggercount,
++    ARRAY[]::varchar[] AS coll_inherits,
++    0 AS inherited_tables_cnt,
++    (CASE WHEN rel.relpersistence = 'u' THEN true ELSE false END) AS relpersistence,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'fillfactor=([0-9]*)') AS fillfactor,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'compresslevel=([0-9]*)') AS compresslevel,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'blocksize=([0-9]*)') AS blocksize,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'orientation=(row|column)') AS orientation,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'appendonly=(true|false)')::boolean AS appendonly,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'compresstype=(zlib|quicklz|rle_type|none)') AS compresstype,
++    (substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS autovacuum_enabled,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS autovacuum_vacuum_threshold,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_vacuum_scale_factor,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS autovacuum_analyze_threshold,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS autovacuum_analyze_scale_factor,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS autovacuum_vacuum_cost_delay,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS autovacuum_vacuum_cost_limit,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS autovacuum_freeze_min_age,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS autovacuum_freeze_max_age,
++    substring(pg_catalog.array_to_string(rel.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS autovacuum_freeze_table_age,
++    (substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_enabled=([a-z|0-9]*)'))::BOOL AS toast_autovacuum_enabled,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_threshold=([0-9]*)') AS toast_autovacuum_vacuum_threshold,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_vacuum_scale_factor,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_threshold=([0-9]*)') AS toast_autovacuum_analyze_threshold,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_analyze_scale_factor=([0-9]*[.]?[0-9]*)') AS toast_autovacuum_analyze_scale_factor,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_delay=([0-9]*)') AS toast_autovacuum_vacuum_cost_delay,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_vacuum_cost_limit=([0-9]*)') AS toast_autovacuum_vacuum_cost_limit,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_min_age=([0-9]*)') AS toast_autovacuum_freeze_min_age,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_max_age=([0-9]*)') AS toast_autovacuum_freeze_max_age,
++    substring(pg_catalog.array_to_string(tst.reloptions, ',') FROM 'autovacuum_freeze_table_age=([0-9]*)') AS toast_autovacuum_freeze_table_age,
++    rel.reloptions AS reloptions, tst.reloptions AS toast_reloptions,
++    typ.typrelid AS typoid, 
++    (CASE WHEN rel.reltoastrelid = 0 THEN false ELSE true END) AS hastoasttable,
++    (CASE WHEN rel.oid <= {{ datlastsysoid }}::oid THEN true ElSE false END) AS is_sys_table,
++    pg_get_table_distributedby(rel.oid) AS distribution,
++    -- Added for partition table
++    (CASE WHEN part.parkind <> '' THEN true ELSE false END) AS is_partitioned
++    {% if tid %}, (CASE WHEN part.parkind <> '' THEN (SELECT pg_get_partition_def({{ tid }}::oid, true)) ELSE '' END) AS partition_scheme {% endif %}
++FROM pg_catalog.pg_class rel
++    LEFT OUTER JOIN pg_catalog.pg_tablespace spc on spc.oid=rel.reltablespace
++    LEFT OUTER JOIN pg_catalog.pg_description des ON (des.objoid=rel.oid AND des.objsubid=0 AND des.classoid='pg_class'::regclass)
++    LEFT OUTER JOIN pg_catalog.pg_constraint con ON con.conrelid=rel.oid AND con.contype='p'
++    LEFT OUTER JOIN pg_catalog.pg_class tst ON tst.oid = rel.reltoastrelid
++    LEFT OUTER JOIN pg_catalog.pg_type typ ON rel.reloftype=typ.oid
++    LEFT OUTER JOIN pg_catalog.pg_namespace nsp ON nsp.oid = rel.relnamespace
++    LEFT OUTER JOIN pg_catalog.pg_partition part ON part.parrelid = rel.oid
++    LEFT OUTER JOIN gp_distribution_policy gdp ON gdp.localoid = rel.oid
++WHERE rel.relkind IN ('r','s','t') AND rel.relnamespace = {{ scid }}::oid
++    AND rel.relname NOT IN (SELECT partitiontablename FROM pg_catalog.pg_partitions)
++    {% if tid %} AND rel.oid = {{ tid }}::oid {% endif %}
++ORDER BY name
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
+index 3f040ea60..739056a90 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
++++ b/web/pgadmin/browser/server_groups/servers/databases/schemas/tables/utils.py
+@@ -1060,6 +1060,13 @@ class BaseTableView(PGChildNodeView, BasePartitionTable, VacuumSettings):
+         # Get Reverse engineered sql for Table
+         self._get_resql_for_index(did, tid, main_sql, json_resp, schema,
+                                   table, add_not_exists_clause=if_exists_flag)
++        
++        if self.manager.version <= 90426:
++            sql = '\n'.join(main_sql)
++
++            if not json_resp:
++                return sql, ""
++            return ajax_response(response=sql.strip('\n'))
+ 
+         # Get Reverse engineered sql for ROW SECURITY POLICY
+         self._get_resql_for_row_security_policy(scid, tid, json_resp,
+diff --git a/web/pgadmin/browser/server_groups/servers/databases/templates/databases/sql/default/nodes.sql b/web/pgadmin/browser/server_groups/servers/databases/templates/databases/sql/default/nodes.sql
+index 4b751d469..4d782af31 100644
+--- a/web/pgadmin/browser/server_groups/servers/databases/templates/databases/sql/default/nodes.sql
++++ b/web/pgadmin/browser/server_groups/servers/databases/templates/databases/sql/default/nodes.sql
+@@ -10,15 +10,13 @@ FROM
+         db.oid=descr.objoid AND descr.classoid='pg_database'::regclass
+     )
+ WHERE {% if did %}
+-db.oid = {{ did|qtLiteral(conn) }}::OID
+-{% endif %}
++    db.oid = {{ did|qtLiteral(conn) }}::OID{% endif %}
+ {% if db_restrictions %}
+-
+-{% if did %}AND{% endif %}
+-db.datname in ({{db_restrictions}})
++{% if did %}
++    AND {% endif %}db.datname in ({{db_restrictions}})
+ {% elif not did%}
+-    {% if db_restrictions %} AND {%endif%}
+-    db.oid > {{ last_system_oid }}::OID OR db.datname IN ('postgres', 'edb')
++{% if db_restrictions %}
++    AND {%endif%}(db.oid > {{ last_system_oid }}::OID OR db.datname IN ('postgres', 'edb'))
+ {% endif %}
+-
++    AND pg_catalog.has_database_privilege(db.oid, 'CONNECT')
+ ORDER BY datname;
+diff --git a/web/pgadmin/browser/server_groups/servers/templates/connect/sql/gpdb6/check_recovery.sql b/web/pgadmin/browser/server_groups/servers/templates/connect/sql/gpdb6/check_recovery.sql
+new file mode 100644
+index 000000000..a2dd4998a
+--- /dev/null
++++ b/web/pgadmin/browser/server_groups/servers/templates/connect/sql/gpdb6/check_recovery.sql
+@@ -0,0 +1,6 @@
++SELECT CASE WHEN usesuper
++       THEN pg_catalog.pg_is_in_recovery()
++       ELSE FALSE
++       END as inrecovery,
++       FALSE as isreplaypaused
++FROM pg_catalog.pg_user WHERE usename=current_user
+diff --git a/web/pgadmin/dashboard/templates/dashboard/sql/gpdb6/activity.sql b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb6/activity.sql
+new file mode 100644
+index 000000000..71f063098
+--- /dev/null
++++ b/web/pgadmin/dashboard/templates/dashboard/sql/gpdb6/activity.sql
+@@ -0,0 +1,22 @@
++/*pga4dash*/
++SELECT
++    pid,
++    datname,
++    usename,
++    application_name,
++    client_addr,
++    pg_catalog.to_char(backend_start, 'YYYY-MM-DD HH24:MI:SS TZ') AS backend_start,
++    state,
++    -- wait_event_type || ': ' || wait_event AS wait_event,
++    -- array_to_string(pg_catalog.pg_blocking_pids(pid), ', ') AS blocking_pids,
++    query,
++    pg_catalog.to_char(state_change, 'YYYY-MM-DD HH24:MI:SS TZ') AS state_change,
++    pg_catalog.to_char(query_start, 'YYYY-MM-DD HH24:MI:SS TZ') AS query_start,
++    pg_catalog.to_char(xact_start, 'YYYY-MM-DD HH24:MI:SS TZ') AS xact_start,
++    -- backend_type,
++    CASE WHEN state = 'active' THEN ROUND((extract(epoch from now() - query_start) / 60)::numeric, 2) ELSE 0 END AS active_since
++FROM
++    pg_catalog.pg_stat_activity
++{% if did %}WHERE
++    datid = {{ did }}{% endif %}
++ORDER BY pid
+diff --git a/web/pgadmin/utils/versioned_template_loader.py b/web/pgadmin/utils/versioned_template_loader.py
+index 16c4d1d18..34d6f5c0d 100644
+--- a/web/pgadmin/utils/versioned_template_loader.py
++++ b/web/pgadmin/utils/versioned_template_loader.py
+@@ -24,6 +24,9 @@ class VersionedTemplateLoader(DispatchingJinjaLoader):
+             if version_mapping['number'] > specified_version_number:
+                 continue
+ 
++            if version_mapping['number'] == 90424 and specified_version_number > 90426:
++                continue
++
+             template_path = '/'.join([
+                 template_dir,
+                 version_mapping['name'],
+@@ -82,4 +85,5 @@ def get_version_mapping_directories():
+             {'name': "13_plus", 'number': 130000},
+             {'name': "12_plus", 'number': 120000},
+             {'name': "11_plus", 'number': 110000},
++            {'name': "gpdb6",   'number': 90424},
+             {'name': "default", 'number': 0})
