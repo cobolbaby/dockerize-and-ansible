@@ -347,6 +347,8 @@ uuid，雪花算法
 
 - [百亿美金的设计，深度剖析 GitLab 的 Postgres 数据库 Schema](https://mp.weixin.qq.com/s/cs3t_eRTcnVDFEMocpHxCA) 当数据库规模较小时，主键不会产生任何明显的影响，但当数据库规模扩大时，主键就会对存储空间、写入速度和读取速度产生明显的影响。因此，我们在为表选择正确的主键类型时应进行适当的思考。使用 UUID v4 类型而不是 bigserial 类型时，表的大小会增加 25%，插入效率则会下降到 bigserial 类型的 25%，如果为其创建索引，代价则更高。目前
 在 GitLab 573 个表中，380 个表使用 bigserial 主键类型，170 个表使用 serial4 主键类型，其余 23 个表使用复合主键。他们没有使用 uuid v4 主键或其他类似 ULID 的深奥键类型的表。
+- [分布式系统 - 全局唯一ID实现方案](https://pdai.tech/md/arch/arch-z-id.html)
+- [唯一ID生成算法剖析](https://cloud.tencent.com/developer/article/1519554)
 
 ### 问题 10. 反范式设计:3NF有什么不足，为什么有时候需要反范式设计？
 
