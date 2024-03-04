@@ -2,4 +2,7 @@ FROM registry.inventec/proxy/library/alpine:latest
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
 RUN apk update && \
-    apk add --no-cache make docker-cli ansible 
+    apk add --no-cache make docker-cli ansible curl && \
+    # https://docs.min.io/docs/minio-client-quickstart-guide.html
+    curl https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc && \
+    chmod +x /usr/local/bin/mc
