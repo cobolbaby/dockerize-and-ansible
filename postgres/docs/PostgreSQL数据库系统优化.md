@@ -93,6 +93,7 @@ PG 中的数据膨胀问题，通常是由于数据更新导致的，数据更�
 
 - [PostgreSQL documentation - Routine Vacuuming](https://www.postgresql.org/docs/current/routine-vacuuming.html#AUTOVACUUM)
 - [PostgreSQL documentation - Routine Reindexing](https://www.postgresql.org/docs/current/routine-reindex.html) 什么情况下要执行 REINDEX
+- [使用PostgreSQL数据库的SQL Server DBA：事务隔离和表膨胀](https://mp.weixin.qq.com/s?__biz=MzI5MTQ3ODU4Nw==&mid=2247484810&idx=1&sn=360304093f2fbb67249ab1d37200e202&chksm=ec1148dedb66c1c81466d0105c968bcee83b29f593998f32f3cb1c5cacc120b69976fd36929f)
 - [Manage Bloated Postgres Database](https://imantung.medium.com/manage-bloated-postgres-database-22e14ce382a9) 数据库容量膨胀之后常规的应对措施
 
 ### 问题 3. SQL 没修改，但执行时间却陡增，是数据库出问题了吗？
