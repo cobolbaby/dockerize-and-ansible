@@ -124,7 +124,6 @@ SQL 语言只描述要什么，不描述怎么做，是典型的“声明式”�
 - [PostgreSQL documentation - Chapter 14. Performance Tips - 14.1. Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) 获取一个SQL执行计划的方法
 - [PostgreSQL documentation - Chapter 20. Server Configuration - 20.7. Query Planning](https://www.postgresql.org/docs/current/runtime-config-query.html) 官方文档，讲解约束执行计划的若干选项
 - [А deep dive into PostgreSQL query optimizations](https://postgrespro.com/blog/pgsql/5968054) 优化示例较多，但各个比较经典
-- [PostgreSQL poor performance because of bad query plan based on bad row estimates](https://dba.stackexchange.com/questions/317203/postgres-poor-performance-because-of-bad-query-plan-based-on-bad-row-estimates) 表统计信息不准确引起的问题
 - [10 Cool SQL Optimisations That do not Depend on the Cost Model](https://blog.jooq.org/10-cool-sql-optimisations-that-do-not-depend-on-the-cost-model/) 比较老的一篇文章，详细对比了 Oracle/MySQL/SQL Server/PostgreSQL 各个数据库的执行计划，虽然比对是基于历史版本，但可借此学习一下如何比对。
 - [8种经常被忽视的SQL错误用法，你有没有踩过坑？](https://juejin.cn/post/6844903998974099470) 虽然是以 MySQL 为例进行讲解，但 PostgreSQL 也大差不差
 
@@ -138,11 +137,12 @@ SQL 语言只描述要什么，不描述怎么做，是典型的“声明式”�
 
 - 两表关联时，关联字段数据类型不一致，比如 A 表的 sn 字段是 character，而 B 表的 SN 字段是 character varying，A.SN = B.SN 时无法使用索引。推荐统一字段类型，元数据标准化规范化。
 - 索引字段在表中基数比较小，比如 pdline，推荐给基数高的建索引 
-- 索引字段在表中基数很高，比如 model，但可能存在未 null 的情况，且为 null 的记录还超级多，此时查询条件为 model 为 null 的时候则无法使用索引，用上索引反倒更慢
+- 两表关联时，关联字段在表中基数很高，但由于有异常值，比如 model，可能存在 model 为 null 的情况，且为 null 的记录还超级多，此时查询条件为 A.model = B.model 的时候虽然也能用上索引，但执行速度没有达到预期的效果，给人感觉索引没生效。此时更推荐做一些数据修正。
 - 索引字段进行表达式计算，形如 `WHERE func(col) = 1`，更推荐修改为 `WHERE col = func(1)`
-- 索引字段进行模糊匹配，BTree类型索引不支持模糊匹配，推荐使用GIN/GIN_TRGM 索引类型，比如 dw.rel_custsno 的 cust_sno 列要创建 GIN 索引
+- 索引字段进行模糊匹配，B-Tree 类型索引不支持模糊匹配，推荐使用 GIN/GIN_TRGM 索引类型，比如 dw.rel_custsno 的 cust_sno 列要创建 GIN 索引
 - 创建了复合索引，但查询时不符合左前缀原则，造成索引失效，或者虽然用了索引反倒更慢了。
 - 索引字段进行逻辑非判断，形如 `col != ?`，此时无法使用索引
+- 如果通过索引扫描之后中间结果集较大，比如超过了 10w，有可能就不会走索引扫描，而是走并行的全表扫描。此时如果需要强制走索引，推荐使用 `SET enable_seqscan = 'false';`
 
 **核心知识:**
 
