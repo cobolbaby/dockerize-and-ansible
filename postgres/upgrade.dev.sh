@@ -2,16 +2,20 @@
 set -e
 cd `dirname $0`
 
-# 数据库停服，停服前需确认哪台是 Leader 节点，要做到优雅退出
-# 三步走: patronictl pause --wait, pg_ctl stop, docker stop 
-
-export PGDATA_DEFAULT_TABLESPACE=/data/hdd/pg \
-		PGDATA_SECONDARY_TABLESPACE=/data/ssd/pg
+export PGDATA_DEFAULT_TABLESPACE=/data/hdd/pg
+# export PGDATA_DEFAULT_TABLESPACE=/data/hdd1/postgres
 
 env | grep PGDATA
 
 # 预先创建数据目录，可提前做 
 # ansible -i ... postgres -m file -a "dest=${PGDATA_DEFAULT_TABLESPACE}/16/data owner=999 group=999 mode=700 state=directory"
+# 如果是单点数据库，则可执行如下命令，结果一致
+# sudo mkdir -p ${PGDATA_DEFAULT_TABLESPACE}/16/data
+# sudo chown -R 999:999 ${PGDATA_DEFAULT_TABLESPACE}/16/data
+# sudo chmod -R 700 ${PGDATA_DEFAULT_TABLESPACE}/16/data
+
+# 数据库停服，停服前需确认哪台是 Leader 节点，要做到优雅退出
+# 三步走: patronictl pause --wait, pg_ctl stop, docker stop 
 
 # 如果是 Replica 节点，则修改 postgresql.conf 中的配置，如果是 Leader，则直接跳过 
 # sudo sed -i 's/^primary/# &/' ${PGDATA_DEFAULT_TABLESPACE}/12/data/postgresql.conf
@@ -20,14 +24,12 @@ env | grep PGDATA
 dev@kubernetes-5 12:22:11 CST $ docker run --rm \
 	-e POSTGRES_INITDB_ARGS="--data-checksums" \
 	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
-	-v ${PGDATA_SECONDARY_TABLESPACE}:/data/postgresql \
 	registry.inventec/infra/pg_upgrade:12-to-16.2 \
 	--check
 
 # docker run --rm \
 # 	-e POSTGRES_INITDB_ARGS="--data-checksums" \
 # 	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
-# 	-v ${PGDATA_SECONDARY_TABLESPACE}:/data/postgresql \
 # 	registry.inventec/infra/pg_upgrade:12-to-16.2 \
 # 	--link
 
@@ -106,7 +108,6 @@ dev@kubernetes-5 12:22:11 CST $ docker run --rm \
 dev@kubernetes-5 12:23:29 CST $ docker run --rm \
 	-e POSTGRES_INITDB_ARGS="--data-checksums" \
 	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
-	-v ${PGDATA_SECONDARY_TABLESPACE}:/data/postgresql \
 	registry.inventec/infra/pg_upgrade:12-to-16.2
 
 # << comment
@@ -178,8 +179,9 @@ dev@kubernetes-5 12:23:29 CST $ docker run --rm \
 dev@kubernetes-5 13:55:48 CST $ docker run -d --rm --name pg1602 \
 	-e PGDATA=/var/lib/postgresql/16/data \
 	-v ${PGDATA_DEFAULT_TABLESPACE}/16/data:/var/lib/postgresql/16/data \
-    -v ${PGDATA_SECONDARY_TABLESPACE}/16/data:/data/postgresql/16/data \
     registry.inventec/infra/postgres:16.2
+
+# TODO:如果是单点服务，需修改 $PGDATA/pg_hba.conf，添加 host all all all md5
 
 # TODO:重建 PG HA 集群
 
