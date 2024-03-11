@@ -37,8 +37,9 @@ https://www.processon.com/view/link/6449f74e97ae6a44256debf5
 
 **典型场景:**
 
-- 数据库同步:同步 SQL Server 数据至 PostgreSQL，SQL Server 未开启 Read-Commited Snaphot 时，在读取数据时可能被更新操作所阻塞。
-- Online DDL:表结构变更，比如添加字段、修改字段类型、添加约束等
+- 数据同步: 同步 SQL Server 数据至 PostgreSQL，SQL Server 未开启 Read-Commited Snaphot 时，在读取数据时可能被更新操作所阻塞。
+- Online DDL: 表结构变更，比如添加字段、修改字段类型、添加约束等
+- 高并发场景: 同时修改某条记录
 
 **核心知识:**
 
@@ -119,10 +120,45 @@ SQL 语言只描述要什么，不描述怎么做，是典型的“声明式”�
 
 ![](./images/optimizer-execution-plan-tuning.png)
 
+以一个具体的例子来说明:
+
+有的 Grafana 查询看板会给用户提供一个输入框，允许用户输入一批 SN/PN/DN，用特定分隔符分割，在 SQL 执行过程中用户输入的字符串用`regexp_split_to_table`函数进行字符串分割。但用了 regexp_split_to_table 的SQL耗时不稳定，大部分时候还比较快，但偶尔会慢到SQL超时。
+
+```sql
+
+explain 
+select * from dw.dim_cpu_po p
+where p.po in ( select regexp_split_to_table('100026005459',',') );
+
+/*
+"Hash Join  (cost=22.02..1032.19 rows=1000 width=629)"
+"  Hash Cond: ((p.po)::text = (regexp_split_to_table('100026005459'::text, ','::text)))"
+"  ->  Seq Scan on dim_cpu_po p  (cost=0.00..935.41 rows=24241 width=629)"
+"  ->  Hash  (cost=19.52..19.52 rows=200 width=32)"
+"        ->  HashAggregate  (cost=17.52..19.52 rows=200 width=32)"
+"              Group Key: regexp_split_to_table('100026005459'::text, ','::text)"
+"              ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32)"
+"                    ->  Result  (cost=0.00..0.01 rows=1 width=0)"
+*/
+
+explain 
+select * from dw.dim_cpu_po p
+where p.po = ANY(regexp_split_to_array('100026005459',','));
+/*
+"Index Scan using dim_cpu_po_pkey on dim_cpu_po p  (cost=0.29..8.30 rows=1 width=629)"
+"  Index Cond: ((po)::text = ANY ('{100026005459}'::text[]))"
+*/
+
+```
+
+regexp_split_to_table 实际上会触发一次 Join 操作，且如果  regexp_split_to_table 的预估结果集大小不准确，则可能会导致全表扫描。所以推荐将 `p.po in ( select regexp_split_to_table('100026005459',',') )` 改写为 `p.po = ANY(regexp_split_to_array('100026005459',','))`
+
+
 **参考链接:**
 
 - [PostgreSQL documentation - Chapter 14. Performance Tips - 14.1. Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) 获取一个SQL执行计划的方法
 - [PostgreSQL documentation - Chapter 20. Server Configuration - 20.7. Query Planning](https://www.postgresql.org/docs/current/runtime-config-query.html) 官方文档，讲解约束执行计划的若干选项
+- [PostgreSQL execution plan visualizer](https://explain.dalibo.com/plan#) 执行计划可视化工具
 - [А deep dive into PostgreSQL query optimizations](https://postgrespro.com/blog/pgsql/5968054) 优化示例较多，但各个比较经典
 - [10 Cool SQL Optimisations That do not Depend on the Cost Model](https://blog.jooq.org/10-cool-sql-optimisations-that-do-not-depend-on-the-cost-model/) 比较老的一篇文章，详细对比了 Oracle/MySQL/SQL Server/PostgreSQL 各个数据库的执行计划，虽然比对是基于历史版本，但可借此学习一下如何比对。
 - [8种经常被忽视的SQL错误用法，你有没有踩过坑？](https://juejin.cn/post/6844903998974099470) 虽然是以 MySQL 为例进行讲解，但 PostgreSQL 也大差不差
@@ -189,59 +225,11 @@ Nested-Loop Join，Hash Join，Merge Join，Index Nested-Loop Join
 - [图解数据库连接查询(JOIN)的三种实现算法: MySQL、Oracle、SQL Server 等](https://blog.csdn.net/horses/article/details/105700677) 上面三篇文章的中文翻译，不过以不同类型数据库做了讲解，算是对原博主的细化
 - [MySQL和PostgreSQL在多表连接算法上的差异](https://cloud.tencent.com/developer/article/1534897) MySQL 基于贪心算法实现，PostgreSQL 基于动态规划算法实现
 
-### 问题 6. 用了 regexp_split_to_table 的查询耗时不稳定，大部分时候还比较快，但偶尔会慢到SQL超时
+### 问题 6. 使用 PostgreSQL FDW 扩展 进行联邦查询时的注意事项
 
 **关键词:**
 
-regexp_split_to_table
-
-**典型场景:**
-
-- Grafana 查询看板提供给用户一个输入框，允许用户输入一系列 SN/PN/DN，用特定分隔符分割，在 SQL 执行过程中用户输入的字符串用`regexp_split_to_table`函数进行字符串分割。
-
-**核心知识:**
-
-以一个具体的例子来说明:
-
-```sql
-
-explain 
-select * from dw.dim_cpu_po p
-where p.po in ( select regexp_split_to_table('100026005459',',') );
-
-/*
-"Hash Join  (cost=22.02..1032.19 rows=1000 width=629)"
-"  Hash Cond: ((p.po)::text = (regexp_split_to_table('100026005459'::text, ','::text)))"
-"  ->  Seq Scan on dim_cpu_po p  (cost=0.00..935.41 rows=24241 width=629)"
-"  ->  Hash  (cost=19.52..19.52 rows=200 width=32)"
-"        ->  HashAggregate  (cost=17.52..19.52 rows=200 width=32)"
-"              Group Key: regexp_split_to_table('100026005459'::text, ','::text)"
-"              ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32)"
-"                    ->  Result  (cost=0.00..0.01 rows=1 width=0)"
-*/
-
-explain 
-select * from dw.dim_cpu_po p
-where p.po = ANY(regexp_split_to_array('100026005459',','));
-/*
-"Index Scan using dim_cpu_po_pkey on dim_cpu_po p  (cost=0.29..8.30 rows=1 width=629)"
-"  Index Cond: ((po)::text = ANY ('{100026005459}'::text[]))"
-*/
-
-```
-
-regexp_split_to_table 实际上会触发一次 Join 操作，且如果  regexp_split_to_table 的预估结果集大小不准确，则可能会导致全表扫描。所以推荐将 `p.po in ( select regexp_split_to_table('100026005459',',') )` 改写为 `p.po = ANY(regexp_split_to_array('100026005459',','))`
-
-**参考链接:**
-
-- [Data search optimization based on a list of values presented as a string](https://postgrespro.com/blog/pgsql/5968054) 讲的很全面，不单单只是 regexp_split_to_table 这个示例
-- [PostgreSQL execution plan visualizer](https://explain.dalibo.com/plan#) 执行计划可视化工具
-
-### 问题 7. 使用 PostgreSQL FDW扩展 进行联邦查询时的注意事项
-
-**关键词:**
-
-postgres_fdw，greenplum_fdw，tds_fdw，influxdb_fdw，数据融合，联邦查询
+postgres_fdw，tds_fdw，influxdb_fdw，数据融合，联邦查询
 
 **典型场景:**
 
@@ -252,10 +240,18 @@ postgres_fdw，greenplum_fdw，tds_fdw，influxdb_fdw，数据融合，联邦查
 
 在使用外部数据源时，尤其是使用 Foreign Data Wrapper(FDW)连接外部数据库或文件时，需要注意一些特殊情况和常见问题。
 
-- 谓词下推:将查询中的谓词(如WHERE、JOIN ON等)下推到外部数据源进行
-- 程序Bug:FDW扩展多为第三方开发维护，难免有一些功能不足，或者Bug，目前只能是及时发现及时反馈
+- 谓词下推(Pushdown): 查询条件，聚合操作(如WHERE、COUNT等)直接在外部数据源中执行
+- 程序Bug: FDW 扩展多为第三方开发维护，难免有一些功能不足，或者Bug，目前只能是及时发现及时反馈
 
-还是以一个具体的例子来说明一下"谓词下推":
+目前常用的 FDW Pushdown 支持程度参见如下表格:
+
+| FDW | LIMIT | COUNT | NOW() | CURRENT_TIMESTAMP | ORDER BY
+| --- | --- | --- | --- | --- | --- |
+| postgres_fdw | 支持 | 支持 | [不支持](https://stackoverflow.com/questions/50164775/postgres-fdw-not-pushing-down-where-criteria) | 不支持 | 支持
+| tds_fdw | 不支持 | 不支持 | 不支持 | 不支持 | 支持
+| influxdb_fdw | 支持 | 不支持 | 支持 | 不支持 | 不支持
+
+还是以一个具体的例子来说明一下 Pushdown:
 
 ```sql
 explain analyse verbose
@@ -294,7 +290,7 @@ where time between '2024-02-29 00:00:00+08'
 
 - [云上如何做冷热数据分离](https://developer.aliyun.com/article/66856) 阿里云，Azure 上的玩法
 
-### 问题 8. 归档历史数据时，数据库集群主备节点数据延迟增大，实时看板变得不再实时
+### 问题 7. 归档历史数据时，数据库集群主备节点数据延迟增大，实时看板变得不再实时
 
 **关键词:**
 
@@ -320,7 +316,7 @@ DELETE历史数据
 
 - [技术分享 | delete 语句引发大量 sql 被 kill 问题分析](https://mp.weixin.qq.com/s?__biz=MjM5NzAzMTY4NQ==&mid=2653933085&idx=1&sn=f3ecac4ab459f75fd7922d9cc15a3517&chksm=bd3b54778a4cdd61fb7b50fc7e73bc03722c78930e2bc7e9ad6751b622ddd21f547682b01944) 由于锁争用，导致 lock timeout 而被 sql-killer 干掉。在有赞的数据库运维体系中，每个实例都会配置一个 sql-killer 的实时工具，用于 kill query 超过指定阈值的 SQL 请求(类似 pt-killer)。
 
-### 问题 9. uuid 作为主键，可能会有哪些坑 
+### 问题 8. uuid 作为主键，可能会有哪些坑 
 
 **关键词:**
 
@@ -350,6 +346,28 @@ uuid，雪花算法
 在 GitLab 573 个表中，380 个表使用 bigserial 主键类型，170 个表使用 serial4 主键类型，其余 23 个表使用复合主键。他们没有使用 uuid v4 主键或其他类似 ULID 的深奥键类型的表。
 - [分布式系统 - 全局唯一ID实现方案](https://pdai.tech/md/arch/arch-z-id.html)
 - [唯一ID生成算法剖析](https://cloud.tencent.com/developer/article/1519554)
+
+### 问题 9. 时间字段应该在数据库中保存为什么类型
+
+**关键词:**
+
+Timestamp, Timezone
+
+**典型场景:**
+
+- 数据库建模
+- 全球数据同步
+
+**核心知识:**
+
+如果要将上海厂区的数据同步到墨西哥，请问原始数据的时间字段是否要做时区转换？如果不做时区转化，如何保证数据的正确性？如果做时区转化，又有哪些注意事项？
+
+跨国公司，数据要做全球同步的，时间字段最好使用 bigint 存毫秒值。虽然牺牲了一定的可读性，但胜在可以规避很多时间相关的坑。
+
+针对JDBC 客户端，默认会将当前会话的数据库时区设置为 `local machine timezone`，如果客户端跨时区访问数据库，还没有预设时区的话，`timestamp without time zone`类型时间字段的插入值可能会有问题; 而其他客户端暂未发现该现象。
+
+**参考链接:**
+
 
 ### 问题 10. 反范式设计:3NF有什么不足，为什么有时候需要反范式设计？
 
