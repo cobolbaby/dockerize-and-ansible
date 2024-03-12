@@ -125,7 +125,6 @@ SQL 语言只描述要什么，不描述怎么做，是典型的“声明式”�
 有的 Grafana 查询看板会给用户提供一个输入框，允许用户输入一批 SN/PN/DN，用特定分隔符分割，在 SQL 执行过程中用户输入的字符串用`regexp_split_to_table`函数进行字符串分割。但用了 regexp_split_to_table 的SQL耗时不稳定，大部分时候还比较快，但偶尔会慢到SQL超时。
 
 ```sql
-
 explain 
 select * from dw.dim_cpu_po p
 where p.po in ( select regexp_split_to_table('100026005459',',') );
@@ -141,18 +140,29 @@ where p.po in ( select regexp_split_to_table('100026005459',',') );
 "                    ->  Result  (cost=0.00..0.01 rows=1 width=0)"
 */
 
+/*
+"Nested Loop  (cost=17.94..1291.52 rows=1000 width=151)"
+"  ->  HashAggregate  (cost=17.52..19.52 rows=200 width=32)"
+"        Group Key: regexp_split_to_table('100026005459'::text, ','::text)"
+"        ->  ProjectSet  (cost=0.00..5.02 rows=1000 width=32)"
+"              ->  Result  (cost=0.00..0.01 rows=1 width=0)"
+"  ->  Index Scan using dim_cpu_po_pkey on dim_cpu_po p  (cost=0.42..6.35 rows=1 width=151)"
+"        Index Cond: ((po)::text = (regexp_split_to_table('100026005459'::text, ','::text)))"
+*/
+```
+
+regexp_split_to_table 实际上会引起一次 Join 操作，如果预估的 regexp_split_to_table 结果集大小不准确，则可能会触发一次全表扫描，同样的 SQL 执行耗时就会有波动。为了避免 regexp_split_to_table 引起不必要的问题，我们更推荐将 `p.po in ( select regexp_split_to_table('100026005459',',') )` 改写为 `p.po = ANY(regexp_split_to_array('100026005459',','))`，执行计划会更加稳定。
+
+```sql
 explain 
 select * from dw.dim_cpu_po p
 where p.po = ANY(regexp_split_to_array('100026005459',','));
+
 /*
 "Index Scan using dim_cpu_po_pkey on dim_cpu_po p  (cost=0.29..8.30 rows=1 width=629)"
 "  Index Cond: ((po)::text = ANY ('{100026005459}'::text[]))"
 */
-
 ```
-
-regexp_split_to_table 实际上会触发一次 Join 操作，且如果  regexp_split_to_table 的预估结果集大小不准确，则可能会导致全表扫描。所以推荐将 `p.po in ( select regexp_split_to_table('100026005459',',') )` 改写为 `p.po = ANY(regexp_split_to_array('100026005459',','))`
-
 
 **参考链接:**
 
@@ -250,6 +260,8 @@ postgres_fdw，tds_fdw，influxdb_fdw，数据融合，联邦查询
 | postgres_fdw | 支持 | 支持 | [不支持](https://stackoverflow.com/questions/50164775/postgres-fdw-not-pushing-down-where-criteria) | 不支持 | 支持
 | tds_fdw | 不支持 | 不支持 | 不支持 | 不支持 | 支持
 | influxdb_fdw | 支持 | 不支持 | 支持 | 不支持 | 不支持
+
+> 针对 now() 以及 current_timestamp 的使用场景，更推荐使用动态 SQL 让变量转常量，或者设置 `set plan_cache_mode = 'force_custom_plan'`.
 
 还是以一个具体的例子来说明一下 Pushdown:
 
