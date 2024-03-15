@@ -374,7 +374,7 @@ Timestamp, Timezone
 
 跨国公司，数据要做全球同步的，时间字段最好使用 bigint 存毫秒值。虽然牺牲了一定的可读性，但胜在可以规避很多时间相关的坑。
 
-针对JDBC 客户端，默认会将当前会话的数据库时区设置为 `local machine timezone`，如果客户端跨时区访问数据库，还没有预设时区的话，`timestamp without time zone`类型时间字段的插入值可能会有问题; 而其他客户端暂未发现该现象。
+针对JDBC 客户端，默认会将当前会话的数据库时区设置为Local Machine Timezone，如果客户端跨时区访问数据库，还没有预设时区的话，timestamp without time zone类型时间字段的插入值可能会有问题; 另外不管是取自定义的时区还是取Local Machine Time，目前发现遇到 America/Ciudad_Juarez 这个新时区的时候 JBDC 程序会有识别问题，需考虑用另外一个更常规的同时区配置做替代。
 
 **参考链接:**
 
