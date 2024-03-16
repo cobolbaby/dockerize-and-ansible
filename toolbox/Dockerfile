@@ -1,9 +1,9 @@
-FROM ubuntu:20.04
+FROM registry.inventec/proxy/ubuntu:20.04
 
 RUN apt-get update -y && \
     apt-get install -y --fix-missing \
             curl jq \
-            net-tools tcpdump iftop \
+            net-tools tcpdump iperf3 iftop \
             sysstat iotop \
             strace gdb
 
