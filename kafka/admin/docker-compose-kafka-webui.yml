@@ -1,0 +1,30 @@
+version: '2.3'
+services:
+  
+  kowl:
+    image: registry.inventec/proxy/redpandadata/console:v2.4.5
+    container_name: kowl
+    ports:
+      - 9002:8080
+    volumes:
+      - ./kowl.yaml:/etc/kowl/config.yaml
+    entrypoint: ./console --config.filepath=/etc/kowl/config.yaml
+    restart: always
+    cpu_count: 2
+    mem_limit: 1g
+
+  nginx:
+    image: registry.inventec/proxy/nginx:1.24-alpine
+    container_name: kowl-proxy
+    hostname: nginx
+    ports:
+      - 9001:80
+    volumes:
+      - ./kowl-nginx.conf:/etc/nginx/conf.d/default.conf
+    # environment:
+    #   NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE: "true"
+    restart: always
+    depends_on:
+      - kowl
+    cpu_count: 1
+    mem_limit: 512m
