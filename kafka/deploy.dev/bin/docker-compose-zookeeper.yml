@@ -1,9 +1,17 @@
-version: '3.4'
+version: '3.8'
+
+networks:
+  net:
+    external: true
+    name: bdc
+
 services:
   
   zoo1:
     image: ${REGISTRY}/hub/zookeeper:3.4.13
     hostname: zoo1
+    networks: 
+      - net
     ports:
       - target: 2181
         published: 2181
@@ -14,18 +22,15 @@ services:
       - /disk/zookeeper/datalog:/datalog
       - /disk/zookeeper/logs:/logs
       - /etc/localtime:/etc/localtime:ro
+    environment:
+      ZOO_AUTOPURGE_PURGEINTERVAL: 1
     deploy:
       restart_policy:
         condition: on-failure
       placement:
         constraints: 
-          - node.labels.alias == bdc02.infra.dev.tj.itc.inventec
+          - node.labels.alias == bdc02.infra.dev.itc.inventec
       resources:
         limits:
           cpus: "2"
           memory: 4g
-
-networks:
-  default:
-    external:
-      name: gpdb5

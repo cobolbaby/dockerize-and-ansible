@@ -1,9 +1,16 @@
-version: "3.4"
-services:
+version: "3.8"
 
+networks:
+  net:
+    external: true
+    name: bdc
+    
+services:
   broker1:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
     hostname: broker1
+    networks: 
+      - net
     ports:
       - target: 9092
         published: 9092
@@ -26,46 +33,60 @@ services:
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker1
       KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER}
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
-      KAFKA_LISTENERS: PLAINTEXT://:9092
-      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${BROKER_NODE1_IP}:9092
-      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://${BROKER_NODE1_IP}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:SASL_PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LOG_CLEANUP_POLICY: delete
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       # 墓碑消息存留时间
       KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
-      KAFKA_MESSAGE_MAX_BYTES: 10485760
-      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
+      KAFKA_MESSAGE_MAX_BYTES: 31457280
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 31457280
       # 不允许自动创建Topic，需要手动创建
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # 用于端到端测试
-      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
       KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
       KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
       KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
       # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_JMX_HOSTNAME: ${BROKER_NODE1_IP}
       KAFKA_JMX_PORT: 9999
-      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
       KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
-      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
-      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.5"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.4"
+      # List of enabled mechanisms, can be more than one
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      # Specify one of of the SASL mechanisms
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="admin" \
+        password="admin123" \
+        user_admin="admin123" \
+        user_bdc="bdcinfra";
+      # enable SASL for inter-broker communication
+      # KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_PLAINTEXT
     deploy:
       restart_policy:
         condition: on-failure
         delay: 10s
       placement:
         constraints:
-          - node.labels.alias == bdc01.infra.dev.tj.itc.inventec
+          - node.labels.alias == bdc01.infra.dev.itc.inventec
       resources:
         limits:
           cpus: "2"
           memory: 4g
 
   broker2:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
     hostname: broker2
+    networks: 
+      - net
     ports:
       - target: 9092
         published: 9092
@@ -88,41 +109,57 @@ services:
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker2
       KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER}
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
-      KAFKA_LISTENERS: PLAINTEXT://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${BROKER_NODE2_IP}:9092
-      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://${BROKER_NODE2_IP}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:SASL_PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LOG_CLEANUP_POLICY: delete
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
-      KAFKA_MESSAGE_MAX_BYTES: 10485760
-      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
+      KAFKA_MESSAGE_MAX_BYTES: 31457280
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 31457280
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
       KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
       KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
       KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
       # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_JMX_HOSTNAME: ${BROKER_NODE2_IP}
       KAFKA_JMX_PORT: 9999
-      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
       KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
-      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
-      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.5"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.4"
+      # List of enabled mechanisms, can be more than one
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      # Specify one of of the SASL mechanisms
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="admin" \
+        password="admin123" \
+        user_admin="admin123" \
+        user_bdc="bdcinfra";
+      # enable SASL for inter-broker communication
+      # KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_PLAINTEXT
     deploy:
       restart_policy:
         condition: on-failure
         delay: 10s
       placement:
         constraints:
-          - node.labels.alias == bdc03.infra.dev.tj.itc.inventec
+          - node.labels.alias == bdc03.infra.dev.itc.inventec
       resources:
         limits:
           cpus: "2"
           memory: 4g
 
   broker3:
-    image: ${REGISTRY}/hub/confluentinc/cp-kafka:5.4.2
+    image: ${REGISTRY}/hub/confluentinc/cp-kafka:${BROKER_VERSION}
     hostname: broker3
+    networks: 
+      - net
     ports:
       - target: 9092
         published: 9092
@@ -145,61 +182,127 @@ services:
       KAFKA_LOG_DIRS: /kafka/kafka-logs-broker3
       KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER}
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
-      KAFKA_LISTENERS: PLAINTEXT://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${BROKER_NODE3_IP}:9092
-      KAFKA_LOG_CLEANUP_POLICY: delete,compact
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://${BROKER_NODE3_IP}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:SASL_PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LOG_CLEANUP_POLICY: delete
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_RETENTION_BYTES: 21474836480
       KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 86400000
-      KAFKA_MESSAGE_MAX_BYTES: 10485760
-      KAFKA_REPLICA_FETCH_MAX_BYTES: 10485760
+      KAFKA_MESSAGE_MAX_BYTES: 31457280
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 31457280
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      # KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
+      KAFKA_LOG_MESSAGE_TIMESTAMP_TYPE: LogAppendTime
       KAFKA_HEAP_OPTS: "-Xmx2g -Xms2g"
       KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
       KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
       # KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
       KAFKA_JMX_HOSTNAME: ${BROKER_NODE3_IP}
       KAFKA_JMX_PORT: 9999
-      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.11.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
+      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar=9990:/opt/kafka/jmx_exporter/kafka-agent.yml"
       KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
-      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.4"
-      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.0"
+      KAFKA_INTER_BROKER_PROTOCOL_VERSION: "2.5"
+      KAFKA_LOG_MESSAGE_FORMAT_VERSION: "2.4"
+      # List of enabled mechanisms, can be more than one
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      # Specify one of of the SASL mechanisms
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="admin" \
+        password="admin123" \
+        user_admin="admin123" \
+        user_bdc="bdcinfra";
+      # enable SASL for inter-broker communication
+      # KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_PLAINTEXT
     deploy:
       restart_policy:
         condition: on-failure
         delay: 10s
       placement:
         constraints:
-          - node.labels.alias == bdc04.infra.dev.tj.itc.inventec
+          - node.labels.alias == bdc04.infra.dev.itc.inventec
       resources:
         limits:
           cpus: "2"
           memory: 4g
 
   kafka-connect:
-    image: ${REGISTRY}/development/cp-kafka-connect:5.3.3-p1
-    hostname: kafka-connect
+    image: ${REGISTRY}/infra/confluentinc/cp-kafka-connect:latest
+    hostname: '{{.Service.Name}}-{{.Task.Slot}}'
+    networks: 
+      - net
     ports:
-      - "8083:8083"
+      - target: 8083
+        published: 8083
+        protocol: tcp
+        mode: host
+      - target: 9991
+        published: 9991
+        protocol: tcp
+        mode: host
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - /opt/kafka/config:/etc/kafka-connect/secrets
+      - /opt/kafka/jmx_exporter:/opt/kafka/jmx_exporter
     environment:
+      CONNECT_REST_ADVERTISED_HOST_NAME: '{{.Node.Hostname}}'
+      CONNECT_REST_PORT: 8083
       CONNECT_BOOTSTRAP_SERVERS: broker1:9092,broker2:9092,broker3:9092
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
-      CONNECT_REST_PORT: 8083
-      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/kafka/plugins
       CONNECT_GROUP_ID: kafka-sink-connect
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: connect-status
       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
       # CONNECT_LOG4J_LOGGERS: "io.debezium.connector.sqlserver=TRACE,io.debezium.jdbc=TRACE"
+      CONNECT_PRODUCER_MAX_REQUEST_SIZE: 10485760
+      CONNECT_CONSUMER_MAX_PARTITION_FETCH_BYTES: 10485760
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 2
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 2
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 2
+      # List of enabled mechanisms, can be more than one
+      CONNECT_SASL_MECHANISM: PLAIN
+      # Configure SASL_SSL if SSL encryption is enabled, otherwise configure SASL_PLAINTEXT
+      CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="bdc" \
+        password="bdcinfra";
+      CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="bdc" \
+        password="bdcinfra";
+      CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="bdc" \
+        password="bdcinfra";
+      # External secrets config
+      # See https://docs.confluent.io/5.5.2/connect/security.html#externalizing-secrets
+      CONNECT_CONFIG_PROVIDERS: 'file'
+      CONNECT_CONFIG_PROVIDERS_FILE_CLASS: 'org.apache.kafka.common.config.provider.FileConfigProvider'
+      KAFKA_JMX_HOSTNAME: '{{.Node.Hostname}}'
+      KAFKA_JMX_PORT: 9999
+      KAFKA_OPTS: "-javaagent:/opt/kafka/jmx_exporter/jmx_prometheus_javaagent-0.14.0.jar=9991:/opt/kafka/jmx_exporter/kafka-connect-agent.yml"
+    extra_hosts:
+      - "kubernetes-1:10.191.7.11"
+      - "kubernetes-2:10.191.7.12"
+      - "kubernetes-3:10.191.7.13"
+      - "kubernetes-4:10.191.7.14"
     deploy:
+      labels:
+        prometheus-job: kafka-connect
+      replicas: 1
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.alias == bdc02.infra.dev.itc.inventec
       restart_policy:
         condition: on-failure
         delay: 10s
@@ -207,6 +310,64 @@ services:
         limits:
           cpus: "2"
           memory: 4g
+
+  # kafka-connect-debezium:
+  #   image: ${REGISTRY}/proxy/debezium/connect:1.6
+  #   hostname: '{{.Service.Name}}-{{.Task.Slot}}'
+  #   ports:
+  #     - "8085:8083"
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #   environment:
+  #     BOOTSTRAP_SERVERS: broker1:9092,broker2:9092,broker3:9092
+  #     CONFIG_STORAGE_TOPIC: connect-debezium-configs
+  #     OFFSET_STORAGE_TOPIC: connect-debezium-offsets
+  #     STATUS_STORAGE_TOPIC: connect-debezium-status
+  #     GROUP_ID: kafka-connect-debezium
+  #     HOST_NAME: 0.0.0.0
+  #     ADVERTISED_HOST_NAME: '{{.Task.Name}}'
+  #     # List of enabled mechanisms, can be more than one
+  #     CONNECT_SASL_MECHANISM: PLAIN
+  #     # Configure SASL_SSL if SSL encryption is enabled, otherwise configure SASL_PLAINTEXT
+  #     CONNECT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+  #     CONNECT_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="bdc" password="bdcinfra";'
+  #     CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+  #     CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+  #     CONNECT_PRODUCER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="bdc" password="bdcinfra";'
+  #     CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+  #     CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_PLAINTEXT
+  #     CONNECT_CONSUMER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="bdc" password="bdcinfra";'
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     resources:
+  #       limits:
+  #         cpus: "2"
+  #         memory: 2g
+
+  kafka-connect-ui:
+    image: ${REGISTRY}/proxy/redpandadata/console:v2.2.4
+    hostname: kafka-connect-ui
+    networks: 
+      - net
+    ports:
+      - target: 8080
+        published: 9001
+        protocol: tcp
+        mode: host
+    volumes:
+      - ../config/kowl.yaml:/etc/kowl/config.yaml
+    entrypoint: ./console --config.filepath=/etc/kowl/config.yaml
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.labels.alias == bdc01.infra.dev.itc.inventec
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
 
   # kafka-schema-registry:
   #   image: ${REGISTRY}/hub/confluentinc/cp-schema-registry:${BROKER_VERSION}
@@ -226,7 +387,92 @@ services:
   #         cpus: "1"
   #         memory: 1g
 
-networks:
-  default:
-    external:
-      name: bdc
+  # kafka-rest-proxy-1:
+  #   image: ${REGISTRY}/hub/confluentinc/cp-kafka-rest:${BROKER_VERSION}
+  #   hostname: kafka-rest-proxy-1
+  #   ports:
+  #     - target: 8082
+  #       published: 8082
+  #       protocol: http
+  #       mode: host
+  #   environment:
+  #     KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+  #     KAFKA_REST_HOST_NAME: kafka-rest-proxy-1
+  #     KAFKA_REST_ID: kafka-rest-proxy-1
+  #     KAFKA_REST_BOOTSTRAP_SERVERS: SASL_SSL://broker1:9092,SASL_SSL://broker2:9092,SASL_SSL://broker3:9092
+  #     # KAFKA_REST_SCHEMA_REGISTRY_URL: http://kafka-schema-registry:8081/
+  #     KAFKAREST_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
+  #     KAFKA_REST_PRODUCER_ACKS: all
+  #     KAFKA_REST_PRODUCER_MAX_REQUEST_SIZE: 31457280
+  #     KAFKA_REST_PRODUCER_RETRIES: 5
+  #     KAFKA_REST_PRODUCER_RETRY_BACKOFF_MS: 1000
+  #     KAFKA_REST_PRODUCER_COMPRESS_TYPE: none
+  #     KAFKA_REST_CLIENT_SASL_MECHANISM: PLAIN
+  #     KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+  #     KAFKA_REST_CLIENT_SASL_JAAS_CONFIG: |
+  #       org.apache.kafka.common.security.plain.PlainLoginModule required \
+  #       username="bdc" \
+  #       password="bdcinfra";
+  #     # KAFKA_REST_AUTHENTICATION_METHOD: BASIC
+  #     # KAFKA_REST_AUTHENTICATION_REALM: KafkaRest
+  #     # KAFKA_REST_AUTHENTICATION_ROLES: user
+  #     # KAFKAREST_OPTS: "-Djava.security.auth.login.config=/etc/kafka-rest/rest-jaas.properties"
+  #   volumes:
+  #     # - /opt/kafka/config/rest-jaas.properties:/etc/kafka-rest/rest-jaas.properties:ro
+  #     # - /opt/kafka/config/rest-password.properties:/etc/kafka-rest/password.properties:ro
+  #     - /etc/localtime:/etc/localtime:ro
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints:
+  #         - node.labels.alias == bdc01.infra.dev.itc.inventec
+  #     resources:
+  #       limits:
+  #         cpus: "4"
+  #         memory: 2g
+
+  # kafka-rest-proxy-2:
+  #   image: ${REGISTRY}/hub/confluentinc/cp-kafka-rest:${BROKER_VERSION}
+  #   hostname: kafka-rest-proxy-2
+  #   ports:
+  #     - target: 8082
+  #       published: 8082
+  #       protocol: http
+  #       mode: host
+  #   environment:
+  #     KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+  #     KAFKA_REST_HOST_NAME: kafka-rest-proxy-2
+  #     KAFKA_REST_ID: kafka-rest-proxy-2
+  #     KAFKA_REST_BOOTSTRAP_SERVERS: SASL_SSL://broker1:9092,SASL_SSL://broker2:9092,SASL_SSL://broker3:9092
+  #     # KAFKA_REST_SCHEMA_REGISTRY_URL: http://kafka-schema-registry:8081/
+  #     KAFKAREST_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
+  #     KAFKA_REST_PRODUCER_ACKS: all
+  #     KAFKA_REST_PRODUCER_MAX_REQUEST_SIZE: 31457280
+  #     KAFKA_REST_PRODUCER_RETRIES: 5
+  #     KAFKA_REST_PRODUCER_RETRY_BACKOFF_MS: 1000
+  #     KAFKA_REST_PRODUCER_COMPRESS_TYPE: none
+  #     KAFKA_REST_CLIENT_SASL_MECHANISM: PLAIN
+  #     KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_PLAINTEXT
+  #     KAFKA_REST_CLIENT_SASL_JAAS_CONFIG: |
+  #       org.apache.kafka.common.security.plain.PlainLoginModule required \
+  #       username="bdc" \
+  #       password="bdcinfra";
+  #     # KAFKA_REST_AUTHENTICATION_METHOD: BASIC
+  #     # KAFKA_REST_AUTHENTICATION_REALM: KafkaRest
+  #     # KAFKA_REST_AUTHENTICATION_ROLES: user
+  #     # KAFKAREST_OPTS: "-Djava.security.auth.login.config=/etc/kafka-rest/rest-jaas.properties"
+  #   volumes:
+  #     # - /opt/kafka/config/rest-jaas.properties:/etc/kafka-rest/rest-jaas.properties:ro
+  #     # - /opt/kafka/config/rest-password.properties:/etc/kafka-rest/password.properties:ro
+  #     - /etc/localtime:/etc/localtime:ro
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #     placement:
+  #       constraints:
+  #         - node.labels.alias == bdc02.infra.dev.itc.inventec
+  #     resources:
+  #       limits:
+  #         cpus: "4"
+  #         memory: 2g

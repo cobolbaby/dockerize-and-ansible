@@ -2,10 +2,10 @@
 set -e
 cd `dirname $0`
 
-BROKER_CLUSTER_IP=(10.191.5.218 10.191.5.233 10.191.4.54)
-BROKER_CLUSTER_VERSION=5.0.3
+BROKER_CLUSTER_IP=(10.191.7.11 10.191.7.13 10.191.7.14)
+BROKER_CLUSTER_VERSION=5.5.11
 ZOOKEEPER_CLUSTER=zoo1:2181
-HARBOR_REGISTRY=harbor.inventec.com
+HARBOR_REGISTRY=registry.inventec
 
 # Ref: https://stackoverflow.com/questions/8880603/loop-through-an-array-of-strings-in-bash
 for i in "${!BROKER_CLUSTER_IP[@]}"
@@ -28,5 +28,5 @@ echo "ZOOKEEPER版本为: ${ZOOKEEPER}"
 # docker stack rm kafka
 # docker stack rm zookeeper
 
+docker stack deploy -c docker-compose-zookeeper.yml zookeeper
 docker stack deploy -c docker-compose-kafka.yml kafka
-# docker stack deploy -c docker-compose-zookeeper.yml zookeeper
