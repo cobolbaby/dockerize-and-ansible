@@ -1,0 +1,37 @@
+<body>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script>
+    (async () => {
+      /* parse workbook */
+      const url = "https://infra-oss.itc.inventec.net/public/demo.xlsx";
+      const workbook = XLSX.read(await (await fetch(url)).arrayBuffer());
+
+      /* get first worksheet */
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      /* generate worksheet and workbook */
+      const newWorkbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWorkbook, worksheet, sheetName);
+
+      // /* fix headers */
+      // XLSX.utils.sheet_add_aoa(worksheet, [["Name", "Birthday"]], { origin: "A1" });
+
+      // /* calculate column width */
+      // const max_width = rows.reduce((w, r) => Math.max(w, r.name.length), 10);
+      // worksheet["!cols"] = [{ wch: max_width }];
+
+      /* create an XLSX file and try to save to Presidents.xlsx */
+      XLSX.write(newWorkbook, "demo-resave3.xlsx", { compression: true });
+
+      // const wbout = XLSX.write(newWorkbook, {
+      //   bookType: 'xlsx',
+      //   type: 'array',
+      //   compression: true
+      // });
+
+      // console.log(wbout.length)
+
+    })();
+  </script>
+</body>
