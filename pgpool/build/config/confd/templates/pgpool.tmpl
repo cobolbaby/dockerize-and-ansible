@@ -231,7 +231,7 @@ read_only_function_list = ''
                                    # Comma separated list of function names
                                    # that don't write to database
                                    # Regexp are accepted
-write_function_list = 'nextval,setval,.*\.func_insert_.*,.*\.func_delete_.*,.*\.func_update_.*,.*\.func_nlb_.*,(scc|report|report_query)\..*'
+write_function_list = 'nextval,setval,.*\.func_(insert|delete|update|nlb)_.*,(scc|report_query|fbt)\..*'
                                    # Comma separated list of function names
                                    # that write to database
                                    # Regexp are accepted
