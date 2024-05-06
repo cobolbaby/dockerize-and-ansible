@@ -2,7 +2,7 @@
 cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
-VERSION=8.5
+VERSION=8.6
 
 # git clone https://github.com/pgadmin-org/pgadmin4.git
 # cd pgadmin4
