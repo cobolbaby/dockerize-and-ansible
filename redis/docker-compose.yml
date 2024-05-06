@@ -1,0 +1,70 @@
+version: '2.3'
+services:
+  redis1:
+    container_name: redis-${PORT1}
+    image: registry.inventec/hub/redis:6.0.9-alpine
+    restart: always
+    cpu_count: 2
+    mem_limit: 8g
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 10m
+    networks: 
+      - net
+    ports:
+      - ${PORT1}:6379
+      - 1${PORT1}:16379
+    volumes:
+      - ./${PORT1}/volume/redis.data:/data
+      - ./${PORT1}/volume/conf:/conf
+    sysctls:
+      - net.core.somaxconn=1024
+    command: |
+      /bin/sh -c "
+      echo 'y' | redis-check-aof --fix /data/appendonly.aof
+      redis-server --save '' --timeout ${TIMEOUT} --appendonly yes --aof-use-rdb-preamble yes --cluster-enabled yes --cluster-config-file /conf/nodes.conf --cluster-node-timeout ${CLUSTER_NODE_TIMEOUT} --cluster-announce-ip ${CLUSTER_ANNOUNCE_IP} --cluster-announce-port ${PORT1} --cluster-announce-bus-port 1${PORT1} --latency-monitor-threshold 100 --slowlog-log-slower-than 100000 --slowlog-max-len 50 --repl-backlog-size ${REPL_BACKLOG_SIZE} --maxmemory ${MAXMEMORY} --maxmemory-policy volatile-lru --client-output-buffer-limit normal 32mb 16mb 7 --client-output-buffer-limit slave 32mb 16mb 7 --rename-command FLUSHDB REDIS_FLUSHDB --masterauth ${PW} --requirepass ${PW}"
+
+  redis2:
+    container_name: redis-${PORT2}
+    image: registry.inventec/hub/redis:6.0.9-alpine
+    restart: always
+    cpu_count: 2
+    mem_limit: 8g
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 10m
+    networks:
+      - net
+    ports:
+      - ${PORT2}:6379
+      - 1${PORT2}:16379
+    volumes:
+      - ./${PORT2}/volume/redis.data:/data
+      - ./${PORT2}/volume/conf:/conf
+    sysctls:
+      - net.core.somaxconn=1024
+    command: |
+      /bin/sh -c "
+      echo 'y' | redis-check-aof --fix /data/appendonly.aof
+      redis-server --save '' --timeout ${TIMEOUT} --appendonly yes --aof-use-rdb-preamble yes --cluster-enabled yes --cluster-config-file /conf/nodes.conf --cluster-node-timeout ${CLUSTER_NODE_TIMEOUT} --cluster-announce-ip ${CLUSTER_ANNOUNCE_IP} --cluster-announce-port ${PORT2} --cluster-announce-bus-port 1${PORT2} --latency-monitor-threshold 100 --slowlog-log-slower-than 100000 --slowlog-max-len 50 --repl-backlog-size ${REPL_BACKLOG_SIZE} --maxmemory ${MAXMEMORY} --maxmemory-policy volatile-lru --client-output-buffer-limit normal 32mb 16mb 7 --client-output-buffer-limit slave 32mb 16mb 7 --rename-command FLUSHDB REDIS_FLUSHDB --masterauth ${PW} --requirepass ${PW}"
+
+networks:
+  net:
+    external:
+      name: infra
+
+# 每台主机执行
+# Host1
+# echo -e "PORT1=7501\nPORT2=7502\nCLUSTER_ANNOUNCE_IP=x.x.x.x\nTIMEOUT=86400\nCLUSTER_NODE_TIMEOUT=15000\nREPL_BACKLOG_SIZE=16mb\nMAXMEMORY=xxx\nPW=xxx" > .env
+# docker-compose up -d
+# Host2
+# echo -e "PORT1=7503\nPORT2=7504\nCLUSTER_ANNOUNCE_IP=x.x.x.x\nTIMEOUT=86400\nCLUSTER_NODE_TIMEOUT=15000\nREPL_BACKLOG_SIZE=16mb\nMAXMEMORY=xxx\nPW=xxx" > .env
+# docker-compose up -d
+# Host3
+# echo -e "PORT1=7505\nPORT2=7506\nCLUSTER_ANNOUNCE_IP=x.x.x.x\nTIMEOUT=86400\nCLUSTER_NODE_TIMEOUT=15000\nREPL_BACKLOG_SIZE=16mb\nMAXMEMORY=xxx\nPW=xxx" > .env
+# docker-compose up -d
+
+# Host1 上执行
+# docker exec -it redis-7501 redis-cli --cluster create host1ip:port1 ... hostNip:portN --cluster-replicas 1
