@@ -37,10 +37,10 @@ uplinks:
     timeout: 120s
 
   cnpmjs:
-    url: https://registry.npm.taobao.org/
+    url: https://registry.npmmirror.com/
     maxage: 1d
     max_fails: 10
-    timeout: 60s
+    timeout: 120s
 
   yarnpkg:
     url: https://registry.yarnpkg.com/
@@ -80,10 +80,12 @@ middlewares:
 
 # log settings
 logs:
-  - {type: stdout, format: pretty, level: http}
+  - {type: stdout, format: pretty, level: trace}
   # - {type: file, path: verdaccio.log, level: info}
 
 # Proxies are special-purpose HTTP servers designed to transfer data from remote servers to local clients.
 # http_proxy: 
 # https_proxy: 
 # no_proxy: localhost,127.0.0.1
+
+max_body_size: 50mb
