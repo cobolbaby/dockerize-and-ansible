@@ -9,6 +9,8 @@ services:
       - "/opt/verdaccio/conf:/verdaccio/conf"
       - "/opt/verdaccio/storage:/verdaccio/storage"
     restart: always
+    environment:
+      VERDACCIO_PUBLIC_URL: "https://npm.itc.inventec.net"
 
   nexus3:
     image: sonatype/nexus3:3.68.1
