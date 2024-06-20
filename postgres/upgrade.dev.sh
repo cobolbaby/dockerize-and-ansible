@@ -2,8 +2,10 @@
 set -e
 cd `dirname $0`
 
-export PGDATA_DEFAULT_TABLESPACE=/data/hdd/pg
-# export PGDATA_DEFAULT_TABLESPACE=/data/hdd1/postgres
+export PGDATA_DEFAULT_TABLESPACE=/data/hdd/pg # itc pg
+export PGDATA_DEFAULT_TABLESPACE=/data/hdd1/postgres # f3 pg
+export PGDATA_DEFAULT_TABLESPACE=/data/ssd2/postgres # f6 pg
+export PGDATA_DEFAULT_TABLESPACE=/data/ssd5/postgres-dev # tao pg
 
 env | grep PGDATA
 
@@ -21,8 +23,13 @@ env | grep PGDATA
 # sudo sed -i 's/^primary/# &/' ${PGDATA_DEFAULT_TABLESPACE}/12/data/postgresql.conf
 # sudo mv ${PGDATA_DEFAULT_TABLESPACE}/12/data/standby.signal ${PGDATA_DEFAULT_TABLESPACE}/12/data/standby.signal.del
 
-dev@kubernetes-5 12:22:11 CST $ docker run --rm \
+docker run --rm \
 	-e POSTGRES_INITDB_ARGS="--data-checksums" \
+	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
+	registry.inventec/infra/pg_upgrade:12-to-16.2 \
+	--check
+# or
+docker run --rm \
 	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
 	registry.inventec/infra/pg_upgrade:12-to-16.2 \
 	--check
@@ -105,8 +112,12 @@ dev@kubernetes-5 12:22:11 CST $ docker run --rm \
 # comment
 
 # 为了保证升级失败以后，原始数据能否有所保留，且原始数据不被篡改，不推荐采用硬连接的方式进行升级。
-dev@kubernetes-5 12:23:29 CST $ docker run --rm \
+docker run --rm \
 	-e POSTGRES_INITDB_ARGS="--data-checksums" \
+	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
+	registry.inventec/infra/pg_upgrade:12-to-16.2
+# or
+docker run --rm \
 	-v ${PGDATA_DEFAULT_TABLESPACE}:/var/lib/postgresql \
 	registry.inventec/infra/pg_upgrade:12-to-16.2
 
@@ -176,7 +187,7 @@ dev@kubernetes-5 12:23:29 CST $ docker run --rm \
 # comment
 
 # 试跑启动，此时可以做一些配置修改，以及服务验证。
-dev@kubernetes-5 13:55:48 CST $ docker run -d --rm --name pg1602 \
+docker run -d --rm --name pg1602 \
 	-e PGDATA=/var/lib/postgresql/16/data \
 	-v ${PGDATA_DEFAULT_TABLESPACE}/16/data:/var/lib/postgresql/16/data \
     registry.inventec/infra/postgres:16.2
