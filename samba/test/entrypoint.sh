@@ -2,6 +2,6 @@
 # set -e
 
 # 启动SSH
-/usr/sbin/sshd
+# /usr/sbin/sshd
 
 python main.py
