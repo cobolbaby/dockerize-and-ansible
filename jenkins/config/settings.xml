@@ -102,16 +102,6 @@ under the License.
       <nonProxyHosts>local.net|some.host.com</nonProxyHosts>
     </proxy>
     -->
-    <!-- <proxy>
-      <id>optional</id>
-      <active>true</active>
-      <protocol>http</protocol>
-      <username></username>
-      <password></password>
-      <host>10.190.40.39</host>
-      <port>12306</port>
-      <nonProxyHosts>*.inventec</nonProxyHosts>
-    </proxy> -->
   </proxies>
 
   <!-- servers
@@ -140,16 +130,6 @@ under the License.
       <passphrase>optional; leave empty if not used.</passphrase>
     </server>
     -->
-    <server>
-      <id>nexus-public</id>
-      <username>admin</username>
-      <password>admin123</password>
-    </server>
-    <server>
-      <id>registry.inventec</id>
-      <username>admin</username>
-      <password>123456</password>
-    </server>
   </servers>
 
   <!-- mirrors
@@ -176,10 +156,11 @@ under the License.
       <url>http://my.repository.com/repo/path</url>
     </mirror>
      -->
+
     <mirror>
       <id>nexus-public</id>
-      <name>nexus public repository</name>
-      <url>http://npm.itc.inventec:8081/repository/maven-public/</url>
+      <name>nexus repository</name>
+      <url>https://nexus.itc.inventec.net/repository/maven-public/</url>
       <mirrorOf>central</mirrorOf>
     </mirror>
   </mirrors>
