@@ -1,9 +1,9 @@
 ## 开源数据同步工具对比
 
-|  | Kettle | DataX | Kafka Connect CDC | Apache Flink CDC Pipeline :white_check_mark: | chunjun | bitsail | Apache inlong | Apache Seatunnel :white_check_mark: | RestCloud | Tapdata | Nifi | DataPipeline
+|  | Kettle | DataX | Kafka Connect CDC | Apache Flink CDC Pipeline :white_check_mark: | chunjun | bitsail | Apache inlong | Apache Seatunnel :white_check_mark: | RestCloud | Tapdata | Nifi | DBSyncer
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| Github Stars | 7.5k | 15.5k | Confluent官方支持 | 5.5k | 3.9k | 1.6k | 1.3k | 7.6k | 不开源，但有社区版，群电在评估 | 480 | 4.6k | 商业产品
-| 社区是否活跃 | 一般般 | 是 | 是 | 是 | 一般般 | 近半年已死 | 是 | 是，定期有线上Meeting | - | 官方维护居多，社区群很冷清 | 是
+| Github Stars | 7.5k | 15.5k | Confluent官方支持 | 5.5k | 3.9k | 1.6k | 1.3k | 7.6k | 不开源，但有社区版，群电在评估 | 480 | 4.6k | 2.4k
+| 社区是否活跃 | 一般般 | 是 | 是 | 是 | 一般般 | 近半年已死 | 是 | 是，定期有线上Meeting | - | 官方维护居多，社区群很冷清 | 是 | Gitee Top1 的数据同步工具
 | 文档是否完善 | 最新版只能去官方网站查，社区资料很少 | 是 | 是 | 3.x 才开始做端到端的数据集成，所以社区实践文档都较少 | | 最近一年文档没咋更新 | 是，但社区实践案例很少 | 是，公众号也每天更新
 | 支持 批流一体 | 否 | 否 | 是 | 否 | 是 | 是 | 否 | 是 | 是 | 否 | 是 
 | 支持 实时同步 | 原生不支持，但有二开 | 不支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 目前仅支持了 MySQL，尚未支持 PG、MSSQL
@@ -27,4 +27,4 @@
 | 支持 GP Sink | 支持 | 支持 | 原生不支持 upsert，需要改造 sink | 原生不支持 upsert，需要改造 sink | ...
 | 支持其他哪些数据源 | | 
 | 潜在问题 | 不支持同步"删除"事件，要求有一个增量指针 | | 数据库连接数多，服务依赖多，链路长 | 
-| 源码仓库 | [pentaho-kettle](https://github.com/pentaho/pentaho-kettle) | [Datax](https://github.com/alibaba/DataX) | - | [flink-cdc](https://github.com/apache/flink-cdc)| [chunjun](https://github.com/DTStack/chunjun) | [bitsail](https://github.com/bytedance/bitsail) | [inlong](https://github.com/apache/inlong) | [seatunnel](https://github.com/apache/seatunnel) | | [tapdata](https://github.com/tapdata/tapdata) | [nifi](https://github.com/apache/nifi/)
+| 源码仓库 | [pentaho-kettle](https://github.com/pentaho/pentaho-kettle) | [Datax](https://github.com/alibaba/DataX) | - | [flink-cdc](https://github.com/apache/flink-cdc)| [chunjun](https://github.com/DTStack/chunjun) | [bitsail](https://github.com/bytedance/bitsail) | [inlong](https://github.com/apache/inlong) | [seatunnel](https://github.com/apache/seatunnel) | | [tapdata](https://github.com/tapdata/tapdata) | [nifi](https://github.com/apache/nifi/) | [DBSyncer](https://gitee.com/ghi/dbsyncer)
