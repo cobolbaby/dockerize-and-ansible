@@ -33,6 +33,8 @@ RUN apt-get update \
     # 卸载以后执行patroni会报: No matching distribution found for pkg_resources
     # && pip3 uninstall -y setuptools \
 \
+    # && pip3 install pgxnclient \
+\
     # 分区表管理工具
     && curl -sSL -o /tmp/pg_partman-4.7.4.tar.gz https://github.com/pgpartman/pg_partman/archive/refs/tags/v4.7.4.tar.gz \
     && tar -xzf /tmp/pg_partman-4.7.4.tar.gz -C /tmp/  \
@@ -73,14 +75,14 @@ RUN apt-get update \
 \
     # 外部表扩展 - mongo_fdw
     && apt-get install -y cmake pkg-config \
-    && curl -sSL -o /tmp/mongo_fdw-REL-5_5_1.tar.gz https://github.com/EnterpriseDB/mongo_fdw/archive/refs/tags/REL-5_5_1.tar.gz \
-    && tar -xzf /tmp/mongo_fdw-REL-5_5_1.tar.gz -C /tmp/  \
-    && cd /tmp/mongo_fdw-REL-5_5_1 \
-    && ./autogen.sh --with-master \
-    && export MONGO_FDW_SOURCE_DIR=/tmp/mongo_fdw-REL-5_5_1 \
+    && curl -sSL -o /tmp/mongo_fdw-REL-5_5_2.tar.gz https://github.com/EnterpriseDB/mongo_fdw/archive/refs/tags/REL-5_5_2.tar.gz \
+    && tar -xzf /tmp/mongo_fdw-REL-5_5_2.tar.gz -C /tmp/  \
+    && cd /tmp/mongo_fdw-REL-5_5_2 \
+    && ./autogen.sh \
+    && export MONGO_FDW_SOURCE_DIR=/tmp/mongo_fdw-REL-5_5_2 \
     && export PKG_CONFIG_PATH=$MONGO_FDW_SOURCE_DIR/mongo-c-driver/src/libmongoc/src:$MONGO_FDW_SOURCE_DIR/mongo-c-driver/src/libbson/src \
     && make USE_PGXS=1 && make USE_PGXS=1 install \
-    && rm -rf /tmp/mongo_fdw-REL-5_5_1* \
+    && rm -rf /tmp/mongo_fdw-REL-5_5_2* \
     # && apt-get purge -y cmake pkg-config \
 \
     # 添加S3备份所需必要的命令 - mc
@@ -110,12 +112,12 @@ RUN apt-get update \
     # If you plan to parse PostgreSQL CSV log files, you might need some Perl Modules: Text::CSV_XS
     # If you want to export statistics as JSON file, you need an additional Perl module: JSON::XS
     && apt-get install -y perl libtext-csv-xs-perl libjson-xs-perl \
-    && curl -sSL -o /tmp/pgbadger-12.4.tar.gz https://github.com/darold/pgbadger/archive/refs/tags/v12.4.tar.gz \
-    && tar -xzf /tmp/pgbadger-12.4.tar.gz -C /tmp/ \
-    && cd /tmp/pgbadger-12.4/ \
+    && curl -sSL -o /tmp/pgbadger-master.zip https://github.com/darold/pgbadger/archive/refs/heads/master.zip \
+    && unzip /tmp/pgbadger-master.zip -d /tmp/ \
+    && cd /tmp/pgbadger-master/ \
     && perl Makefile.PL \
     && make && make install \
-    && rm -rf /tmp/pgbadger-12.4* \
+    && rm -rf /tmp/pgbadger-master* \
 \
     # influxdb_fdw
     && apt-get install -y cmake g++ libcurl4-openssl-dev \
@@ -132,36 +134,24 @@ RUN apt-get update \
     && rm -rf /tmp/influxdb-cxx-main* /tmp/influxdb_fdw-master* \
     # && apt-get purge -y cmake g++ \
 \
-    # pgAudit 目前有点鸡肋，因为只能从日志文件中看到相关的审计日志
-    # && apt-get install -y libkrb5-dev \
-    # && curl -sSL -o /tmp/pgaudit-1.4.3.tar.gz https://github.com/pgaudit/pgaudit/archive/refs/tags/1.4.3.tar.gz \
-    # && tar -xzf /tmp/pgaudit-1.4.3.tar.gz -C /tmp/ \
-    # && cd /tmp/pgaudit-1.4.3 \
-    # && make install USE_PGXS=1 \
-    # && rm -rf /tmp/pgaudit-1.4.3* \
-\
     # citus
     && curl -sSL https://install.citusdata.com/community/deb.sh | bash \
     && apt-get -y install postgresql-${PG_MAJOR}-citus-12.1 \
 \
     # pgvector 支持向量运算
-    && curl -sSL -o /tmp/pgvector-0.6.0.tar.gz https://github.com/pgvector/pgvector/archive/refs/tags/v0.6.0.tar.gz \
-    && tar -xzf /tmp/pgvector-0.6.0.tar.gz -C /tmp/ \
-    && cd /tmp/pgvector-0.6.0/ \
+    && curl -sSL -o /tmp/pgvector-0.7.4.tar.gz https://github.com/pgvector/pgvector/archive/refs/tags/v0.7.4.tar.gz \
+    && tar -xzf /tmp/pgvector-0.7.4.tar.gz -C /tmp/ \
+    && cd /tmp/pgvector-0.7.4/ \
     && make && make install \
-    && rm -rf /tmp/pgvector-0.6.0* \
+    && rm -rf /tmp/pgvector-0.7.4* \
 \
     # TODO:oracle_fdw
-    # && curl -sSL -o /tmp/oracle_fdw-ORACLE_FDW_2_5_0.tar.gz https://github.com/laurenz/oracle_fdw/archive/refs/tags/ORACLE_FDW_2_5_0.tar.gz \
-    # && tar -xzf /tmp/oracle_fdw-ORACLE_FDW_2_5_0.tar.gz -C /tmp/ \
-    # && cd /tmp/oracle_fdw-ORACLE_FDW_2_5_0 \
-    # && make && make install \
     # oracle_utils.c:22:10: fatal error: oci.h: No such file or directory
-    # && rm -rf /tmp/oracle_fdw-ORACLE_FDW_2_5_0* \
+    # && pgxn install 'oracle_fdw=2.7.0' \
 \
     # TODO:mysql_fdw
-    # TODO:plpgsql_check
     # TODO:MADlib 2.0.0
+    # TODO:pg_search
     # pg_jieba
     && apt-get install -y cmake g++ git \
     && cd /tmp/ && git clone --depth 1 https://github.com/jaiminpan/pg_jieba \
@@ -172,16 +162,16 @@ RUN apt-get update \
     # && apt-get purge -y git \
 \
     # pg_dirtyread
-    && curl -sSL -o /tmp/pg_dirtyread-2.6.tar.gz https://github.com/df7cb/pg_dirtyread/archive/refs/tags/2.6.tar.gz \
-    && tar -xzf /tmp/pg_dirtyread-2.6.tar.gz -C /tmp/ \
-    && cd /tmp/pg_dirtyread-2.6 \
+    && curl -sSL -o /tmp/pg_dirtyread-2.7.tar.gz https://github.com/df7cb/pg_dirtyread/archive/refs/tags/2.7.tar.gz \
+    && tar -xzf /tmp/pg_dirtyread-2.7.tar.gz -C /tmp/ \
+    && cd /tmp/pg_dirtyread-2.7 \
     && make && make install \
-    && rm -rf /tmp/pg_dirtyread-2.6* \
+    && rm -rf /tmp/pg_dirtyread-2.7* \
 \
     # Javascript 执行引擎 https://github.com/plv8/plv8
     # 源码编译耗时 30min+，需要做足心理准备
     # https://github.com/plv8/plv8/blob/r3.2/platforms/Docker/bullseye/14.5/Dockerfile
-    # && apt-get install -y build-essential git postgresql-server-dev-${PG_MAJOR} libtinfo5 pkg-config clang binutils libstdc++-10-dev cmake \
+    # && apt-get install -y libtinfo5 build-essential pkg-config libstdc++-10-dev cmake git \
     # && export PLV8_BRANCH=r3.2 \
     # && export PLV8_VERSION=3.2.2 \
     # && cd /tmp/ && git clone --branch ${PLV8_BRANCH} --single-branch --depth 1 https://github.com/plv8/plv8 \
@@ -193,6 +183,19 @@ RUN apt-get update \
     # PL/Python — Python Procedural Language
     # apt-cache search ".*plpython3.*"
     && apt-get -y install postgresql-plpython3-${PG_MAJOR} \
+\    
+    # Timescaledb
+    && apt-get install -y libkrb5-dev \
+    && curl -sSL -o /tmp/timescaledb-2.16.0.tar.gz https://github.com/timescale/timescaledb/archive/refs/tags/2.16.0.tar.gz \
+    && tar -xzf /tmp/timescaledb-2.16.0.tar.gz -C /tmp/ \
+    && cd /tmp/timescaledb-2.16.0/ \
+    && ./bootstrap \
+    && cd build && make && make install \
+    && rm -rf /tmp/timescaledb-2.16.0* \
+\
+    # TODO:parquet_s3_fdw，只支持 PG13+
+\
+    # && pip3 install pgcli \
 \
     # 移除已无效的安装包
     && apt-get purge -y postgresql-server-dev-${PG_MAJOR} make gcc cmake g++ git \
