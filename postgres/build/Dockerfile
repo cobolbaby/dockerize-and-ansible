@@ -1,16 +1,12 @@
 ARG PG_VERSION=12.15
 
-# fix: 不能使用最新的 12.15, 12, 12.15-bookworm, 12-bookworm 版本，回退到 12.15-bullseye, 12-bullseye
-# 执行 apt-get update 会看到如下报错
-# Reading package lists... Done
-# E: Problem executing scripts APT::Update::Post-Invoke 'rm -f /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*.deb /var/cache/apt/*.bin || true'
-# E: Sub-process returned an error code
-FROM registry.inventec/proxy/library/postgres:${PG_VERSION}-bullseye
+FROM registry.inventec/proxy/library/postgres:${PG_VERSION}-bookworm
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
 ARG PGHOME=/home/postgres
 
 RUN export DEBIAN_FRONTEND=noninteractive \
+    # echo -e 会报 E: Syntax error /etc/apt/apt.conf.d/01norecommend:1: Extra junk after value
     && echo 'APT::Install-Recommends "0";\nAPT::Install-Suggests "0";' > /etc/apt/apt.conf.d/01norecommend \
     && apt-get update \
     # 通用包
@@ -20,37 +16,21 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && rm -rf /var/lib/apt/lists/* /root/.cache
 
 # 扩展安装需要依赖postgresql-server-dev-${PG_MAJOR}/make/gcc
-# patroni包下载需要依赖pip，编译的时候需要依赖wheel/gcc/python3-dev
+# patroni包下载需要依赖pip
 # tds_fdw需要从github下载最新版代码，依赖git
 # 用于编译的包，最后会被清理掉
 RUN apt-get update \
-    && apt-get install -y postgresql-server-dev-${PG_MAJOR} make gcc python3-pip python3-wheel python3-dev --fix-missing \
+    && apt-get install -y postgresql-server-dev-${PG_MAJOR} make gcc python3-pip --fix-missing \
 \
     # 安装Patroni
-    && pip3 install setuptools \
-    && pip3 install psycopg2-binary \
-    && pip3 install patroni[etcd,raft] \
-    # 卸载以后执行patroni会报: No matching distribution found for pkg_resources
-    # && pip3 uninstall -y setuptools \
-\
-    # && pip3 install pgxnclient \
+    && pip3 install --break-system-packages psycopg2-binary \
+    && pip3 install --break-system-packages patroni[etcd,raft] \
 \
     # 分区表管理工具
-    && curl -sSL -o /tmp/pg_partman-4.7.4.tar.gz https://github.com/pgpartman/pg_partman/archive/refs/tags/v4.7.4.tar.gz \
-    && tar -xzf /tmp/pg_partman-4.7.4.tar.gz -C /tmp/  \
-    && cd /tmp/pg_partman-4.7.4 \
-    # && make install \
-    && make NO_BGW=1 install \
-    && rm -rf /tmp/pg_partman-4.7.4* \
+    && apt-get install -y postgresql-${PG_MAJOR}-partman \
 \
     # 表，索引在线重建工具 https://pgxn.org/dist/pg_repack/
-    # https://github.com/hartmut-co-uk/pg-repack-docker/blob/master/scripts/install_pg_repack.sh
-    && curl -sSL -o /tmp/pg_repack-1.5.0.zip https://api.pgxn.org/dist/pg_repack/1.5.0/pg_repack-1.5.0.zip \
-    && unzip /tmp/pg_repack-1.5.0.zip -d /tmp/ \
-    && cd /tmp/pg_repack-1.5.0 \
-    && apt-get install -y libssl-dev zlib1g-dev liblz4-dev libreadline-dev libzstd-dev \
-    && make && make install \
-    && rm -rf /tmp/pg_repack-1.5.0* \
+    && apt-get install -y postgresql-${PG_MAJOR}-repack \
 \
     # 备份工具
     && apt-get install -y pgbackrest \
@@ -91,19 +71,15 @@ RUN apt-get update \
     && chmod +x /usr/local/bin/mc \
 \
     # pg_cron
-    && apt-get -y install postgresql-${PG_MAJOR}-cron \
+    && apt-get install -y postgresql-${PG_MAJOR}-cron \
 \
     # pldebugger
-    && apt-get -y install postgresql-${PG_MAJOR}-pldebugger \
+    && apt-get install -y postgresql-${PG_MAJOR}-pldebugger \
 \
     # pg_show_plan
 \
     # pg_hint_plan
-    && curl -sSL -o /tmp/pg_hint_plan-REL16_1_6_0.tar.gz https://github.com/ossc-db/pg_hint_plan/archive/refs/tags/REL16_1_6_0.tar.gz \
-    && tar -xzf /tmp/pg_hint_plan-REL16_1_6_0.tar.gz -C /tmp/  \
-    && cd /tmp/pg_hint_plan-REL16_1_6_0 \
-    && make && make install \
-    && rm -rf /tmp/pg_hint_plan-REL16_1_6_0* \
+    && apt-get install -y postgresql-${PG_MAJOR}-pg-hint-plan \
 \
     # rsync
     && apt-get install -y rsync \
@@ -136,22 +112,17 @@ RUN apt-get update \
 \
     # citus
     && curl -sSL https://install.citusdata.com/community/deb.sh | bash \
-    && apt-get -y install postgresql-${PG_MAJOR}-citus-12.1 \
+    && apt-get install -y postgresql-${PG_MAJOR}-citus-12.1 \
 \
     # pgvector 支持向量运算
-    && curl -sSL -o /tmp/pgvector-0.7.4.tar.gz https://github.com/pgvector/pgvector/archive/refs/tags/v0.7.4.tar.gz \
-    && tar -xzf /tmp/pgvector-0.7.4.tar.gz -C /tmp/ \
-    && cd /tmp/pgvector-0.7.4/ \
-    && make && make install \
-    && rm -rf /tmp/pgvector-0.7.4* \
+    && apt-get install -y postgresql-${PG_MAJOR}-pgvector \
 \
-    # TODO:oracle_fdw
-    # oracle_utils.c:22:10: fatal error: oci.h: No such file or directory
-    # && pgxn install 'oracle_fdw=2.7.0' \
+    # oracle_fdw
+    # && apt-get install -y postgresql-${PG_MAJOR}-oracle-fdw \
 \
     # TODO:mysql_fdw
-    # TODO:MADlib 2.0.0
-    # TODO:pg_search
+    # && apt-get install -y postgresql-${PG_MAJOR}-mysql_fdw \
+\
     # pg_jieba
     && apt-get install -y cmake g++ git \
     && cd /tmp/ && git clone --depth 1 https://github.com/jaiminpan/pg_jieba \
@@ -162,11 +133,7 @@ RUN apt-get update \
     # && apt-get purge -y git \
 \
     # pg_dirtyread
-    && curl -sSL -o /tmp/pg_dirtyread-2.7.tar.gz https://github.com/df7cb/pg_dirtyread/archive/refs/tags/2.7.tar.gz \
-    && tar -xzf /tmp/pg_dirtyread-2.7.tar.gz -C /tmp/ \
-    && cd /tmp/pg_dirtyread-2.7 \
-    && make && make install \
-    && rm -rf /tmp/pg_dirtyread-2.7* \
+    && apt-get install -y postgresql-${PG_MAJOR}-dirtyread \
 \
     # Javascript 执行引擎 https://github.com/plv8/plv8
     # 源码编译耗时 30min+，需要做足心理准备
@@ -182,20 +149,28 @@ RUN apt-get update \
 \
     # PL/Python — Python Procedural Language
     # apt-cache search ".*plpython3.*"
-    && apt-get -y install postgresql-plpython3-${PG_MAJOR} \
+    && apt-get install -y postgresql-plpython3-${PG_MAJOR} \
 \    
     # Timescaledb
-    && apt-get install -y libkrb5-dev \
-    && curl -sSL -o /tmp/timescaledb-2.16.0.tar.gz https://github.com/timescale/timescaledb/archive/refs/tags/2.16.0.tar.gz \
-    && tar -xzf /tmp/timescaledb-2.16.0.tar.gz -C /tmp/ \
-    && cd /tmp/timescaledb-2.16.0/ \
-    && ./bootstrap \
-    && cd build && make && make install \
-    && rm -rf /tmp/timescaledb-2.16.0* \
+    && apt-get install -y postgresql-${PG_MAJOR}-timescaledb \
 \
-    # TODO:parquet_s3_fdw，只支持 PG13+
+    # pg_ivm
+    && curl -sSL -o /tmp/pg_ivm-1.9.tar.gz https://github.com/sraoss/pg_ivm/archive/refs/tags/v1.9.tar.gz \
+    && tar -xzf /tmp/pg_ivm-1.9.tar.gz -C /tmp \
+    && cd /tmp/pg_ivm-1.9 \
+    && make install \
+    && rm -rf /tmp/pg_ivm-1.9* \
 \
-    # && pip3 install pgcli \
+    # pg_lakehouse/pg_search
+    && curl -sSL -o /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/paradedb/releases/download/v0.9.1/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
+    && dpkg -i /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
+    && rm -rf /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
+    && curl -sSL -o /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/paradedb/releases/download/v0.9.0/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
+    && dpkg -i /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
+    && rm -rf /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
+    # https://github.com/paradedb/paradedb/blob/dev/docker/Dockerfile
+\
+    # && pip3 install --break-system-packages pgcli \
 \
     # 移除已无效的安装包
     && apt-get purge -y postgresql-server-dev-${PG_MAJOR} make gcc cmake g++ git \
@@ -205,7 +180,7 @@ RUN apt-get update \
 
 # 上一步执行完 autoremove -y 之后，yaml 包就被删除了，这里重新添加
 # fix: ModuleNotFoundError: No module named 'yaml'
-RUN pip3 install PyYAML
+RUN pip3 install --break-system-packages PyYAML
 
 WORKDIR $PGHOME
 
@@ -241,7 +216,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /root/.cache
 
 # 支持 PL/Python 高级用法
-RUN pip3 install numpy
+RUN pip3 install --break-system-packages numpy
 
 # 默认配置文件载入
 COPY config/* ./.config/patroni/
