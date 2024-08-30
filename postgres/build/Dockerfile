@@ -161,13 +161,10 @@ RUN apt-get update \
     && make install \
     && rm -rf /tmp/pg_ivm-1.9* \
 \
-    # pg_lakehouse/pg_search
-    && curl -sSL -o /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/paradedb/releases/download/v0.9.1/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
-    && dpkg -i /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
-    && rm -rf /tmp/postgresql-16-pg-search_0.9.1-1PARADEDB-bookworm_amd64.deb \
-    && curl -sSL -o /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/paradedb/releases/download/v0.9.0/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
-    && dpkg -i /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
-    && rm -rf /tmp/postgresql-16-pg-lakehouse_0.9.0-1PARADEDB-bookworm_amd64.deb \
+    # pg_analytics
+    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.1.2/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
+    && dpkg -i /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
+    && rm -rf /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
     # https://github.com/paradedb/paradedb/blob/dev/docker/Dockerfile
 \
     # && pip3 install --break-system-packages pgcli \
