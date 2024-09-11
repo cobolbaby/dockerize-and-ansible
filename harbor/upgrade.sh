@@ -45,15 +45,29 @@
 # sudo ./install.sh --with-trivy --with-chartmuseum
 
 # 升级已有版本至 2.7.3
+# cd /opt/harbor
+# docker-compose down
+# cd ~
+# wget https://github.com/goharbor/harbor/releases/download/v2.7.3/harbor-offline-installer-v2.7.3.tgz
+# mv /opt/harbor /opt/harbor_v2.5.4
+# sudo cp -r /data/database /opt/harbor_v2.5.4_database
+# tar -zxvf ~/harbor-offline-installer-v2.7.3.tgz -C /opt
+# cd /opt/harbor
+# docker load -i harbor.v2.7.3.tar.gz
+# cp /opt/harbor_v2.5.4/harbor.yml .
+# docker run -it --rm -v /:/hostfs goharbor/prepare:v2.7.3 migrate -i /opt/harbor/harbor.yml
+# sudo ./install.sh --with-trivy --with-chartmuseum
+
+# 升级已有版本至 2.9.5
 cd /opt/harbor
 docker-compose down
 cd ~
-wget https://github.com/goharbor/harbor/releases/download/v2.7.3/harbor-offline-installer-v2.7.3.tgz
-mv /opt/harbor /opt/harbor_v2.5.4
-sudo cp -r /data/database /opt/harbor_v2.5.4_database
-tar -zxvf ~/harbor-offline-installer-v2.7.3.tgz -C /opt
+wget https://github.com/goharbor/harbor/releases/download/v2.9.5/harbor-offline-installer-v2.9.5.tgz
+mv /opt/harbor /opt/harbor_2.7.3
+sudo cp -r /data/database /opt/harbor_2.7.3_database
+tar -zxvf ~/harbor-offline-installer-v2.9.5.tgz -C /opt
 cd /opt/harbor
-docker load -i harbor.v2.7.3.tar.gz
-cp /opt/harbor_v2.5.4/harbor.yml .
-docker run -it --rm -v /:/hostfs goharbor/prepare:v2.7.3 migrate -i /opt/harbor/harbor.yml
-sudo ./install.sh --with-trivy --with-chartmuseum
+docker load -i harbor.v2.9.5.tar.gz
+cp /opt/harbor_2.7.3/harbor.yml .
+docker run -it --rm -v /:/hostfs goharbor/prepare:v2.9.5 migrate -i /opt/harbor/harbor.yml
+sudo ./install.sh --with-trivy
