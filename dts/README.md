@@ -2,7 +2,7 @@
 
 |  | Kettle | DataX | Kafka Connect CDC | Apache Flink CDC Pipeline :white_check_mark: | chunjun | bitsail | Apache inlong | Apache Seatunnel :white_check_mark: | RestCloud | Tapdata | Nifi | DBSyncer
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| Github Stars | 7.5k | 15.5k | Confluent官方支持 | 5.5k | 3.9k | 1.6k | 1.3k | 7.6k | 不开源，但有社区版，群电在评估 | 480 | 4.6k | 2.4k
+| Github Stars | ![](https://img.shields.io/github/stars/pentaho/pentaho-kettle.svg) | ![](https://img.shields.io/github/stars/alibaba/DataX.svg) | Confluent官方支持 | ![](https://img.shields.io/github/stars/apache/flink-cdc.svg) | ![](https://img.shields.io/github/stars/DTStack/chunjun.svg) | ![](https://img.shields.io/github/stars/bytedance/bitsail.svg) | ![](https://img.shields.io/github/stars/apache/inlong.svg) | ![](https://img.shields.io/github/stars/apache/seatunnel.svg) | 不开源，但有社区版，群电在评估 | ![](https://img.shields.io/github/stars/tapdata/tapdata.svg) | ![](https://img.shields.io/github/stars/apache/nifi.svg) | ![](https://gitee.com/ghi/dbsyncer/badge/star.svg)
 | 社区是否活跃 | 一般般 | 是 | 是 | 是 | 一般般 | 近半年已死 | 是 | 是，定期有线上Meeting | - | 官方维护居多，社区群很冷清 | 是 | Gitee Top1 的数据同步工具
 | 文档是否完善 | 最新版只能去官方网站查，社区资料很少 | 是 | 是 | 3.x 才开始做端到端的数据集成，所以社区实践文档都较少 | | 最近一年文档没咋更新 | 是，但社区实践案例很少 | 是，公众号也每天更新
 | 支持 批流一体 | 否 | 否 | 是 | 否 | 是 | 是 | 否 | 是 | 是 | 否 | 是 
