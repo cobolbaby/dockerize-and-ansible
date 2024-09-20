@@ -71,3 +71,6 @@ docker load -i harbor.v2.9.5.tar.gz
 cp /opt/harbor_2.7.3/harbor.yml .
 docker run -it --rm -v /:/hostfs goharbor/prepare:v2.9.5 migrate -i /opt/harbor/harbor.yml
 sudo ./install.sh --with-trivy
+
+# docker run -it --rm -v /data/chart_storage:/chart_storage \
+#  goharbor/migrate-chart:1.1.0 --hostname ... --password ...
