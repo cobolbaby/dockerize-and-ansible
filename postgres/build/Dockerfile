@@ -1,6 +1,6 @@
 ARG PG_VERSION=12.15
 
-FROM registry.inventec/proxy/library/postgres:${PG_VERSION}-bookworm
+FROM harbor.itc.inventec.net/proxy/postgres:${PG_VERSION}-bookworm
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 
 ARG PGHOME=/home/postgres
@@ -111,6 +111,7 @@ RUN apt-get update \
     # && apt-get purge -y cmake g++ \
 \
     # citus
+    # TODO: citus 不支持 arm 架构
     && curl -sSL https://install.citusdata.com/community/deb.sh | bash \
     && apt-get install -y postgresql-${PG_MAJOR}-citus-12.1 \
 \
@@ -162,9 +163,9 @@ RUN apt-get update \
     && rm -rf /tmp/pg_ivm-1.9* \
 \
     # pg_analytics
-    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.1.2/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
-    && dpkg -i /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
-    && rm -rf /tmp/postgresql-16-pg-analytics_0.1.2-1PARADEDB-bookworm_amd64.deb \
+    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.1.4/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
+    && dpkg -i /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
+    && rm -rf /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
     # https://github.com/paradedb/paradedb/blob/dev/docker/Dockerfile
 \
     # && pip3 install --break-system-packages pgcli \
