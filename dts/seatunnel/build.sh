@@ -2,7 +2,7 @@
 cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
-SEATUNNEL_VERSION=2.3.7
+SEATUNNEL_VERSION=2.3.8
 
 docker build --rm -f Dockerfile \
             -t registry.inventec/infra/seatunnel:${SEATUNNEL_VERSION} \

@@ -1,4 +1,4 @@
-FROM registry.inventec/hub/flink:1.18.1-scala_2.12-java8
+FROM flink:1.18.1-scala_2.12-java17
 
 ARG SEATUNNEL_VERSION
 
