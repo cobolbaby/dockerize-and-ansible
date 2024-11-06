@@ -1,4 +1,3 @@
-version: '2.3'
 services:
 
   samba:
@@ -21,8 +20,8 @@ services:
 
 networks:
   net:
-    external:
-      name: infra
+    external: true
+    name: infra
 
 # Ref: https://github.com/miketeo/pysmb/issues/95#issuecomment-535349556
 # command: '-s "public;/share;yes;no;no;dev" -u "dev;111111" -g "server min protocol = LANMAN1"'
