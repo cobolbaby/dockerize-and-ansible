@@ -3,7 +3,7 @@ cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
 VERSION=latest
-GO_VERSION=1.20.13
+GO_VERSION=1.22.8
 
 docker build --rm -f Dockerfile \
             -t registry.inventec/infra/debugger:${VERSION} \
