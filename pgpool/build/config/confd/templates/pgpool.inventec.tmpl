@@ -36,7 +36,7 @@ listen_addresses = '0.0.0.0'
                                    # Host name or IP address to listen on:
                                    # '*' for all, '' for no TCP/IP connections
                                    # (change requires restart)
-port = 5432
+port = 5494
                                    # Port number
                                    # (change requires restart)
 #socket_dir = '/tmp'
@@ -231,7 +231,7 @@ read_only_function_list = ''
                                    # Comma separated list of function names
                                    # that don't write to database
                                    # Regexp are accepted
-write_function_list = 'nextval,setval,.*\.func_(insert|delete|update)_.*'
+write_function_list = 'nextval,setval,.*\.func_(insert|delete|update|nlb)_.*,(scc|report_query|fbt)\..*,dwict\.get_(fpytree|fixturefpy|failparthist).*'
                                    # Comma separated list of function names
                                    # that write to database
                                    # Regexp are accepted

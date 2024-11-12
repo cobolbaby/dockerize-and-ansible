@@ -1,4 +1,4 @@
-ARG PGPOOL_VER
+ARG PGPOOL_VER=4.3
 FROM pgpool/pgpool:${PGPOOL_VER}
 
 WORKDIR /opt/confd/bin/
