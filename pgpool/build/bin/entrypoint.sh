@@ -6,11 +6,13 @@ readonly PATRONI_NAMESPACE=${PATRONI_NAMESPACE%/}
 readonly PATRONI_SCOPE=${PATRONI_SCOPE:-batman}
 readonly PGPOOL_HEALTH_CHECK_USER=${PGPOOL_HEALTH_CHECK_USER:-nobody}
 readonly PGPOOL_HEALTH_CHECK_PASSWORD=${PGPOOL_HEALTH_CHECK_PASSWORD:-}
+readonly PGPOOL_PORT=${PGPOOL_PORT:-5494}
 readonly CONFD_BACKEND=${CONFD_BACKEND:-etcd}
 
 # Dynamic configuration 
 sed -i "s/^#*\s*sr_check_user\s*=.*/sr_check_user = '${PGPOOL_HEALTH_CHECK_USER}'/" /etc/confd/templates/pgpool.tmpl
 sed -i "s/^#*\s*health_check_user\s*=.*/health_check_user = '${PGPOOL_HEALTH_CHECK_USER}'/" /etc/confd/templates/pgpool.tmpl
+sed -i "s/^#*\s*port\s*=.*/port = ${PGPOOL_PORT}/" /etc/confd/templates/pgpool.tmpl
 echo "${PGPOOL_HEALTH_CHECK_USER}:md5${PGPOOL_HEALTH_CHECK_PASSWORD}" > ${PGPOOL_INSTALL_DIR}/etc/pool_passwd
 
 # Start Confd
