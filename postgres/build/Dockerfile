@@ -118,7 +118,7 @@ RUN apt-get update \
     # pgvector 支持向量运算
     && apt-get install -y postgresql-${PG_MAJOR}-pgvector \
 \
-    # oracle_fdw
+    # TODO:oracle_fdw
     # && apt-get install -y postgresql-${PG_MAJOR}-oracle-fdw \
 \
     # TODO:mysql_fdw
@@ -153,7 +153,14 @@ RUN apt-get update \
     && apt-get install -y postgresql-plpython3-${PG_MAJOR} \
 \    
     # Timescaledb
-    && apt-get install -y postgresql-${PG_MAJOR}-timescaledb \
+    # 官方源的包只包含部分功能
+    # && apt-get install -y postgresql-${PG_MAJOR}-timescaledb \
+    # fix: could not access file "$libdir/timescaledb-tsl-2.17.2": No such file or directory
+    && apt-get install -y lsb-release \
+    && echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -c -s) main" | tee /etc/apt/sources.list.d/timescaledb.list \
+    && wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor -o /etc/apt/trusted.gpg.d/timescaledb.gpg \
+    && apt-get update \
+    && apt-get install -y timescaledb-2-postgresql-${PG_MAJOR} \
 \
     # pg_ivm
     && curl -sSL -o /tmp/pg_ivm-1.9.tar.gz https://github.com/sraoss/pg_ivm/archive/refs/tags/v1.9.tar.gz \
@@ -163,13 +170,17 @@ RUN apt-get update \
     && rm -rf /tmp/pg_ivm-1.9* \
 \
     # pg_analytics
-    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.1.4/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
-    && dpkg -i /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
-    && rm -rf /tmp/postgresql-16-pg-analytics_0.1.4-1PARADEDB-bookworm_amd64.deb \
+    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.2.4/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
+    && dpkg -i /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
+    && rm -rf /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
     # https://github.com/paradedb/paradedb/blob/dev/docker/Dockerfile
 \
-    # && pip3 install --break-system-packages pgcli \
+    # pgcopydb
+    && apt-get install -y pgcopydb \
 \
+    # 支持 LDAP
+    # && ... \
+\ 
     # 移除已无效的安装包
     && apt-get purge -y postgresql-server-dev-${PG_MAJOR} make gcc cmake g++ git \
     && apt-get autoremove -y \
