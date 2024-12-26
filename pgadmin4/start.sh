@@ -46,6 +46,7 @@ docker run -d --name pgadmin8 \
 
 # 2) 如果因为忘记了超管用户的密码而造成账户被锁，请参考
 # https://www.pgadmin.org/docs/pgadmin4/development/restore_locked_user.html
+# docker run -it --rm -v /data/pgadmin4/pgadmin8:/var/lib/pgadmin --entrypoint=/bin/bash registry.inventec/proxy/nouchka/sqlite3
 
 # 3) Chrome 新版针对非 HTTPS 访问的情况，剪切板功能受限，推荐使用 TLS 证书，但要注意证书文件的命名
 
