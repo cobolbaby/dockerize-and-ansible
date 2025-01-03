@@ -1,4 +1,4 @@
-ARG VERSION
+ARG VERSION=8.14
 FROM registry.inventec/proxy/dpage/pgadmin4:${VERSION}
 LABEL maintainer="Zhang.Xing-Long@inventec.com"
 

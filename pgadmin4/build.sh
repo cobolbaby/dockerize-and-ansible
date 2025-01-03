@@ -2,7 +2,7 @@
 cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
-VERSION=8.10
+VERSION=8.14
 
 # git clone https://github.com/pgadmin-org/pgadmin4.git
 # cd pgadmin4
@@ -16,3 +16,5 @@ docker build --rm -f Dockerfile \
             --build-arg https_proxy=${PROXY} \
             --build-arg VERSION=${VERSION} \
             .
+
+docker push registry.inventec/infra/dpage/pgadmin4:${VERSION}
