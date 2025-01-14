@@ -1,4 +1,4 @@
-FROM flink:1.18.1-scala_2.12-java17
+FROM registry.inventec/proxy/flink:1.18.1-scala_2.12-java17
 
 ARG SEATUNNEL_VERSION
 
@@ -18,3 +18,5 @@ COPY maven /root/.m2/
 ENV M2_HOME="/root/.m2"
 
 RUN sh bin/install-plugin.sh ${SEATUNNEL_VERSION}
+
+COPY plugins plugins

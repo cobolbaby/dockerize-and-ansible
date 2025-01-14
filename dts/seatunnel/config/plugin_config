@@ -24,4 +24,5 @@ connector-cdc-sqlserver
 connector-cdc-postgres
 connector-jdbc
 connector-kafka
+connector-file-s3
 --end--
