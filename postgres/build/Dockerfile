@@ -24,7 +24,7 @@ RUN apt-get update \
 \
     # 安装Patroni
     && pip3 install --break-system-packages psycopg2-binary \
-    && pip3 install --break-system-packages patroni[etcd,raft] \
+    && pip3 install --break-system-packages patroni[etcd] \
 \
     # 分区表管理工具
     && apt-get install -y postgresql-${PG_MAJOR}-partman \
@@ -131,7 +131,7 @@ RUN apt-get update \
     && mkdir build && cd build && cmake -DPostgreSQL_TYPE_INCLUDE_DIR=/usr/include/postgresql/${PG_MAJOR}/server .. \
     && make && make install \
     && rm -rf /tmp/pg_jieba \
-    # && apt-get purge -y git \
+    # && apt-get purge -y cmake g++ git \
 \
     # pg_dirtyread
     && apt-get install -y postgresql-${PG_MAJOR}-dirtyread \
@@ -179,8 +179,15 @@ RUN apt-get update \
     && apt-get install -y pgcopydb \
 \
     # 支持 LDAP
-    # && ... \
-\ 
+    && apt-get install -y ldap-utils \
+\
+    # 支持 pg_duckdb
+    && apt-get install -y git cmake g++ liblz4-dev ninja-build \
+    && cd /tmp/ && git clone --depth 1 https://github.com/duckdb/pg_duckdb.git \
+    && cd pg_duckdb \
+    && make install \
+    && rm -rf /tmp/pg_duckdb \
+\
     # 移除已无效的安装包
     && apt-get purge -y postgresql-server-dev-${PG_MAJOR} make gcc cmake g++ git \
     && apt-get autoremove -y \
@@ -194,10 +201,10 @@ RUN pip3 install --break-system-packages PyYAML
 WORKDIR $PGHOME
 
 # 定义数据目录，并赋权
-RUN mkdir -p ./data /data ./.config/patroni /raft/datadir \
+RUN mkdir -p ./data /data ./.config/patroni \
     && touch .psql_history \
     && chown -R postgres:postgres $PGHOME /data \
-    && chmod -R 700 $PGHOME/data /data /raft/datadir \
+    && chmod -R 700 $PGHOME/data /data \
     && sed -i "s|/var/lib/postgresql.*|$PGHOME:/bin/bash|" /etc/passwd
 
 ENV PGDATA=$PGHOME/data
