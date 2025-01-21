@@ -181,12 +181,13 @@ RUN apt-get update \
     # 支持 LDAP
     && apt-get install -y ldap-utils \
 \
-    # 支持 pg_duckdb
-    && apt-get install -y git cmake g++ liblz4-dev ninja-build \
-    && cd /tmp/ && git clone --depth 1 https://github.com/duckdb/pg_duckdb.git \
-    && cd pg_duckdb \
-    && make install \
-    && rm -rf /tmp/pg_duckdb \
+    # 因不支持访问自建的 Minio，下线该扩展
+    # # 支持 pg_duckdb
+    # && apt-get install -y git cmake g++ liblz4-dev ninja-build \
+    # && cd /tmp/ && git clone --depth 1 https://github.com/duckdb/pg_duckdb.git \
+    # && cd pg_duckdb \
+    # && make install \
+    # && rm -rf /tmp/pg_duckdb \
 \
     # 移除已无效的安装包
     && apt-get purge -y postgresql-server-dev-${PG_MAJOR} make gcc cmake g++ git \
