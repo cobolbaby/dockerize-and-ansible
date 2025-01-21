@@ -46,7 +46,6 @@ sed -i "s/13.12.15-ce.0/15.4.4-ce.0/" docker-compose_15_4_4.yml
 # 增加 shm_size: 1g
 diff docker-compose_13_12_15.yml docker-compose_15_4_4.yml
 
-docker pull registry.inventec/proxy/gitlab/gitlab-ce:15.4.4-ce.0
 docker-compose -f docker-compose_15_4_4.yml up -d
 # 等待 https://gitlab.icz.inventec.net/admin/background_migrations 执行完，后台跑的任务很多，得有个1个多小时
 
@@ -55,3 +54,21 @@ sed -i "s/15.4.6-ce.0/15.11.13-ce.0/" docker-compose_15_11_13.yml
 diff docker-compose_15_4_6.yml docker-compose_15_11_13.yml
 
 docker-compose -f docker-compose_15_11_13.yml up -d
+
+cp docker-compose_15_11_13.yml docker-compose_16_3_9.yml
+sed -i "s/infra\/gitlab\/gitlab-ce:15.11.13-ce.0/proxy\/gitlab\/gitlab-ce:16.3.9-ce.0/" docker-compose_16_3_9.yml
+diff docker-compose_15_11_13.yml docker-compose_16_3_9.yml
+
+docker-compose -f docker-compose_16_3_9.yml up -d
+
+cp docker-compose_16_3_9.yml docker-compose_16_7_10.yml
+sed -i "s/16.3.9-ce.0/16.7.10-ce.0/" docker-compose_16_7_10.yml
+diff docker-compose_16_3_9.yml docker-compose_16_7_10.yml
+
+docker-compose -f docker-compose_16_7_10.yml up -d
+
+cp docker-compose_16_7_10.yml docker-compose_16_11_10.yml
+sed -i "s/proxy\/gitlab\/gitlab-ce:16.7.10-ce.0/infra\/gitlab\/gitlab-ce:16.11.10-ce.0/" docker-compose_16_11_10.yml
+diff docker-compose_16_7_10.yml docker-compose_16_11_10.yml
+
+docker-compose -f docker-compose_16_11_10.yml up -d

@@ -1,0 +1,37 @@
+diff -urNa 12.10.8-ce.0/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/access.rb 12.10.8-ce.0-fixed/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/access.rb
+--- 12.10.8-ce.0/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/access.rb	2020-07-12 17:21:07.796983700 +0800
++++ 12.10.8-ce.0-fixed/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/access.rb	2020-07-12 18:18:04.054508800 +0800
+@@ -86,8 +86,16 @@
+           @ldap_user ||= find_ldap_user
+         end
+ 
++        # def find_ldap_user
++        #   Gitlab::Auth::Ldap::Person.find_by_dn(ldap_identity.extern_uid, adapter)
++        # end
+         def find_ldap_user
+-          Gitlab::Auth::Ldap::Person.find_by_dn(ldap_identity.extern_uid, adapter)
++          found_user = Gitlab::Auth::Ldap::Person.find_by_dn(ldap_identity.extern_uid, adapter)
++          return found_user if found_user
++
++          if ldap_identity
++            ::Gitlab::Auth::Ldap::Person.find_by_email(user.email, adapter)
++          end
+         end
+ 
+         def block_user(user, reason)
+diff -urNa 12.10.8-ce.0/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/config.rb 12.10.8-ce.0-fixed/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/config.rb
+--- 12.10.8-ce.0/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/config.rb	2020-07-12 17:23:56.500506900 +0800
++++ 12.10.8-ce.0-fixed/embedded/service/gitlab-rails/lib/gitlab/auth/ldap/config.rb	2020-07-12 17:23:37.017208500 +0800
+@@ -39,8 +39,11 @@
+           _available_servers
+         end
+ 
++        # def self._available_servers
++        #   Array.wrap(servers.first)
++        # end
+         def self._available_servers
+-          Array.wrap(servers.first)
++          servers
+         end
+ 
+         def self.providers
