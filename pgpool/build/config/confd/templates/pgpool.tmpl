@@ -532,7 +532,7 @@ memqcache_oiddir = '/tmp/oiddir'
 {{$conn_url := split $conn_url ":"}}
 backend_hostname{{$index}} = '{{index $conn_url 0}}'
 backend_port{{$index}} = {{index $conn_url 1}}
-backend_weight{{$index}} = {{ if eq $data.role "master" }} 0 {{ else }} 1 {{ end }}
+backend_weight{{$index}} = {{ if or (eq $data.role "master") (eq $data.role "primary") }} 0 {{ else }} 1 {{ end }}
 backend_application_name{{$index}} = '{{base $member.Key}}'
 backend_flag{{$index}} = 'DISALLOW_TO_FAILOVER'
 {{end}}
