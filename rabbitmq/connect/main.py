@@ -5,7 +5,7 @@ import os
 import sys
 from ast import If, Try
 
-import nginx
+# import nginx
 import pika
 import requests
 
@@ -86,20 +86,20 @@ server {
 '''
 
 
-def nginx_conf_generator(instances, options):
-    c = nginx.Conf()
-    for instance in instances:
-        s = nginx.Server()
-        s.add(
-            nginx.Key('listen', '80'),
-            nginx.Key('server_name',
-                      'mq-' + instance[1] + '.inventec.net'),
-            nginx.Location('/', nginx.Key('proxy_pass',
-                                          'http://' + instance[0] + ':15672')),
-        )
-        c.add(s)
-    nginx.dumpf(c, os.path.dirname(os.path.abspath(__file__)) + '/nginx.conf')
-    return
+# def nginx_conf_generator(instances, options):
+#     c = nginx.Conf()
+#     for instance in instances:
+#         s = nginx.Server()
+#         s.add(
+#             nginx.Key('listen', '80'),
+#             nginx.Key('server_name',
+#                       'mq-' + instance[1] + '.inventec.net'),
+#             nginx.Location('/', nginx.Key('proxy_pass',
+#                                           'http://' + instance[0] + ':15672')),
+#         )
+#         c.add(s)
+#     nginx.dumpf(c, os.path.dirname(os.path.abspath(__file__)) + '/nginx.conf')
+#     return
 
 
 if __name__ == '__main__':
