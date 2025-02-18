@@ -72,7 +72,7 @@ allow_clear_text_frontend_auth = on
 
 # - Concurrent session and pool size -
 
-num_init_children = 600
+num_init_children = 200
                                    # Number of concurrent sessions allowed
                                    # (change requires restart)
 max_pool = 1
@@ -94,45 +94,46 @@ client_idle_limit = 30min
                                    # (even inside an explicit transactions!)
                                    # 0 means no disconnection
 
+
 #------------------------------------------------------------------------------
 # LOGS
 #------------------------------------------------------------------------------
 
 # - Where to log -
 
-log_destination = 'stderr'
+#log_destination = 'stderr'
                                    # Where to log
                                    # Valid values are combinations of stderr,
                                    # and syslog. Default to stderr.
 
 # - What to log -
 
-log_line_prefix = '%m: %a pid %p: '   # printf-style string to output at beginning of each log line.
+#log_line_prefix = '%m: %a pid %p: '   # printf-style string to output at beginning of each log line.
 
 log_connections = on
                                    # Log connections
-log_disconnections = off
+#log_disconnections = off
                                    # Log disconnections
-log_hostname = off
+#log_hostname = off
                                    # Hostname will be shown in ps status
                                    # and in logs if connections are logged
-log_statement = on
+#log_statement = off
                                    # Log all statements
-log_per_node_statement = off
+#log_per_node_statement = off
                                    # Log all statements
                                    # with node and backend informations
 log_client_messages = on
                                    # Log any client messages
-log_standby_delay = 'if_over_threshold'
+#log_standby_delay = 'if_over_threshold'
                                    # Log standby delay
                                    # Valid values are combinations of always,
                                    # if_over_threshold, none
 
 # - Syslog specific -
 
-syslog_facility = 'LOCAL0'
+#syslog_facility = 'LOCAL0'
                                    # Syslog local facility. Default to LOCAL0
-syslog_ident = 'pgpool'
+#syslog_ident = 'pgpool'
                                    # Syslog program identification string
                                    # Default to 'pgpool'
 
