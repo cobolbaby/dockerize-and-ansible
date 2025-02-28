@@ -3,7 +3,7 @@ set -e
 cd `dirname $0`
 
 PROXY=http://10.190.81.209:3389/
-PG_VERSION=16.6
+PG_VERSION=16.8
 
 cd build
 
