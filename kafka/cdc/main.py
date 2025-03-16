@@ -202,11 +202,11 @@ def check_sqlserver_cdc_agent_job(db):
         # The capture job cannot be used by Change Data Capture to extract changes from the log when transactional replication is also enabled on the same database. 
         # When Change Data Capture and transactional replication are both enabled on a database, use the logreader agent to extract the log changes.
 
-        cursor.execute("SELECT DATABASEPROPERTYEX(%s, 'IsPublished') AS IsPublished", (db["database"]))
+        cursor.execute("SELECT CAST(DATABASEPROPERTYEX(%s, 'IsPublished') AS INT) AS IsPublished", (db["database"]))
         repl_status = cursor.fetchone()
         if repl_status and repl_status['IsPublished'] == 1:
             logging.info(f"{db['database']} 启用了 Replication，跳过检查 CDC Agent Job")
-            logging.warning(f"{db['database']} 启用了 Replication，但主要注意 LogReader Agent 是定时运行，时延和CDC有差异")
+            logging.warning(f"{db['database']} 启用了 Replication，但要注意 LogReader Agent 是定时运行，时延较 CDC 有差异")
             return True
 
         logging.error(f"CDC or LogReader Agent Job for {db['database']} 均未运行: {e}")
