@@ -4,12 +4,12 @@ import random
 import re
 import sys
 from configparser import ConfigParser
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pymssql
 import requests
 
-from kafka import KafkaConsumer
+from kafka import KafkaConsumer, TopicPartition
 
 # 配置参数
 KAFKA_CONNECT_SERVICE_URL = os.getenv("KAFKA_CONNECT_SERVICE_URL")
@@ -370,45 +370,82 @@ def extract_table_name_from_topic(topic):
 
 def get_sqlserver_ct_time(db, table_name):
     """
-    查询 SQL Server CT 表的最新记录时间
+    查询 SQL Server CT 表的最新记录时间，并动态转换为 UTC Unix 时间戳 (毫秒级)
     """
     try:
-        conn = get_db_connection(db)
+        conn = get_db_connection(db)  # 获取数据库连接
         cursor = conn.cursor()
-    
+
+        # 获取 SQL Server 当前时区偏移量
+        cursor.execute("SELECT SYSDATETIMEOFFSET() as server_local_time")
+        server_local_time = cursor.fetchone()['server_local_time']  # 返回带时区的 datetime 对象
+        
+        # 解析 SQL Server 的时区偏移量
+        utcoffset = server_local_time.utcoffset()  # 获取时区偏移量 (timedelta)
+
+        # 查询最新的 CDC 记录时间
         cursor.execute(f"""
             SELECT TOP 1 
-                sys.fn_cdc_map_lsn_to_time(__$start_lsn) AS latest_lsn_time, *
+                sys.fn_cdc_map_lsn_to_time(__$start_lsn) AS latest_lsn_time,
+                *
             FROM [cdc].[dbo_{table_name}_CT]
-            ORDER BY __$start_lsn ASC;
+            ORDER BY __$start_lsn DESC;
         """)
+
         latest_record = cursor.fetchone()
-        return latest_record['latest_lsn_time'] if latest_record else None
+        
+        if latest_record:
+            latest_lsn_time = latest_record['latest_lsn_time']  # SQL Server 返回的本地时间 (without timezone)
+            
+            # 时间附加上时区信息 
+            latest_lsn_time = latest_lsn_time.replace(tzinfo=timezone(utcoffset))  
+            
+            # 转换为 UTC
+            lsn_utc_time = latest_lsn_time.astimezone(timezone.utc)
+            
+            # 转换为 Unix 时间戳 (毫秒级)
+            return int(lsn_utc_time.timestamp() * 1000)  
+
+        return None
     except Exception as e:
         logging.error(f"检查 SQL Server CT 失败: {e}")
         return None
 
 def get_kafka_ct_time(topic_name):
     """
-    查询 Kafka Topic 的最新消费时间
+    获取 Kafka Topic 各分区最新的一条消息，并返回最新的时间戳
     """
     consumer = KafkaConsumer(
-        topic_name,
         bootstrap_servers=KAFKA_CONNECT_BOOTSTRAP_SERVERS,
-        auto_offset_reset='latest',
         enable_auto_commit=False
     )
 
-    # 将消费指针移到最后
-    consumer.poll(timeout_ms=1000)
-    consumer.seek_to_end()
+    # 获取 topic 的所有分区
+    partitions = consumer.partitions_for_topic(topic_name)
+    if not partitions:
+        print(f"No partitions found for topic: {topic_name}")
+        return None
 
+    # 指定消费的分区
+    tp_list = [TopicPartition(topic_name, p) for p in partitions]
+    consumer.assign(tp_list)
+
+    # 获取各分区的最新 offset
+    end_offsets = consumer.end_offsets(tp_list)
     latest_timestamp = None
-    for message in consumer:
-        latest_timestamp = message.timestamp / 1000
-        break
+
+    for tp, offset in end_offsets.items():
+        if offset == 0:
+            continue  # 该分区没有数据，跳过
+        consumer.seek(tp, offset - 1)  # 定位到最后一条消息
+        for msg in consumer:
+            if latest_timestamp is None or msg.timestamp > latest_timestamp:
+                latest_timestamp = msg.timestamp
+            break  # 只取一条
 
     consumer.close()
+
+    # long int 是否要转换成 timestamp ?
     return latest_timestamp if latest_timestamp else None
 
 def check_sqlserver2kafka_sync(ds):
@@ -440,14 +477,19 @@ def check_sqlserver2kafka_sync(ds):
             continue
 
         # 计算时间差
-        time_diff = (ct_time - kafka_time).total_seconds() / 60
-        logging.info(f"📊 时间差: {time_diff:.2f} 分钟")
+        time_diff = (kafka_time - ct_time) / 1000
+        logging.info(f"📊 时间差: {time_diff:.3f} 秒")
 
-        # 如果时间差大于阈值，则记录异常，并重启 Debezium Connect
-        # check_and_restart_failed_kafka_connectors()
+        if time_diff > 60:
+            logging.warning(f"[WARN] 时间差超过阈值: {time_diff:.3f} 秒")
+            # TODO:尝试重启 Debezium Connect
+
+        else:
+            logging.info(f"✅ 时间差在阈值范围内: {time_diff:.3f} 秒")
 
     return True
 
+# 检测 CDC Topic 是否有 Lag
 def check_kafka2postgres_sync():
     return True
 
