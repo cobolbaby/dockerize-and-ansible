@@ -183,19 +183,33 @@ def check_sqlserver_cdc(db):
 
 def check_sqlserver_cdc_agent_job(db):
     """检查 SQL Server CDC Agent Job 是否运行"""
+    conn = get_db_connection(db)
+    cursor = conn.cursor()
+
     try:
-        conn = get_db_connection(db)
-        cursor = conn.cursor()
-    
         cursor.execute("EXEC msdb.dbo.sp_help_jobactivity @job_name = %s", (f'cdc.{db["database"]}_capture',))
         job_status = cursor.fetchone()
         if job_status and job_status['start_execution_date'] is not None and job_status['stop_execution_date'] is None:
             logging.info(f"CDC Agent Job {db['database']}_capture 正常运行")
             return True
-        logging.error(f"CDC Agent Job {db['database']}_capture 未运行，尝试重启")
+
+        logging.error(f"CDC or LogReader Agent Job for {db['database']} 未运行，尝试重启")
         return False
     except Exception as e:
-        logging.error(f"检查 CDC Agent Job 失败: {e}")
+        # The specified @job_name ('cdc.FISAMS_capture') does not exist.DB-Lib error message 20018, severity 16:
+        # General SQL Server error: Check messages from the SQL Server
+
+        # The capture job cannot be used by Change Data Capture to extract changes from the log when transactional replication is also enabled on the same database. 
+        # When Change Data Capture and transactional replication are both enabled on a database, use the logreader agent to extract the log changes.
+
+        cursor.execute("SELECT DATABASEPROPERTYEX(%s, 'IsPublished') AS IsPublished", (db["database"]))
+        repl_status = cursor.fetchone()
+        if repl_status and repl_status['IsPublished'] == 1:
+            logging.info(f"{db['database']} 启用了 Replication，跳过检查 CDC Agent Job")
+            logging.warning(f"{db['database']} 启用了 Replication，但主要注意 LogReader Agent 是定时运行，时延和CDC有差异")
+            return True
+
+        logging.error(f"CDC or LogReader Agent Job for {db['database']} 均未运行: {e}")
         return False
 
 def restart_sqlserver_cdc_agent_job(db):
