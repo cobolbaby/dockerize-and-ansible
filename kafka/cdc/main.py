@@ -90,7 +90,7 @@ def resolve_placeholders(value):
 
 def get_debezium_sqlserver_connectors():
     """获取 Kafka Connect 上的 Debezium SQL Server 连接器信息"""
-    response = requests.get(f"{KAFKA_CONNECT_SERVICE_URL}/connectors?expand=info")
+    response = requests.get(f"{KAFKA_CONNECT_SERVICE_URL}/connectors?expand=info&expand=status")
     if response.status_code != 200:
         logging.error(
             "获取 Kafka Connect 连接器失败: 状态码=%d, 响应内容=%s, 请求URL=%s",
@@ -104,8 +104,9 @@ def get_debezium_sqlserver_connectors():
     db_dict = {}
     
     # 过滤 Debezium SQL Server 连接器
-    for connector, config in connectors.items():
-        config = config.get("info").get("config")
+    for connector, details in connectors.items():
+        config = details.get("info").get("config")
+        status = details.get("status").get("connector").get("state")
         
         # 判断是否为 Debezium SQL Server 连接器
         if config.get("connector.class") == "io.debezium.connector.sqlserver.SqlServerConnector":
@@ -125,7 +126,13 @@ def get_debezium_sqlserver_connectors():
                     "tables": set(),
                     "active_topics": set()
                 }
-            # 合并表列表
+
+            # 如果 Task 是 PAUSED 状态，则跳过
+            if status == "PAUSED":
+                logging.warning(f"连接器 {connector} 当前状态为 {status}，跳过")
+                continue
+
+            # 更新表集合
             db_dict[db_key]["tables"].update(config.get("table.include.list", "").split(","))
 
             active_topics = get_active_topics_of_kafka_connect(config)
@@ -462,7 +469,7 @@ def get_kafka_ct_time(topic_name):
     # long int 是否要转换成 timestamp ?
     return latest_timestamp if latest_timestamp else None
 
-def check_sqlserver2kafka_sync(ds):
+def check_sqlserver2kafka_sync(ds, max_retries=3):
     for db in ds:
         logging.info("-------------------------------------------------")
         logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
@@ -473,15 +480,23 @@ def check_sqlserver2kafka_sync(ds):
             logging.warning(f"[WARN] 数据库 {db['database']} 没有 active_topics")
             continue
 
-        random_topic = random.choice(list(active_topics))
-        table_name = extract_table_name_from_topic(random_topic)
+        attempts = 0
+        while attempts < max_retries and active_topics:
+            random_topic = random.choice(list(active_topics))
+            table_name = extract_table_name_from_topic(random_topic)
+            logging.info(f"🎲 随机选择 Topic: {random_topic} -> 表名: {table_name}")
 
-        logging.info(f"🎲 随机选择 Topic: {random_topic} -> 表名: {table_name}")
+            # 查询 CT 表最新时间
+            ct_time = get_sqlserver_ct_time(db, table_name)
+            if not ct_time:
+                logging.warning(f"[WARN] 查询 CT 表 {table_name} 没有数据，移除 Topic [{random_topic}]，重试 {attempts+1}/{max_retries}")
+                active_topics.remove(random_topic)  # 从列表中移除无数据的 Topic
+                attempts += 1
+                continue  # 重新选择一个 Topic 再试
+            break  # 成功获取到 CT 时间，则退出重试循环
 
-         # 查询 CT 表最新时间
-        ct_time = get_sqlserver_ct_time(db, table_name)
         if not ct_time:
-            logging.warning(f"[WARN] 查询 CT 表 {table_name} 没有数据")
+            logging.error(f"[ERROR] 数据库 {db['database']} 里所有 Topic 都没有 CT 数据，跳过")
             continue
 
         # 查询 Kafka 最新消费时间
