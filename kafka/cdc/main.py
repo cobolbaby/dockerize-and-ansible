@@ -440,46 +440,49 @@ def get_kafka_ct_time(topic):
     """
     获取 Kafka Topic 各分区最新的一条消息，并返回最新的时间戳
     """
-    consumer = Consumer({
-        'bootstrap.servers': KAFKA_CONNECT_BOOTSTRAP_SERVERS,
-        'group.id': 'monitoring-consumer',
-        'auto.offset.reset': 'latest',
-        'enable.auto.commit': False
-    })
+    try:
+        consumer = Consumer({
+            'bootstrap.servers': KAFKA_CONNECT_BOOTSTRAP_SERVERS,
+            'group.id': 'monitoring-consumer',
+            'auto.offset.reset': 'latest',
+            'enable.auto.commit': False
+        })
 
-    # 获取 topic 的所有分区
-    metadata = consumer.list_topics(topic)
-    if metadata.topics[topic].error is not None:
-        raise KafkaException(metadata.topics[topic].error)
+        # 获取 topic 的所有分区
+        metadata = consumer.list_topics(topic)
+        if metadata.topics[topic].error is not None:
+            raise KafkaException(metadata.topics[topic].error)
 
-    partitions = [TopicPartition(topic, p) for p in metadata.topics[topic].partitions.keys()]
+        partitions = [TopicPartition(topic, p) for p in metadata.topics[topic].partitions.keys()]
 
-    latest_timestamp = None
+        latest_timestamp = None
 
-    for tp in partitions:
-        # 获取分区的 offset
-        low_offset, high_offset = consumer.get_watermark_offsets(tp, cached=False)
-        if high_offset == 0 or high_offset == low_offset:
-            continue  # 该分区没有数据，跳过
+        for tp in partitions:
+            # 获取分区的 offset
+            low_offset, high_offset = consumer.get_watermark_offsets(tp, cached=False)
+            if high_offset == 0 or high_offset == low_offset:
+                continue  # 该分区没有数据，跳过
 
-        # 重新创建 TopicPartition 对象，设置 offset
-        tp_with_offset = TopicPartition(tp.topic, tp.partition, high_offset - 1)
-        
-        # fix: Error: KafkaError{code=_STATE,val=-172,str="Failed to seek to offset 7554142: Local: Erroneous state"}
-        consumer.assign([tp_with_offset])
-        
-        consumer.seek(tp_with_offset)
+            # 重新创建 TopicPartition 对象，设置 offset
+            tp_with_offset = TopicPartition(tp.topic, tp.partition, high_offset - 1)
+            
+            # fix: Error: KafkaError{code=_STATE,val=-172,str="Failed to seek to offset 7554142: Local: Erroneous state"}
+            consumer.assign([tp_with_offset])
+            
+            consumer.seek(tp_with_offset)
 
-        msg = consumer.poll(timeout=1.0)  # 获取最新消息
-        if msg and not msg.error():
-            msg_ts = msg.timestamp()[1]
-            if latest_timestamp is None or msg_ts > latest_timestamp:
-                latest_timestamp = msg_ts
+            msg = consumer.poll(timeout=1.0)  # 获取最新消息
+            if msg and not msg.error():
+                msg_ts = msg.timestamp()[1]
+                if latest_timestamp is None or msg_ts > latest_timestamp:
+                    latest_timestamp = msg_ts
 
-    consumer.close()
+        consumer.close()
 
-    return latest_timestamp
-
+        return latest_timestamp
+    except Exception as e:
+        print(f"Error occurred while checking kafka_ct_time: {e}")
+        return None
 
 def check_sqlserver2kafka_sync(ds, max_retries=3):
     for db in ds:
