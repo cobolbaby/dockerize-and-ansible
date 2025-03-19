@@ -15,6 +15,7 @@ from confluent_kafka.admin import AdminClient
 # 配置参数
 KAFKA_CONNECT_SERVICE_URL = os.getenv("KAFKA_CONNECT_SERVICE_URL")
 KAFKA_CONNECT_BOOTSTRAP_SERVERS = os.getenv("KAFKA_CONNECT_BOOTSTRAP_SERVERS")
+REDPANDA_API = os.getenv("REDPANDA_API")
 
 if KAFKA_CONNECT_SERVICE_URL is None or KAFKA_CONNECT_BOOTSTRAP_SERVERS is None:
     print("KAFKA_CONNECT_SERVICE_URL/KAFKA_CONNECT_BOOTSTRAP_SERVERS environment variable is not set.")
@@ -531,7 +532,7 @@ def check_sqlserver2kafka_sync(ds, max_retries=3):
 
 # 检测 CDC Topic 是否有 Lag
 def check_kafka2postgres_sync():
-    high_lag_groups = get_kafka_lag_consumer_groups()
+    high_lag_groups = get_kafka_lag_consumer_groups_v2()
 
     if not high_lag_groups:
         logging.info("No high lag consumer groups found.")
@@ -587,28 +588,51 @@ def get_kafka_lag_consumer_groups():
 
             # 批量请求 consumer group 的 offsets
             future_offsets = admin_client.list_consumer_group_offsets([consumer_group_id])
-            group_offsets = {group_id: future.result() for group_id, future in future_offsets.items()}
 
-            for group_id, offsets in group_offsets.items():
-                
-                logging.debug(f"Consumer Group: {group_id}")
-                summedLag = 0
-                for tp in offsets.topic_partitions:
-                    # 获取 partition 最新 offset（high watermark）
-                    high_watermark = consumer.get_watermark_offsets(tp)[1]  # (low, high)
-                    lag = high_watermark - tp.offset  # 计算 lag
-                    summedLag += lag
-                    logging.debug(f"  Topic: {tp.topic}, Partition: {tp.partition}, Lag: {lag}")
+            group_id = consumer_group_id.group_id
+            offsets = future_offsets[group_id].result()
+            
+            logging.debug(f"Consumer Group: {group_id}")
+            summedLag = 0
+            for tp in offsets.topic_partitions:
+                # 获取 partition 最新 offset（high watermark）
+                high_watermark = consumer.get_watermark_offsets(tp)[1]  # (low, high)
+                lag = high_watermark - tp.offset  # 计算 lag
+                summedLag += lag
+                logging.debug(f"  Topic: {tp.topic}, Partition: {tp.partition}, Lag: {lag}")
 
-                if summedLag > 100:
-                    logging.info(f"High lag consumer group found: {group_id}")
-                    high_lag_groups.append(group_id)
+            # 过滤出 lag > 100
+            if summedLag > 100:
+                logging.info(f"High lag consumer group found: {group_id}")
+                high_lag_groups.append(group_id)
             
         return high_lag_groups
     except Exception as e:
         logging.error(f"Error fetching consumer groups: {e}")
         return []
 
+# 通过 RedPanda API 获取 Consumer Groups
+def get_kafka_lag_consumer_groups_v2():
+    response = requests.get(f"{REDPANDA_API}/consumer-groups")
+    if response.status_code != 200:
+        logging.warning("Failed to fetch consumer groups")
+        return []
+
+    data = response.json()
+
+    # 过滤出 lag > 100
+    high_lag_groups = []
+    for group in data.get("consumerGroups", []):
+        if group["groupId"].startswith("connect-") is False:
+            continue
+
+        for topic in group.get("topicOffsets", []):
+            if topic["summedLag"] > 100:
+                high_lag_groups.append(group["groupId"])
+                break  # 只要有一个 topic lag 超过 1000，就标记该 group 需要重启
+    
+    return high_lag_groups
+    
 def main():
     try:
         check_and_restart_failed_kafka_connectors()
