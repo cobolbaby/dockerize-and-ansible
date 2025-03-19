@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 
 import pymssql
 import requests
-
-from kafka import KafkaConsumer, TopicPartition
+from confluent_kafka import (Consumer, ConsumerGroupTopicPartitions,
+                             KafkaException, TopicPartition)
+from confluent_kafka.admin import AdminClient
 
 # 配置参数
 KAFKA_CONNECT_SERVICE_URL = os.getenv("KAFKA_CONNECT_SERVICE_URL")
@@ -28,7 +29,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # 数据库连接池
 connections = {}
 
-def get_db_connection(db):
+def get_sqlserver_connection(db):
     """获取或创建数据库连接"""
     db_key = (db["hostname"], db["port"], db["database"])
 
@@ -135,12 +136,12 @@ def get_debezium_sqlserver_connectors():
             # 更新表集合
             db_dict[db_key]["tables"].update(config.get("table.include.list", "").split(","))
 
-            active_topics = get_active_topics_of_kafka_connect(config)
+            active_topics = get_kafka_connect_active_topics(config)
             db_dict[db_key]["active_topics"].update(active_topics)
 
     return list(db_dict.values())
 
-def get_active_topics_of_kafka_connect(connector_config):
+def get_kafka_connect_active_topics(connector_config):
     """
     获取指定 Connector 关联的 Kafka Topic
     """
@@ -165,7 +166,7 @@ def get_active_topics_of_kafka_connect(connector_config):
 def check_sqlserver_cdc(db):
     """检查 SQL Server 是否启用 CDC，并比对表"""
     try:
-        conn = get_db_connection(db)
+        conn = get_sqlserver_connection(db)
         cursor = conn.cursor()
 
         cursor.execute("SELECT is_cdc_enabled FROM sys.databases WHERE name = %s", (db["database"]))
@@ -181,8 +182,10 @@ def check_sqlserver_cdc(db):
         extra_cdc_tables = cdc_tables - configured_tables
         if missing_tables:
             logging.warning(f"以下表未启用 CDC: {', '.join(missing_tables)}")
+            # TODO: 开启 CDC
         if extra_cdc_tables:
             logging.warning(f"以下表启用了 CDC 但未配置同步: {', '.join(extra_cdc_tables)}")
+            # TODO: 添加配置同步功能
         return True
     except Exception as e:
         logging.error(f"检查 SQL Server CDC 失败: {e}")
@@ -190,7 +193,7 @@ def check_sqlserver_cdc(db):
 
 def check_sqlserver_cdc_agent_job(db):
     """检查 SQL Server CDC Agent Job 是否运行"""
-    conn = get_db_connection(db)
+    conn = get_sqlserver_connection(db)
     cursor = conn.cursor()
 
     try:
@@ -222,10 +225,10 @@ def check_sqlserver_cdc_agent_job(db):
 def restart_sqlserver_cdc_agent_job(db):
     """重启 CDC Agent Job"""
     try:
-        # conn = get_db_connection(db)
-        # cursor = conn.cursor()
+        conn = get_sqlserver_connection(db)
+        cursor = conn.cursor()
 
-        # cursor.execute("EXEC msdb.dbo.sp_start_job @job_name = %s", (f'cdc.{db["database"]}_capture'))
+        cursor.execute("EXEC msdb.dbo.sp_start_job @job_name = %s", (f'cdc.{db["database"]}_capture'))
         logging.info(f"重启 CDC Agent Job {db['database']}_capture 成功")
     except Exception as e:
         logging.error(f"重启 CDC Agent Job {db['database']}_capture 失败: {e}")
@@ -233,7 +236,7 @@ def restart_sqlserver_cdc_agent_job(db):
 def is_sqlserver_alwayson(db):
     """检查是否为 AlwaysOn 集群"""
     try:
-        conn = get_db_connection(db)
+        conn = get_sqlserver_connection(db)
         cursor = conn.cursor()
 
         cursor.execute("SELECT COUNT(1) AS is_alwayson FROM sys.availability_groups")
@@ -246,7 +249,7 @@ def is_sqlserver_alwayson(db):
 def is_sqlserver_alwayson_primary(db):
     """检查当前实例是否为 AlwaysOn 集群的主节点"""
     try:
-        conn = get_db_connection(db)
+        conn = get_sqlserver_connection(db)
         cursor = conn.cursor(as_dict=True)
 
         # 使用 sys.fn_hadr_is_primary_replica 判断当前实例是否为主节点
@@ -269,7 +272,7 @@ def is_sqlserver_alwayson_primary(db):
 def get_sqlserver_alwayson_primary(db):
     """获取 AlwaysOn 集群的主节点地址并更新数据库配置"""
     try:
-        conn = get_db_connection(db)
+        conn = get_sqlserver_connection(db)
         cursor = conn.cursor()
         
         # 
@@ -290,7 +293,7 @@ def get_sqlserver_alwayson_primary(db):
 def check_sqlserver_alwayson_status(db):
     """检查 SQL Server AlwaysOn 状态"""
     try:
-        conn = get_db_connection(db)
+        conn = get_sqlserver_connection(db)
         cursor = conn.cursor(as_dict=True)
 
         cursor.execute("""
@@ -370,7 +373,7 @@ def check_and_restart_failed_kafka_connectors():
     for connector_name, task_id in failed_tasks:
         restart_response = requests.post(f"{KAFKA_CONNECT_SERVICE_URL}/connectors/{connector_name}/tasks/{task_id}/restart")
         
-        if restart_response.status_code == 200:
+        if restart_response.status_code == 204 or restart_response.status_code == 200:
             logging.info(f"Successfully restarted task {task_id} of connector {connector_name}.")
         else:
             logging.info(f"Failed to restart task {task_id} of connector {connector_name}.")
@@ -394,7 +397,7 @@ def get_sqlserver_ct_time(db, table_name):
     查询 SQL Server CT 表的最新记录时间，并动态转换为 UTC Unix 时间戳 (毫秒级)
     """
     try:
-        conn = get_db_connection(db)  # 获取数据库连接
+        conn = get_sqlserver_connection(db)  # 获取数据库连接
         cursor = conn.cursor()
 
         # 获取 SQL Server 当前时区偏移量
@@ -431,43 +434,51 @@ def get_sqlserver_ct_time(db, table_name):
     except Exception as e:
         logging.error(f"检查 SQL Server CT 失败: {e}")
         return None
-
-def get_kafka_ct_time(topic_name):
+# https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/get_watermark_offsets.py
+def get_kafka_ct_time(topic):
     """
     获取 Kafka Topic 各分区最新的一条消息，并返回最新的时间戳
     """
-    consumer = KafkaConsumer(
-        bootstrap_servers=KAFKA_CONNECT_BOOTSTRAP_SERVERS,
-        enable_auto_commit=False
-    )
+    consumer = Consumer({
+        'bootstrap.servers': KAFKA_CONNECT_BOOTSTRAP_SERVERS,
+        'group.id': 'monitoring-consumer',
+        'auto.offset.reset': 'latest',
+        'enable.auto.commit': False
+    })
 
     # 获取 topic 的所有分区
-    partitions = consumer.partitions_for_topic(topic_name)
-    if not partitions:
-        print(f"No partitions found for topic: {topic_name}")
-        return None
+    metadata = consumer.list_topics(topic)
+    if metadata.topics[topic].error is not None:
+        raise KafkaException(metadata.topics[topic].error)
 
-    # 指定消费的分区
-    tp_list = [TopicPartition(topic_name, p) for p in partitions]
-    consumer.assign(tp_list)
+    partitions = [TopicPartition(topic, p) for p in metadata.topics[topic].partitions.keys()]
 
-    # 获取各分区的最新 offset
-    end_offsets = consumer.end_offsets(tp_list)
     latest_timestamp = None
 
-    for tp, offset in end_offsets.items():
-        if offset == 0:
+    for tp in partitions:
+        # 获取分区的 offset
+        low_offset, high_offset = consumer.get_watermark_offsets(tp, cached=False)
+        if high_offset == 0 or high_offset == low_offset:
             continue  # 该分区没有数据，跳过
-        consumer.seek(tp, offset - 1)  # 定位到最后一条消息
-        for msg in consumer:
-            if latest_timestamp is None or msg.timestamp > latest_timestamp:
-                latest_timestamp = msg.timestamp
-            break  # 只取一条
+
+        # 重新创建 TopicPartition 对象，设置 offset
+        tp_with_offset = TopicPartition(tp.topic, tp.partition, high_offset - 1)
+        
+        # fix: Error: KafkaError{code=_STATE,val=-172,str="Failed to seek to offset 7554142: Local: Erroneous state"}
+        consumer.assign([tp_with_offset])
+        
+        consumer.seek(tp_with_offset)
+
+        msg = consumer.poll(timeout=1.0)  # 获取最新消息
+        if msg and not msg.error():
+            msg_ts = msg.timestamp()[1]
+            if latest_timestamp is None or msg_ts > latest_timestamp:
+                latest_timestamp = msg_ts
 
     consumer.close()
 
-    # long int 是否要转换成 timestamp ?
-    return latest_timestamp if latest_timestamp else None
+    return latest_timestamp
+
 
 def check_sqlserver2kafka_sync(ds, max_retries=3):
     for db in ds:
@@ -520,11 +531,88 @@ def check_sqlserver2kafka_sync(ds, max_retries=3):
 
 # 检测 CDC Topic 是否有 Lag
 def check_kafka2postgres_sync():
+    high_lag_groups = get_kafka_lag_consumer_groups()
+
+    if not high_lag_groups:
+        logging.info("No high lag consumer groups found.")
+        return True
+
+    # 生成 Kafka Connect Job 名称并重启
+    for group_id in high_lag_groups:
+        # 去掉 `connect-` 前缀，就是 JDBC Connect Job 名称
+        connector_name = group_id.replace("connect-", "", 1)
+        
+        logging.info(f"Restarting Kafka Connect job: {connector_name} ...")
+        restart_response = requests.post(f"{KAFKA_CONNECT_SERVICE_URL}/{connector_name}/tasks/0/restart")
+        
+        if restart_response.status_code == 204 or restart_response.status_code == 200:
+            logging.info(f"Successfully restarted {connector_name}")
+        else:
+            logging.error(f"Failed to restart {connector_name}: {restart_response.text}")
+
     return True
 
+def get_kafka_lag_consumer_groups():
+    """
+    获取 Kafka 所有 consumer group 的 lag 信息（优化为批量查询）
+    """
+    try:
+        admin_client = AdminClient({
+            'bootstrap.servers': KAFKA_CONNECT_BOOTSTRAP_SERVERS
+        })
+        
+        consumer = Consumer({
+            'bootstrap.servers': KAFKA_CONNECT_BOOTSTRAP_SERVERS,
+            'group.id': 'monitoring-consumer',
+            'auto.offset.reset': 'latest',
+            'enable.auto.commit': False
+        })
+
+        # 获取所有 consumer group
+        future_groups = admin_client.list_consumer_groups(request_timeout=10)
+        groups = future_groups.result()
+        
+        consumer_group_ids = [ConsumerGroupTopicPartitions(g.group_id) for g in groups.valid 
+                              if g.group_id.startswith("connect-")]
+        if not consumer_group_ids:
+            logging.warning("No consumer groups match the filter.")
+            return []
+        
+        logging.info(f"Fetching offsets for {len(consumer_group_ids)} consumer groups...")
+
+        high_lag_groups = []
+
+        # TODO:由于 lib 库不支持批量查询的操作，所以只能循环处理
+        for consumer_group_id in consumer_group_ids:
+
+            # 批量请求 consumer group 的 offsets
+            future_offsets = admin_client.list_consumer_group_offsets([consumer_group_id])
+            group_offsets = {group_id: future.result() for group_id, future in future_offsets.items()}
+
+            for group_id, offsets in group_offsets.items():
+                
+                logging.debug(f"Consumer Group: {group_id}")
+                summedLag = 0
+                for tp in offsets.topic_partitions:
+                    # 获取 partition 最新 offset（high watermark）
+                    high_watermark = consumer.get_watermark_offsets(tp)[1]  # (low, high)
+                    lag = high_watermark - tp.offset  # 计算 lag
+                    summedLag += lag
+                    logging.debug(f"  Topic: {tp.topic}, Partition: {tp.partition}, Lag: {lag}")
+
+                if summedLag > 100:
+                    logging.info(f"High lag consumer group found: {group_id}")
+                    high_lag_groups.append(group_id)
+            
+        return high_lag_groups
+    except Exception as e:
+        logging.error(f"Error fetching consumer groups: {e}")
+        return []
 
 def main():
     try:
+        check_and_restart_failed_kafka_connectors()
+
         ds = get_debezium_sqlserver_connectors()
         
         check_and_repair_sqlserver_datasource(ds)
