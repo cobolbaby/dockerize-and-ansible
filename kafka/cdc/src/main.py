@@ -724,18 +724,33 @@ def get_kafka_lag_consumer_groups_v2():
                 break  # 只要有一个 topic lag 超过 1000，就标记该 group 需要重启
     
     return high_lag_groups
-    
+
+
+def check_sqlserver2postgres_sync(ds, method="KAFKA"):
+
+    if method.upper() == "KAFKA":
+        check_sqlserver2kafka_sync(ds)
+
+        check_and_restart_kafka_connect_failed_tasks()
+
+        check_kafka2postgres_sync()
+    elif method.upper() == "SEATUNNEL":
+        check_sqlserver2postgres_sync_v2(ds)
+    else:
+        logging.error("不支持的 method")
+        return
+
+def check_sqlserver2postgres_sync_v2(ds):
+    # TODO:待实现，需要结合血缘，获取源端 + 目标端的连接信息
+    return 
+
 def main():
     try:
         ds = get_debezium_sqlserver_connectors()
         
         check_and_repair_sqlserver_datasource(ds)
 
-        check_sqlserver2kafka_sync(ds)
-
-        check_and_restart_kafka_connect_failed_tasks()
-
-        check_kafka2postgres_sync()
+        check_sqlserver2postgres_sync(ds, "KAFKA")
 
     except Exception as e:
         logging.error(f"运行出错: {e}")
