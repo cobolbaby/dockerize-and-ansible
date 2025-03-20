@@ -727,13 +727,13 @@ def get_kafka_lag_consumer_groups_v2():
     
 def main():
     try:
-        check_and_restart_kafka_connect_failed_tasks()
-
         ds = get_debezium_sqlserver_connectors()
         
         check_and_repair_sqlserver_datasource(ds)
 
         check_sqlserver2kafka_sync(ds)
+
+        check_and_restart_kafka_connect_failed_tasks()
 
         check_kafka2postgres_sync()
 
