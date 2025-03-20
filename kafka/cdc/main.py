@@ -170,23 +170,45 @@ def check_sqlserver_cdc(db):
         conn = get_sqlserver_connection(db)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT is_cdc_enabled FROM sys.databases WHERE name = %s", (db["database"]))
+        cursor.execute("SELECT is_cdc_enabled FROM sys.databases WHERE name = %s", (db["database"],))
         is_cdc_enabled = cursor.fetchone()
-        if not is_cdc_enabled:
-            logging.error(f"数据库 {db['database']} 未启用 CDC！")
-            return False
+        if not is_cdc_enabled or is_cdc_enabled["is_cdc_enabled"] == 0:
+            logging.warning(f"数据库 {db['database']} 未启用 CDC，请执行以下命令启用:")
+            logging.info(f"""
+            USE {db['database']};
+            EXEC sys.sp_cdc_enable_db;
+            """)
         
         cursor.execute("SELECT name FROM sys.tables WHERE is_tracked_by_cdc = 1")
         cdc_tables = {"dbo." + row['name'] for row in cursor.fetchall()}
         configured_tables = set(db["tables"])
+
         missing_tables = configured_tables - cdc_tables
         extra_cdc_tables = cdc_tables - configured_tables
+
         if missing_tables:
-            logging.warning(f"以下表未启用 CDC: {', '.join(missing_tables)}")
-            # TODO: 自动开启 CDC
+            logging.warning(f"以下表未启用 CDC，请执行以下命令:")
+            for table in missing_tables:
+                table_name = table.split(".")[-1]  # 只取表名
+                logging.info(f"""
+                USE {db['database']};
+                EXEC sys.sp_cdc_enable_table
+                    @source_schema = N'dbo',
+                    @source_name   = N'{table_name}',
+                    @role_name     = NULL,
+                    @supports_net_changes = 1;
+                """)
         if extra_cdc_tables:
-            logging.warning(f"以下表启用了 CDC 但未配置同步: {', '.join(extra_cdc_tables)}")
-            # TODO: 给出关闭 CDC 的命令
+            logging.warning(f"以下表已启用 CDC 但未配置同步，如需关闭，请执行以下命令:")
+            for table in extra_cdc_tables:
+                table_name = table.split(".")[-1]  # 只取表名
+                logging.info(f"""
+                USE {db['database']};
+                EXEC sys.sp_cdc_disable_table 
+                    @source_schema = N'dbo', 
+                    @source_name = N'{table_name}', 
+                    @capture_instance = N'dbo_{table_name}';
+                """)
         return True
     except Exception as e:
         logging.error(f"检查 SQL Server CDC 失败: {e}")
@@ -322,7 +344,6 @@ def check_and_repair_sqlserver_datasource(dbs):
         logging.info("-------------------------------------------------")
         logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
         if check_sqlserver_cdc(db) is False:
-            # TODO:恢复CDC
             continue
 
         if is_sqlserver_alwayson(db):
@@ -338,7 +359,6 @@ def check_and_repair_sqlserver_datasource(dbs):
         
         # 检查 SQL Server CDC Agent Job 是否运行
         if check_sqlserver_cdc_agent_job(db) is False:
-            # TODO:恢复CDC Agent Job
             restart_sqlserver_cdc_agent_job(db)
             continue
     
