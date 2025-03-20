@@ -183,10 +183,10 @@ def check_sqlserver_cdc(db):
         extra_cdc_tables = cdc_tables - configured_tables
         if missing_tables:
             logging.warning(f"以下表未启用 CDC: {', '.join(missing_tables)}")
-            # TODO: 开启 CDC
+            # TODO: 自动开启 CDC
         if extra_cdc_tables:
             logging.warning(f"以下表启用了 CDC 但未配置同步: {', '.join(extra_cdc_tables)}")
-            # TODO: 添加配置同步功能
+            # TODO: 给出关闭 CDC 的命令
         return True
     except Exception as e:
         logging.error(f"检查 SQL Server CDC 失败: {e}")
@@ -344,7 +344,56 @@ def check_and_repair_sqlserver_datasource(dbs):
     
     logging.info("CDC 数据同步巡检完成")
 
-def check_and_restart_failed_kafka_connectors():
+def get_kafka_connect_tasks_status(connector_name):
+    """
+    获取 Kafka Connect Job 的任务状态。
+    """
+    try:
+        response = requests.get(f"{KAFKA_CONNECT_SERVICE_URL}/connectors/{connector_name}/status")
+
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch status for {connector_name}: {response.text}")
+            return None
+
+        return response.json()
+    except requests.RequestException as e:
+        logging.error(f"Failed to connect to Kafka Connect API: {e}")
+        return None
+
+def restart_kafka_connect_tasks(connector_name, task_id):
+    """
+    重启指定 Kafka Connect 任务。
+    """
+    restart_response = requests.post(f"{KAFKA_CONNECT_SERVICE_URL}/connectors/{connector_name}/tasks/{task_id}/restart")
+
+    if restart_response.status_code in [200, 204]:
+        logging.info(f"Successfully restarted task {task_id} of connector {connector_name}.")
+        return True
+    else:
+        logging.error(f"Failed to restart task {task_id} of connector {connector_name}. Response: {restart_response.text}")
+        return False
+
+def check_kafka_connect_failed_tasks(trace):
+    """
+    根据任务异常信息 (trace) 判断是否应该重启任务。
+    例如，某些致命错误（如配置错误）不适合重启，而临时网络错误可以尝试重启。
+    """
+    if not trace:
+        return True  # 没有错误信息，默认允许重启
+
+    # 定义不可重启的错误关键字
+    non_restartable_errors = [
+        "configured with 'delete.enabled=false' and 'pk.mode=none' and therefore requires records with a non-null Struct value and non-null Struct schema", # 主键为空 -- 源头修正
+        "You will need to rewrite or cast the expression", # 字段类型问题 -- 最好源头修正
+        "io.confluent.connect.jdbc.sink.TableAlterOrCreateException", # 上游新增字段，下游未同步增加 -- 下游跟进
+    ]
+    
+    for error in non_restartable_errors:
+        if error in trace:
+            logging.warning(f"Skipping restart due to critical error: {error}")
+            return False
+
+def check_and_restart_kafka_connect_failed_tasks():
     # 获取所有 Connector 状态信息
     response = requests.get(f"{KAFKA_CONNECT_SERVICE_URL}/connectors?expand=status")
     
@@ -364,20 +413,20 @@ def check_and_restart_failed_kafka_connectors():
         tasks = details.get("status").get("tasks")
         for task in tasks:
             if task.get("state") == "FAILED":
-                failed_tasks.append((connector_name, task.get("id")))
+                failed_tasks.append((connector_name, task.get("id"), task.get("trace")))
     
     # 重启失败的任务
     if not failed_tasks:
         logging.info("No failed connectors found.")
         return True
     
-    for connector_name, task_id in failed_tasks:
-        restart_response = requests.post(f"{KAFKA_CONNECT_SERVICE_URL}/connectors/{connector_name}/tasks/{task_id}/restart")
-        
-        if restart_response.status_code == 204 or restart_response.status_code == 200:
-            logging.info(f"Successfully restarted task {task_id} of connector {connector_name}.")
-        else:
-            logging.info(f"Failed to restart task {task_id} of connector {connector_name}.")
+    for connector_name, task_id, trace in failed_tasks:
+
+        if not check_kafka_connect_failed_tasks(trace):
+            logging.info(f"Skipping restart for {connector_name} - Task {task_id} due to non-restartable error.")
+            continue
+
+        restart_kafka_connect_tasks(connector_name, task_id)
     
     return True
 
@@ -546,13 +595,33 @@ def check_kafka2postgres_sync():
         # 去掉 `connect-` 前缀，就是 JDBC Connect Job 名称
         connector_name = group_id.replace("connect-", "", 1)
         
-        logging.info(f"Restarting Kafka Connect job: {connector_name} ...")
-        restart_response = requests.post(f"{KAFKA_CONNECT_SERVICE_URL}/{connector_name}/tasks/0/restart")
-        
-        if restart_response.status_code == 204 or restart_response.status_code == 200:
-            logging.info(f"Successfully restarted {connector_name}")
-        else:
-            logging.error(f"Failed to restart {connector_name}: {restart_response.text}")
+        tasks_status = get_kafka_connect_tasks_status(connector_name)
+        if tasks_status is None:
+            logging.error(f"Skipping restart: Failed to retrieve status for {connector_name}.")
+            continue
+
+        tasks = tasks_status.get("tasks", [])
+        restart_needed = False
+
+        for task in tasks:
+            task_id = task.get("id")
+            task_state = task.get("state")
+            trace = task.get("trace", "")
+
+            if task_state == "FAILED":
+                if check_kafka_connect_failed_tasks(trace):
+                    logging.warning(f"Task {task_id} of {connector_name} is FAILED. Restarting ...")
+                    restart_needed = True
+                else:
+                    logging.warning(f"Skipping restart for {connector_name} - Task {task_id} due to non-restartable error.")
+            
+            elif task_state in ["RUNNING", "UNASSIGNED"]:
+                logging.info(f"Task {task_id} of {connector_name} is {task_state}. Restarting due to high lag ...")
+                restart_needed = True
+
+            # 执行重启
+            if restart_needed:
+                restart_kafka_connect_tasks(connector_name, task_id)
 
     return True
 
@@ -605,7 +674,7 @@ def get_kafka_lag_consumer_groups():
                 logging.debug(f"  Topic: {tp.topic}, Partition: {tp.partition}, Lag: {lag}")
 
             # 过滤出 lag > 100
-            if summedLag > 100:
+            if summedLag > 200:
                 logging.info(f"High lag consumer group found: {group_id}")
                 high_lag_groups.append(group_id)
             
@@ -630,7 +699,7 @@ def get_kafka_lag_consumer_groups_v2():
             continue
 
         for topic in group.get("topicOffsets", []):
-            if topic["summedLag"] > 100:
+            if topic["summedLag"] > 300:
                 high_lag_groups.append(group["groupId"])
                 break  # 只要有一个 topic lag 超过 1000，就标记该 group 需要重启
     
@@ -638,7 +707,7 @@ def get_kafka_lag_consumer_groups_v2():
     
 def main():
     try:
-        check_and_restart_failed_kafka_connectors()
+        check_and_restart_kafka_connect_failed_tasks()
 
         ds = get_debezium_sqlserver_connectors()
         
