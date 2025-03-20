@@ -40,8 +40,8 @@ def get_sqlserver_connection(db):
                 server=db["hostname"],
                 port=db["port"],
                 database=db["database"],
-                user="dbadmin", # db["user"],
-                password="y=cos(x)+2", # db["password"],
+                user=db["user"],
+                password=db["password"],
                 as_dict=True,
                 login_timeout=5  # Connection timeout set to 5 seconds
             )
