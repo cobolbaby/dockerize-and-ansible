@@ -239,6 +239,9 @@ COPY config/* ./.config/patroni/
 COPY bin/* ./
 RUN chmod +x *.sh
 
+# jieba 自定义字典
+COPY dict/jieba_user.dict /usr/share/postgresql/16/tsearch_data/
+
 USER postgres
 EXPOSE 5432 8008
 ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
