@@ -39,7 +39,8 @@ def replace_config(config, mapping):
     hostname_key = config.get("database.hostname")
 
     # 如果 database.hostname 已经脱敏，则不替换
-    if hostname_key and hostname_key.startswith(f"${{file:/etc/kafka-connect/secrets/connect-credentials.properties"):
+    if hostname_key \
+        and hostname_key.startswith(f"${{file:/etc/kafka-connect/secrets/connect-credentials.properties"):
         return config, False
 
     if hostname_key in mapping:
@@ -50,6 +51,7 @@ def replace_config(config, mapping):
         config["database.password"] = f"${{file:/etc/kafka-connect/secrets/connect-credentials.properties:{entry['PASSWORD']}}}"
         return config, True  # 需要更新
 
+    log.warning(f"No mapping found for hostname: {hostname_key}")
     return config, False  # 没有匹配，不需要更新
 
 def fetch_connectors():
@@ -64,7 +66,9 @@ def update_connector(name, new_config):
     url = f"{KAFKA_CONNECT_URL}/connectors/{name}/config"
     headers = {"Content-Type": "application/json"}
     response = requests.put(url, headers=headers, data=json.dumps(new_config))
-    response.raise_for_status()
+    if response.status_code >= 400:
+        log.error(f"Failed to update connector {name}: {response.text}")
+        return
     log.info(f"Updated connector: {name}")
 
 def process_connectors(mapping):
