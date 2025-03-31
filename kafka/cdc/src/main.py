@@ -319,6 +319,7 @@ def check_sqlserver_alwayson_status(db):
         conn = get_sqlserver_connection(db)
         cursor = conn.cursor(as_dict=True)
 
+        # https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-hadr-database-replica-states-transact-sql?view=azuresqldb-current
         cursor.execute("""
             SELECT synchronization_state_desc
             FROM sys.dm_hadr_database_replica_states
@@ -550,7 +551,7 @@ def get_kafka_ct_time(topic):
 
         return latest_timestamp
     except Exception as e:
-        print(f"Error occurred while checking kafka_ct_time: {e}")
+        logging.error(f"Error occurred while checking kafka_ct_time of topic {topic}: {e}")
         return None
 
 def check_sqlserver2kafka_sync(ds, max_retries=3):
