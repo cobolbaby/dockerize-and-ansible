@@ -51,9 +51,9 @@ reserved_connections = 20
 
 # - Authentication -
 
-enable_pool_hba = off
+#enable_pool_hba = off
                                    # Use pool_hba.conf for client authentication
-pool_passwd = 'pool_passwd'
+#pool_passwd = 'pool_passwd'
                                    # File name of pool_passwd for md5 authentication.
                                    # "" disables pool_passwd.
                                    # (change requires restart)
@@ -207,7 +207,7 @@ logging_collector = on
 # FILE LOCATIONS
 #------------------------------------------------------------------------------
 
-pid_file_name = '/tmp/pgpool.pid'
+#pid_file_name = '/var/run/pgpool/pgpool.pid'
                                    # PID file name
                                    # Can be specified as relative to the"
                                    # location of pgpool.conf file or
@@ -226,9 +226,9 @@ pid_file_name = '/tmp/pgpool.pid'
 load_balance_mode = on
                                    # Activate load balancing mode
                                    # (change requires restart)
-ignore_leading_white_space = on
+#ignore_leading_white_space = on
                                    # Ignore leading white spaces of each query
-read_only_function_list = ''
+#read_only_function_list = ''
                                    # Comma separated list of function names
                                    # that don't write to database
                                    # Regexp are accepted
@@ -241,28 +241,28 @@ write_function_list = 'nextval,setval,.*\.func_(insert|delete|update|nlb)_.*,(sc
                                    # If it's volatile, the function is regarded as a
                                    # writing function.
 
-primary_routing_query_pattern_list = ''
+#primary_routing_query_pattern_list = ''
                                    # Semicolon separated list of query patterns
                                    # that should be sent to primary node
                                    # Regexp are accepted
-                                   # valid for streaming replicaton mode only.
+                                   # valid for streaming replication mode only.
 
-database_redirect_preference_list = ''
+#database_redirect_preference_list = ''
                                    # comma separated list of pairs of database and node id.
                                    # example: postgres:primary,mydb[0-4]:1,mydb[5-9]:2'
-                                   # valid for streaming replicaton mode only.
+                                   # valid for streaming replication mode only.
 
-app_name_redirect_preference_list = ''
+#app_name_redirect_preference_list = ''
                                    # comma separated list of pairs of app name and node id.
                                    # example: 'psql:primary,myapp[0-4]:1,myapp[5-9]:standby'
-                                   # valid for streaming replicaton mode only.
-allow_sql_comments = off
+                                   # valid for streaming replication mode only.
+#allow_sql_comments = off
                                    # if on, ignore SQL comments when judging if load balance or
                                    # query cache is possible.
                                    # If off, SQL comments effectively prevent the judgment
                                    # (pre 3.4 behavior).
 
-disable_load_balance_on_write = 'transaction'
+#disable_load_balance_on_write = 'transaction'
                                    # Load balance behavior when write query is issued
                                    # in an explicit transaction.
                                    #
@@ -290,7 +290,7 @@ disable_load_balance_on_write = 'transaction'
                                    # Note that any query not in an explicit transaction
                                    # is not affected by the parameter except 'always'.
 
-dml_adaptive_object_relationship_list= ''
+#dml_adaptive_object_relationship_list= ''
                                    # comma separated list of object pairs
                                    # [object]:[dependent-object], to disable load balancing
                                    # of dependent objects within the explicit transaction
@@ -301,7 +301,7 @@ dml_adaptive_object_relationship_list= ''
                                    # the write_function_list
                                    # only valid for disable_load_balance_on_write = 'dml_adaptive'.
 
-statement_level_load_balance = on
+#statement_level_load_balance = off
                                    # Enables statement level load balancing
 
 #------------------------------------------------------------------------------
@@ -312,12 +312,12 @@ statement_level_load_balance = on
 
 sr_check_period = 10
                                    # Streaming replication check period
-                                   # Disabled (0) by default
-sr_check_user = 'nobody'
+                                   # Default is 10s.
+#sr_check_user = 'nobody'
                                    # Streaming replication check user
-                                   # This is neccessary even if you disable streaming
+                                   # This is necessary even if you disable streaming
                                    # replication delay check by sr_check_period = 0
-sr_check_password = ''
+#sr_check_password = ''
                                    # Password for streaming replication check user
                                    # Leaving it empty will make Pgpool-II to first look for the
                                    # Password in pool_passwd file before using the empty password
@@ -344,9 +344,9 @@ health_check_period = 30
 health_check_timeout = 60
                                    # Health check timeout
                                    # 0 means no timeout
-health_check_user = 'nobody'
+#health_check_user = 'nobody'
                                    # Health check user
-health_check_password = ''
+#health_check_password = ''
                                    # Password for health check user
                                    # Leaving it empty will make Pgpool-II to first look for the
                                    # Password in pool_passwd file before using the empty password
@@ -401,7 +401,7 @@ health_check_max_retries = 3
                                    #   %S = old primary node port number
                                    #   %% = '%' character
 
-failover_on_backend_error = on
+#failover_on_backend_error = on
                                    # Initiates failover when reading/writing to the
                                    # backend communication socket fails
                                    # If set to off, pgpool will report an
@@ -415,7 +415,7 @@ failover_on_backend_error = on
 
 #detach_false_primary = off
                                    # Detach false primary if on. Only
-                                   # valid in streaming replicaton
+                                   # valid in streaming replication
                                    # mode and with PostgreSQL 9.6 or
                                    # after.
 
@@ -452,16 +452,16 @@ failover_on_backend_error = on
                                    # -1 means immediate disconnection
 auto_failback = on
                                    # https://b-peng.blogspot.com/2022/02/auto-failback.html
-                                   # Dettached backend node reattach automatically
+                                   # Detached backend node reattach automatically
                                    # if replication_state is 'streaming'.
-auto_failback_interval = 1min
+#auto_failback_interval = 1min
                                    # Min interval of executing auto_failback in
                                    # seconds.
 
 #------------------------------------------------------------------------------
 # OTHERS
 #------------------------------------------------------------------------------
-relcache_expire = 3600
+#relcache_expire = 0
                                    # Life time of relation cache in seconds.
                                    # 0 means no cache expiration(the default).
                                    # The relation cache is used for cache the
@@ -476,11 +476,11 @@ relcache_expire = 3600
                                    # not consistent anymore.
                                    # For this purpose, cache_expiration
                                    # controls the life time of the cache.
-relcache_size = 1024
+#relcache_size = 256
                                    # Number of relation cache
                                    # entry. If you see frequently:
-                                   # "pool_search_relcache: cache replacement happend"
-                                   # in the pgpool log, you might want to increate this number.
+                                   # "pool_search_relcache: cache replacement occurred"
+                                   # in the pgpool log, you might want to increase this number.
 
 check_temp_table = trace
                                    # Temporary table check method. catalog, trace or none.
@@ -493,27 +493,26 @@ check_unlogged_table = off
                                    # If you are absolutely sure that your system never uses unlogged tables
                                    # and you want to save access to primary/main, you could turn this off.
                                    # Default is on.
-enable_shared_relcache = on
+#enable_shared_relcache = on
                                    # If on, relation cache stored in memory cache,
                                    # the cache is shared among child process.
                                    # Default is on.
                                    # (change requires restart)
 
-relcache_query_target = primary
+relcache_query_target = load_balance_node
                                    # Target node to send relcache queries. Default is primary node.
                                    # If load_balance_node is specified, queries will be sent to load balance node.
-
 #------------------------------------------------------------------------------
 # IN MEMORY QUERY MEMORY CACHE
 #------------------------------------------------------------------------------
-memory_cache_enabled = off
+#memory_cache_enabled = off
                                    # If on, use the memory cache functionality, off by default
                                    # (change requires restart)
-memqcache_method = 'shmem'
+#memqcache_method = 'shmem'
                                    # Cache storage method. either 'shmem'(shared memory) or
                                    # 'memcached'. 'shmem' by default
                                    # (change requires restart)
-memqcache_oiddir = '/tmp/oiddir'
+#memqcache_oiddir = '/var/log/pgpool/oiddir'
                                    # Temporary work directory to record table oids
                                    # (change requires restart)
 
