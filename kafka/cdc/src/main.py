@@ -327,14 +327,19 @@ def check_sqlserver_alwayson_status(db):
                 AND is_primary_replica = 0
         """, (db["database"],))
         status = cursor.fetchone()
+        if status is None:
+            logging.info(f"数据库 {db['database']} 不在 AlwaysOn 高可用组中")
+            return True
+
         if status and status['synchronization_state_desc'] != "SYNCHRONIZING":
-            logging.warning(f"数据库 {db['database']} 在 AlwaysOn 组中同步状态异常: {status['synchronization_state_desc']}")
-        else:
-            logging.info(f"数据库 {db['database']} 同步状态正常")
-        return status['synchronization_state_desc'] if status else "UNKNOWN"
+            logging.error(f"数据库 {db['database']} 在 AlwaysOn 组中同步状态异常: {status['synchronization_state_desc']}")
+            return False
+        
+        logging.info(f"数据库 {db['database']} 同步状态正常")
+        return True
     except Exception as e:
         logging.error(f"检查 AlwaysOn 状态失败: {e}")
-        return "UNKNOWN"
+        return False
 
 def check_and_repair_sqlserver_datasource(dbs):
 
@@ -404,7 +409,7 @@ def check_kafka_connect_failed_tasks(trace):
 
     # 定义不可重启的错误关键字
     non_restartable_errors = [
-        "configured with 'delete.enabled=false' and 'pk.mode=none' and therefore requires records with a non-null Struct value and non-null Struct schema", # 主键为空 -- 源头修正
+        "configured with 'delete.enabled=false' and 'pk.mode=none' and therefore requires records with a non-null Struct value and non-null Struct schema", # 主键为空 -- 源头加主键
         "You will need to rewrite or cast the expression", # 字段类型问题 -- 最好源头修正
         "io.confluent.connect.jdbc.sink.TableAlterOrCreateException", # 上游新增字段，下游未同步增加 -- 下游跟进
     ]
