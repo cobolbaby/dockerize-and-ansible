@@ -6,6 +6,7 @@ import sys
 from configparser import ConfigParser
 from datetime import datetime, timezone
 
+import psycopg2
 import pymssql
 import requests
 from confluent_kafka import (Consumer, ConsumerGroupTopicPartitions,
@@ -45,6 +46,27 @@ def get_sqlserver_connection(db):
                 as_dict=True,
                 login_timeout=5  # Connection timeout set to 5 seconds
             )
+        except Exception as e:
+            logging.error(f"数据库连接失败: {e}")
+            raise e
+        
+    return connections[db_key]
+
+def get_postgres_connection(db):
+    """获取或创建数据库连接"""
+    db_key = (db["hostname"], db["port"], db["database"])
+
+    if db_key not in connections:
+        try:
+            connections[db_key] = psycopg2.connect(
+                host=db["hostname"],
+                port=db["port"],
+                dbname=db["database"],
+                user=db["user"],
+                password=db["password"],
+                sslmode="disable"
+            )
+            connections[db_key].autocommit = True
         except Exception as e:
             logging.error(f"数据库连接失败: {e}")
             raise e
@@ -109,9 +131,11 @@ def get_debezium_sqlserver_connectors():
     for connector, details in connectors.items():
         config = details.get("info").get("config")
         status = details.get("status").get("connector").get("state")
+        driver = config.get("connector.class")
         
         # 判断是否为 Debezium SQL Server 连接器
-        if config.get("connector.class") == "io.debezium.connector.sqlserver.SqlServerConnector":
+        if driver == "io.debezium.connector.sqlserver.SqlServerConnector" or \
+            driver == "io.debezium.connector.postgresql.PostgresConnector":
             
             config = {k: resolve_placeholders(v) for k, v in config.items()}
             # fix: 兼容 Debezium 2.x 版本的配置
@@ -120,13 +144,15 @@ def get_debezium_sqlserver_connectors():
             db_key = (dbname, config.get("database.hostname"), config.get("database.port", 1433))
             if db_key not in db_dict:
                 db_dict[db_key] = {
+                    "driver": driver,
                     "database": dbname,
                     "hostname": config.get("database.hostname"),
                     "port": config.get("database.port", 1433),
                     "user": config.get("database.user"),
                     "password": config.get("database.password"),
                     "tables": set(),
-                    "active_topics": set()
+                    "active_topics": set(),
+                    "connectors": set()
                 }
 
             # 如果 Task 是 PAUSED 状态，则跳过
@@ -139,6 +165,8 @@ def get_debezium_sqlserver_connectors():
 
             active_topics = get_kafka_connect_active_topics(config)
             db_dict[db_key]["active_topics"].update(active_topics)
+
+            db_dict[db_key]['connectors'].add(connector)
 
     return list(db_dict.values())
 
@@ -343,7 +371,7 @@ def check_sqlserver_alwayson_status(db):
 
 def check_and_repair_sqlserver_datasource(dbs):
 
-    logging.info("开始 CDC 数据同步巡检")
+    logging.info("SQL Server CDC 巡检开始")
     logging.debug(f"数据库列表: {dbs}")
     
     for db in dbs:
@@ -368,7 +396,7 @@ def check_and_repair_sqlserver_datasource(dbs):
             restart_sqlserver_cdc_agent_job(db)
             continue
     
-    logging.info("CDC 数据同步巡检完成")
+    logging.info("SQL Server CDC 巡检完成")
 
 def get_kafka_connect_tasks_status(connector_name):
     """
@@ -701,7 +729,7 @@ def get_kafka_lag_consumer_groups():
 
             # 过滤出 lag > 100
             if summedLag > 200:
-                logging.info(f"High lag consumer group found: {group_id}")
+                logging.info(f"High lag consumer group: {group_id}, Summed Lag: {summedLag}")
                 high_lag_groups.append(group_id)
             
         return high_lag_groups
@@ -713,7 +741,7 @@ def get_kafka_lag_consumer_groups():
 def get_kafka_lag_consumer_groups_v2():
     response = requests.get(f"{REDPANDA_API}/consumer-groups")
     if response.status_code != 200:
-        logging.warning("Failed to fetch consumer groups")
+        logging.error("Failed to fetch consumer groups")
         return []
 
     data = response.json()
@@ -725,7 +753,8 @@ def get_kafka_lag_consumer_groups_v2():
             continue
 
         for topic in group.get("topicOffsets", []):
-            if topic["summedLag"] > 300:
+            if topic["summedLag"] > 200:
+                logging.info(f"High lag consumer group: {group['groupId']}, Summed Lag: {topic['summedLag']}")
                 high_lag_groups.append(group["groupId"])
                 break  # 只要有一个 topic lag 超过 1000，就标记该 group 需要重启
     
@@ -750,13 +779,112 @@ def check_sqlserver2postgres_sync_v2(ds):
     # TODO:待实现，需要结合血缘，获取源端 + 目标端的连接信息
     return 
 
+
+def check_postgres_replication_slot(db):
+    try:
+        conn = get_postgres_connection(db)
+        cursor = conn.cursor()
+        cursor.execute("SELECT active FROM pg_replication_slots WHERE slot_name = %s", (db["replication_slot"],))
+        result = cursor.fetchone()
+        cursor.close()
+        if result and result[0] is True:
+            logging.info(f"数据库 {db['database']} replication slot {db['replication_slot']} 运行正常")
+            return True
+        else:
+            logging.error(f"数据库 {db['database']} replication slot {db['replication_slot']} 运行异常")
+            return False
+    except Exception as e:
+        logging.error(f"检查数据库 {db['database']} replication slot {db['replication_slot']} 运行状态失败: {e}")
+        return False
+
+def should_drop_postgres_replication_slot(trace):
+    non_recoverable_keywords = [
+        "ERROR: unexpected duplicate for tablespace 0, relfilenode", # 根因是个谜，但只要遇到就得重建
+    ]
+    return any(keyword in trace for keyword in non_recoverable_keywords)
+
+def drop_postgres_replication_slot(db):
+    try:
+        conn = get_postgres_connection(db)
+        cursor = conn.cursor()
+        cursor.execute("SELECT pg_drop_replication_slot(%s)", (db['replication_slot'],))
+        logging.warning(f"已删除 replication slot: {db['replication_slot']}")
+        cursor.close()
+    except Exception as e:
+        logging.error(f"删除 replication slot {db['replication_slot']} 失败: {e}")
+
+def check_and_repair_postgres_datasource(dbs):
+    logging.info("PostgreSQL CDC 巡检开始")
+    logging.debug(f"数据库列表: {dbs}")
+
+    for db in dbs:
+        # 如果 replication slot 未设置，则默认为 'debezium'
+        if not db.get('replication_slot'):
+            db['replication_slot'] = 'debezium'
+
+        logging.info("-------------------------------------------------")
+        logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
+        
+        if check_postgres_replication_slot(db):
+            continue
+
+        logging.warning(f"尝试恢复 connector: {db['connectors']}")
+
+        for connector in db['connectors']:
+            tasks_status = get_kafka_connect_tasks_status(connector)
+            if tasks_status is None:
+                continue
+
+            tasks = tasks_status.get("tasks", [])
+            restart_needed = False
+            recreate_needed = False
+
+            for task in tasks:
+                task_id = task.get("id")
+                task_state = task.get("state")
+                trace = task.get("trace", "")
+
+                if task_state == "FAILED":
+                    # 失败的任务要么重启能恢复，要么重启恢复不了，只能重建
+                    if should_drop_postgres_replication_slot(trace):
+                        logging.warning(f"Skipping restart for {connector} - Task {task_id} due to non-restartable error.")
+                        recreate_needed = True
+                    else:
+                        logging.warning(f"Task {task_id} of {connector} is FAILED. Restarting ...")
+                        restart_needed = True
+                
+                elif task_state in ["RUNNING", "UNASSIGNED"]:
+                    # 先重启一把瞅瞅
+                    logging.info(f"Task {task_id} of {connector} is {task_state}, but replication slot is inactive. Restarting task to recover.")
+                    restart_needed = True
+
+                if recreate_needed:
+                    drop_postgres_replication_slot(db)
+
+                if restart_needed:
+                    restart_kafka_connect_tasks(connector, task_id)
+                
+    logging.info("PostgreSQL CDC 巡检完成")
+       
+
+def check_postgres2kafka_sync(ds):
+    return
+
 def main():
     try:
         ds = get_debezium_sqlserver_connectors()
-        
-        check_and_repair_sqlserver_datasource(ds)
 
-        check_sqlserver2postgres_sync(ds, "KAFKA")
+        sqlds = [d for d in ds if d.get("driver") == "io.debezium.connector.sqlserver.SqlServerConnector"]
+
+        check_and_repair_sqlserver_datasource(sqlds)
+
+        check_sqlserver2postgres_sync(sqlds, "KAFKA")
+
+        pgds = [d for d in ds if d.get("driver") == "io.debezium.connector.postgresql.PostgresConnector"]
+        
+        check_and_repair_postgres_datasource(pgds)
+
+        check_postgres2kafka_sync(pgds)
 
     except Exception as e:
         logging.error(f"运行出错: {e}")
