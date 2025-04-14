@@ -251,7 +251,7 @@ def check_sqlserver_cdc_agent_job(db):
         cursor.execute("EXEC msdb.dbo.sp_help_jobactivity @job_name = %s", (f'cdc.{db["database"]}_capture',))
         job_status = cursor.fetchone()
         if job_status and job_status['start_execution_date'] is not None and job_status['stop_execution_date'] is None:
-            logging.info(f"CDC Agent Job {db['database']}_capture 正常运行")
+            logging.info(f"数据库 {db['database']} 的 CDC Agent Job {db['database']}_capture 正常运行")
             return True
 
         logging.error(f"CDC or LogReader Agent Job for {db['database']} 未运行，尝试重启")
@@ -266,8 +266,8 @@ def check_sqlserver_cdc_agent_job(db):
         cursor.execute("SELECT CAST(DATABASEPROPERTYEX(%s, 'IsPublished') AS INT) AS IsPublished", (db["database"]))
         repl_status = cursor.fetchone()
         if repl_status and repl_status['IsPublished'] == 1:
-            logging.info(f"{db['database']} 启用了 Replication，跳过检查 CDC Agent Job")
-            logging.warning(f"{db['database']} 启用了 Replication，但要注意 LogReader Agent 是定时运行，时延较 CDC 有差异")
+            logging.info(f"数据库 {db['database']} 启用了 Replication，跳过检查 CDC Agent Job")
+            logging.warning(f"数据库 {db['database']} 启用了 Replication，但要注意 LogReader Agent 是定时运行，时延较 CDC 有差异")
             return True
 
         logging.error(f"CDC or LogReader Agent Job for {db['database']} 均未运行: {e}")
@@ -311,10 +311,10 @@ def is_sqlserver_alwayson_primary(db):
         result = cursor.fetchone()
 
         if result and (result['is_primary'] == 1 or result['is_primary'] is None):
-            logging.info(f"当前数据库 {db['database']} 所在实例 {db['hostname']} 是主节点")
+            logging.info(f"数据库 {db['database']} 所在 AlwaysOn 集群节点 {db['hostname']} 是主节点")
             return True
         else: # is_primary 为 0 则不是主节点
-            logging.info(f"当前数据库 {db['database']} 所在实例 {db['hostname']} 不是主节点")
+            logging.info(f"数据库 {db['database']} 所在 AlwaysOn 集群节点 {db['hostname']} 是辅助节点")
             return False
     except Exception as e:
         logging.error(f"检查 AlwaysOn 主节点状态失败: {e}")
@@ -333,7 +333,7 @@ def get_sqlserver_alwayson_primary(db):
         """)
         result = cursor.fetchone()
         if result:
-            logging.info(f"主节点地址: {result['primary_replica']}")
+            logging.info(f"数据库 {db['database']} 所在 AlwaysOn 集群的主节点是 {result['primary_replica']}")
             # 修改数据库连接信息指向主节点
             db["hostname"] = result["primary_replica"]
         return db
@@ -356,14 +356,14 @@ def check_sqlserver_alwayson_status(db):
         """, (db["database"],))
         status = cursor.fetchone()
         if status is None:
-            logging.info(f"数据库 {db['database']} 不在 AlwaysOn 高可用组中")
+            logging.info(f"数据库 {db['database']} 不属于 AlwaysOn 高可用组")
             return True
 
         if status and status['synchronization_state_desc'] != "SYNCHRONIZING":
-            logging.error(f"数据库 {db['database']} 在 AlwaysOn 组中同步状态异常: {status['synchronization_state_desc']}")
+            logging.error(f"数据库 {db['database']} 属于 AlwaysOn 高可用组，但同步状态异常: {status['synchronization_state_desc']}")
             return False
         
-        logging.info(f"数据库 {db['database']} 同步状态正常")
+        logging.info(f"数据库 {db['database']} 属于 AlwaysOn 高可用组，且同步状态正常")
         return True
     except Exception as e:
         logging.error(f"检查 AlwaysOn 状态失败: {e}")
@@ -371,9 +371,6 @@ def check_sqlserver_alwayson_status(db):
 
 def check_and_repair_sqlserver_datasource(dbs):
 
-    logging.info("SQL Server CDC 巡检开始")
-    logging.debug(f"数据库列表: {dbs}")
-    
     for db in dbs:
         logging.info("-------------------------------------------------")
         logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
@@ -395,8 +392,6 @@ def check_and_repair_sqlserver_datasource(dbs):
         if check_sqlserver_cdc_agent_job(db) is False:
             restart_sqlserver_cdc_agent_job(db)
             continue
-    
-    logging.info("SQL Server CDC 巡检完成")
 
 def get_kafka_connect_tasks_status(connector_name):
     """
@@ -814,8 +809,6 @@ def drop_postgres_replication_slot(db):
         logging.error(f"删除 replication slot {db['replication_slot']} 失败: {e}")
 
 def check_and_repair_postgres_datasource(dbs):
-    logging.info("PostgreSQL CDC 巡检开始")
-    logging.debug(f"数据库列表: {dbs}")
 
     for db in dbs:
         # 如果 replication slot 未设置，则默认为 'debezium'
@@ -863,9 +856,6 @@ def check_and_repair_postgres_datasource(dbs):
 
                 if restart_needed:
                     restart_kafka_connect_tasks(connector, task_id)
-                
-    logging.info("PostgreSQL CDC 巡检完成")
-       
 
 def check_postgres2kafka_sync(ds):
     return
@@ -876,13 +866,31 @@ def main():
 
         sqlds = [d for d in ds if d.get("driver") == "io.debezium.connector.sqlserver.SqlServerConnector"]
 
+        logging.info("-------------------------------------------------")
+        logging.info("SQL Server CDC 巡检开始")
+
         check_and_repair_sqlserver_datasource(sqlds)
+
+        logging.info("-------------------------------------------------")
+        logging.info("SQL Server CDC 巡检完成")
+
+        logging.info("-------------------------------------------------")
+        logging.info("SQL Server2Postgres CDC 同步巡检开始")
 
         check_sqlserver2postgres_sync(sqlds, "KAFKA")
 
+        logging.info("-------------------------------------------------")
+        logging.info("SQL Server2Postgres CDC 同步巡检完成")
+
         pgds = [d for d in ds if d.get("driver") == "io.debezium.connector.postgresql.PostgresConnector"]
         
+        logging.info("-------------------------------------------------")
+        logging.info("PostgreSQL CDC 巡检开始")
+
         check_and_repair_postgres_datasource(pgds)
+
+        logging.info("-------------------------------------------------")
+        logging.info("PostgreSQL CDC 巡检完成")
 
         check_postgres2kafka_sync(pgds)
 
