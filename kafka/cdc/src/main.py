@@ -32,10 +32,30 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 connections = {}
 
 def get_sqlserver_connection(db):
-    """获取或创建数据库连接"""
+    """获取或创建数据库连接（优先使用保留账号）"""
     db_key = (db["hostname"], db["port"], db["database"])
 
     if db_key not in connections:
+        reserved_user = os.getenv("SQLSERVER_RESERVED_USER")
+        reserved_password = os.getenv("SQLSERVER_RESERVED_PASSWORD")
+
+        # 优先使用保留账号
+        if reserved_user and reserved_password:
+            try:
+                connections[db_key] = pymssql.connect(
+                    server=db["hostname"],
+                    port=db["port"],
+                    database=db["database"],
+                    user=reserved_user,
+                    password=reserved_password,
+                    as_dict=True,
+                    login_timeout=5
+                )
+                return connections[db_key]
+            except Exception as e:
+                logging.warning(f"使用保留账号连接失败: {e}，尝试使用原始账号。")
+
+        # 保留账号不存在或失败，使用原始账号连接
         try:
             connections[db_key] = pymssql.connect(
                 server=db["hostname"],
@@ -47,9 +67,9 @@ def get_sqlserver_connection(db):
                 login_timeout=5  # Connection timeout set to 5 seconds
             )
         except Exception as e:
-            logging.error(f"数据库连接失败: {e}")
+            logging.error(f"使用原始账号连接数据库失败: {e}")
             raise e
-        
+
     return connections[db_key]
 
 def get_postgres_connection(db):
@@ -209,38 +229,15 @@ def check_sqlserver_cdc(db):
         
         cursor.execute("SELECT name FROM sys.tables WHERE is_tracked_by_cdc = 1")
         cdc_tables = {"dbo." + row['name'] for row in cursor.fetchall()}
-        configured_tables = set(db["tables"])
+        synced_tables = set(db["tables"])
 
-        missing_tables = configured_tables - cdc_tables
-        extra_cdc_tables = cdc_tables - configured_tables
+        need_enable_table_cdc = synced_tables - cdc_tables
+        need_disable_table_cdc = cdc_tables - synced_tables
 
-        if missing_tables:
-            logging.warning(f"以下表未启用 CDC，请执行以下命令:")
-            for table in missing_tables:
-                table_name = table.split(".")[-1]  # 只取表名
-                logging.info(f"""
-                USE {db['database']};
-                EXEC sys.sp_cdc_enable_table
-                    @source_schema = N'dbo',
-                    @source_name   = N'{table_name}',
-                    @role_name     = NULL,
-                    @supports_net_changes = 1;
-                """)
-        if extra_cdc_tables:
-            logging.warning(f"以下表已启用 CDC 但未配置同步，如需关闭，请执行以下命令:")
-            for table in extra_cdc_tables:
-                table_name = table.split(".")[-1]  # 只取表名
-                logging.info(f"""
-                USE {db['database']};
-                EXEC sys.sp_cdc_disable_table 
-                    @source_schema = N'dbo', 
-                    @source_name = N'{table_name}', 
-                    @capture_instance = N'dbo_{table_name}';
-                """)
-        return True
+        return True, need_enable_table_cdc, need_disable_table_cdc
     except Exception as e:
         logging.error(f"检查 SQL Server CDC 失败: {e}")
-        return False
+        return False, set(), set()
 
 def check_sqlserver_cdc_agent_job(db):
     """检查 SQL Server CDC Agent Job 是否运行"""
@@ -369,12 +366,66 @@ def check_sqlserver_alwayson_status(db):
         logging.error(f"检查 AlwaysOn 状态失败: {e}")
         return False
 
+def apply_sqlserver_cdc_changes(db, enable_tables, disable_tables, dry_run=True):
+    """根据表名集合启用或禁用 SQL Server 的 CDC"""
+    try:
+        conn = get_sqlserver_connection(db)
+        cursor = conn.cursor()
+
+        # 启用 CDC
+        for table in enable_tables:
+            logging.warning(f"待启用表 {db['hostname']}.{db['database']}.{table} 的 CDC")
+
+            table_name = table.split(".")[-1]
+            sql = f"""
+            USE {db['database']};
+            EXEC sys.sp_cdc_enable_table
+                @source_schema = N'dbo',
+                @source_name   = N'{table_name}',
+                @role_name     = NULL,
+                @supports_net_changes = 1;
+            """
+            logging.info(sql)
+            if not dry_run:
+                try:
+                    cursor.execute(sql)
+                    conn.commit()
+                    logging.info(f"已启用表 {table} 的 CDC")
+                except Exception as e:
+                    logging.error(f"启用表 {table} 的 CDC 失败: {e}")
+
+        # 禁用 CDC
+        for table in disable_tables:
+            logging.warning(f"待关闭表 {db['hostname']}.{db['database']}.{table} 的 CDC")
+
+            table_name = table.split(".")[-1]
+            sql = f"""
+            USE {db['database']};
+            EXEC sys.sp_cdc_disable_table 
+                @source_schema = N'dbo', 
+                @source_name = N'{table_name}', 
+                @capture_instance = N'dbo_{table_name}';
+            """
+            logging.info(sql)
+            if not dry_run:
+                try:
+                    cursor.execute(sql)
+                    conn.commit()
+                    logging.info(f"已禁用表 {table} 的 CDC")
+                except Exception as e:
+                    logging.error(f"禁用表 {table} 的 CDC 失败: {e}")
+
+    except Exception as e:
+        logging.error(f"启用或禁用 SQL Server 的 CDC 失败: {e}")
+
 def check_and_repair_sqlserver_datasource(dbs):
 
     for db in dbs:
         logging.info("-------------------------------------------------")
         logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
-        if check_sqlserver_cdc(db) is False:
+
+        success, need_enable_table_cdc, need_disable_table_cdc = check_sqlserver_cdc(db)
+        if success is False:
             continue
 
         if is_sqlserver_alwayson(db):
@@ -391,7 +442,11 @@ def check_and_repair_sqlserver_datasource(dbs):
         # 检查 SQL Server CDC Agent Job 是否运行
         if check_sqlserver_cdc_agent_job(db) is False:
             restart_sqlserver_cdc_agent_job(db)
-            continue
+            # continue
+
+        # 自动开启关闭 CDC，默认只打印待执行的操作，但如果 DRY RUN 关闭，则真正执行
+        apply_sqlserver_cdc_changes(db, need_enable_table_cdc, need_disable_table_cdc, dry_run=True)
+
 
 def get_kafka_connect_tasks_status(connector_name):
     """
