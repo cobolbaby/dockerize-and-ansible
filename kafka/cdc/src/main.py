@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import random
@@ -15,11 +16,11 @@ from confluent_kafka.admin import AdminClient
 
 # 配置参数
 KAFKA_CONNECT_SERVICE_URL = os.getenv("KAFKA_CONNECT_SERVICE_URL")
-KAFKA_CONNECT_BOOTSTRAP_SERVERS = os.getenv("KAFKA_CONNECT_BOOTSTRAP_SERVERS")
+KAFKA_CONNECT_BOOTSTRAP_SERVERS = os.getenv("KAFKA_CONNECT_BOOTSTRAP_SERVERS", "")
 REDPANDA_API = os.getenv("REDPANDA_API")
 
-if KAFKA_CONNECT_SERVICE_URL is None or KAFKA_CONNECT_BOOTSTRAP_SERVERS is None:
-    print("KAFKA_CONNECT_SERVICE_URL/KAFKA_CONNECT_BOOTSTRAP_SERVERS environment variable is not set.")
+if KAFKA_CONNECT_SERVICE_URL is None or REDPANDA_API is None:
+    print("KAFKA_CONNECT_SERVICE_URL/REDPANDA_API environment variable is not set.")
     sys.exit(1)  # 1 signifies an error, 0 would indicate success
 
 # 默认 properties 文件路径
@@ -106,7 +107,7 @@ def load_properties(file_path):
             
             return dict(config["DEFAULT"])
     except Exception as e:
-        print(f"读取 properties 文件失败: {e}")
+        logging.error(f"读取 properties 文件失败: {e}")
         return {}
 
 # 解析占位符，提取文件路径和变量名
@@ -171,6 +172,7 @@ def get_debezium_sqlserver_connectors():
                     "user": config.get("database.user"),
                     "password": config.get("database.password"),
                     "tables": set(),
+                    "topics": set(),
                     "active_topics": set(),
                     "connectors": set()
                 }
@@ -182,6 +184,9 @@ def get_debezium_sqlserver_connectors():
 
             # 更新表集合
             db_dict[db_key]["tables"].update(config.get("table.include.list", "").split(","))
+
+            topics = get_kafka_connect_all_topics(config)
+            db_dict[db_key]["topics"].update(topics)
 
             active_topics = get_kafka_connect_active_topics(config)
             db_dict[db_key]["active_topics"].update(active_topics)
@@ -211,6 +216,47 @@ def get_kafka_connect_active_topics(connector_config):
         topic for topic in connector_topics.get(connector_name, {}).get('topics', [])
         if '.dbo.' in topic
     ]
+
+# 获取 Active Connect 依赖的所有 Topic
+def get_kafka_connect_all_topics(connector_config):
+    topics = set()
+
+    # 1. topic.prefix 本身对应一个 topic（Debezium 会记录 schema 变更）
+    topic_prefix = connector_config.get("topic.prefix")
+    if topic_prefix:
+        topics.add(topic_prefix)
+
+    # 2. schema.history.internal.kafka.topic
+    schema_topic = connector_config.get("schema.history.internal.kafka.topic")
+    if schema_topic:
+        topics.add(schema_topic)
+
+    # 3. 转换后的数据 topics（根据 table.include.list 和 topic 路由规则）
+    table_include_list = connector_config.get("table.include.list", "")
+    tables = [t.strip() for t in table_include_list.split(",") if t.strip()]
+
+    # 默认逻辑为 topic.prefix + "." + table_name（如果没有 transform）
+    transformed = connector_config.get("transforms", "") == "Reroute"
+    if transformed:
+        regex = connector_config.get("transforms.Reroute.topic.regex")
+        replacement = connector_config.get("transforms.Reroute.topic.replacement")
+        # Java -> Python regex replacement compatibility
+        replacement_py = replacement.replace("$1", r"\1").replace("$2", r"\2")
+        dbname = connector_config.get("database.names")
+        if regex and replacement_py:
+            # 模拟 Reroute 的正则替换逻辑
+            for table in tables:
+                raw_topic = f"{topic_prefix}.{dbname}.{table}"
+                transformed_topic = re.sub(regex, replacement_py, raw_topic)
+                topics.add(transformed_topic)
+    else:
+        logging.warning(f"未启用 transform，将使用默认格式拼接 Topic，请检查配置")
+        
+        # 如果没有启用 transform，按默认格式拼接
+        for table in tables:
+            topics.add(f"{topic_prefix}.{table}")
+
+    return topics
 
 def check_sqlserver_cdc(db):
     """检查 SQL Server 是否启用 CDC，并比对表"""
@@ -637,6 +683,45 @@ def get_kafka_ct_time(topic):
         logging.error(f"Error occurred while checking kafka_ct_time of topic {topic}: {e}")
         return None
 
+def get_kafka_ct_time_v2(topic: str):
+    url = f"{REDPANDA_API}/redpanda.api.console.v1alpha1.ConsoleService/ListMessages"
+    headers = {
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "Content-Type": "application/connect+json"
+    }
+    payload = {
+        "topic": topic,
+        "startOffset": "-1",
+        "startTimestamp": "-1",
+        "partitionId": -1,
+        "maxResults": 1,
+        "includeOriginalRawPayload": False,
+        "keyDeserializer": "PAYLOAD_ENCODING_UNSPECIFIED",
+        "valueDeserializer": "PAYLOAD_ENCODING_UNSPECIFIED"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        # 多段 protobuf 响应体的 JSON 拆分
+        raw_data = response.content
+
+        # 分割出完整 JSON 数据段
+        json_objects = [x for x in raw_data.split(b"\x00\x00\x00") if b"originalPayload" in x]
+
+        if not json_objects:
+            logging.warning("未获取到有效数据")
+            return None
+
+        # 找到包含 originalPayload 的字段
+        msg = json.loads(json_objects[-1].decode("utf-8", errors="ignore"))
+        return msg.get("timestamp")  # Kafka 消息的时间戳，单位是毫秒
+
+    except requests.RequestException as e:
+        logging.error(f"请求或解析失败: {e}")
+        return None
+
 def check_sqlserver2kafka_sync(ds, max_retries=3):
     for db in ds:
         logging.info("-------------------------------------------------")
@@ -789,7 +874,7 @@ def get_kafka_lag_consumer_groups():
 
 # 通过 RedPanda API 获取 Consumer Groups
 def get_kafka_lag_consumer_groups_v2():
-    response = requests.get(f"{REDPANDA_API}/consumer-groups")
+    response = requests.get(f"{REDPANDA_API}/api/consumer-groups")
     if response.status_code != 200:
         logging.error("Failed to fetch consumer groups")
         return []
@@ -915,6 +1000,68 @@ def check_and_repair_postgres_datasource(dbs):
 def check_postgres2kafka_sync(ds):
     return
 
+def get_kafka_topics():
+    # TODO:Kafka Native API
+    return []
+
+def get_kafka_topics_v2():
+    try:
+        response = requests.get(f"{REDPANDA_API}/api/topics")
+        response.raise_for_status()
+        data = response.json()
+        return {topic['topicName'] for topic in data.get('topics', [])}
+    except requests.RequestException as e:
+        logging.error(f"获取 Kafka Topic 列表失败: {e}")
+        return set()
+
+def check_and_repair_kafka_topics(dbs):
+    all_topics = get_kafka_topics_v2()
+    if not all_topics:
+        logging.error("未能获取 Kafka Topic 列表，终止检查。")
+        return
+
+    for db in dbs:
+        logging.info("-------------------------------------------------")
+        logging.info(f"检查数据库: {db['database']} ({db['hostname']})")
+
+        expected_topics = set(db.get('topics', []))               # B
+        active_topics = set(db.get('active_topics', []))          # C
+        # 前缀匹配的判断条件（带 . 的）
+        prefixes = {t.rsplit('.', 1)[0] + '.' for t in expected_topics if '.' in t}
+        # 等值匹配的判断条件（不带 . 的）
+        exact_matches = {t for t in expected_topics if '.' not in t}
+        # 匹配逻辑：
+        matching_topics = {                                      # A
+            t for t in all_topics
+            if any(t.startswith(prefix) for prefix in prefixes) or t in exact_matches
+        }
+
+        # 差集分析
+        deprecated_topics = matching_topics - expected_topics  # A - B
+        missing_topics = expected_topics - matching_topics     # B - A
+        inactive_topics = expected_topics - active_topics      # B - C
+
+        # 输出废弃 Topic
+        if deprecated_topics:
+            logging.warning(f"发现废弃的 Topic（A - B）: {deprecated_topics}")
+        else:
+            logging.info("无废弃的 Topic（A - B）")
+
+        # 输出缺失 Topic
+        if missing_topics:
+            logging.error(f"缺失的 Topic，需要创建（B - A）: {missing_topics}")
+        else:
+            logging.info("无缺失的 Topic（B - A）")
+
+        # 活跃度检查
+        if expected_topics:
+            active_ratio = (len(expected_topics) - len(inactive_topics)) / len(expected_topics)
+            logging.info(f"当前活跃 Topic 数量: {len(expected_topics) - len(inactive_topics)} / {len(expected_topics)}（活跃度: {active_ratio:.2%}）")
+        else:
+            logging.warning("未定义期望 Topic 集合（B），无法评估活跃度。")
+
+    return
+
 def main():
     try:
         ds = get_debezium_sqlserver_connectors()
@@ -928,6 +1075,14 @@ def main():
 
         logging.info("-------------------------------------------------")
         logging.info("SQL Server CDC 巡检完成")
+
+        logging.info("-------------------------------------------------")
+        logging.info("Kafka Topics 巡检开始")
+
+        check_and_repair_kafka_topics(sqlds)
+
+        logging.info("-------------------------------------------------")
+        logging.info("Kafka Topics 巡检完成")
 
         logging.info("-------------------------------------------------")
         logging.info("SQL Server2Postgres CDC 同步巡检开始")
