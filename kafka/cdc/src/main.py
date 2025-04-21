@@ -647,11 +647,12 @@ def get_kafka_ct_time(topic):
             'enable.auto.commit': False
         })
 
-        # 获取 topic 的所有分区
+        # Get the topic's partitions
         metadata = consumer.list_topics(topic)
         if metadata.topics[topic].error is not None:
             raise KafkaException(metadata.topics[topic].error)
 
+        # Construct TopicPartition list of partitions to query
         partitions = [TopicPartition(topic, p) for p in metadata.topics[topic].partitions.keys()]
 
         latest_timestamp = None
@@ -666,11 +667,10 @@ def get_kafka_ct_time(topic):
             tp_with_offset = TopicPartition(tp.topic, tp.partition, high_offset - 1)
             
             # fix: Error: KafkaError{code=_STATE,val=-172,str="Failed to seek to offset 7554142: Local: Erroneous state"}
+            # consumer.seek(tp_with_offset)
             consumer.assign([tp_with_offset])
-            
-            consumer.seek(tp_with_offset)
 
-            msg = consumer.poll(timeout=1.0)  # 获取最新消息
+            msg = consumer.poll(timeout=5.0)  # 获取最新消息
             if msg and not msg.error():
                 msg_ts = msg.timestamp()[1]
                 if latest_timestamp is None or msg_ts > latest_timestamp:
@@ -681,45 +681,6 @@ def get_kafka_ct_time(topic):
         return latest_timestamp
     except Exception as e:
         logging.error(f"Error occurred while checking kafka_ct_time of topic {topic}: {e}")
-        return None
-
-def get_kafka_ct_time_v2(topic: str):
-    url = f"{REDPANDA_API}/redpanda.api.console.v1alpha1.ConsoleService/ListMessages"
-    headers = {
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "Content-Type": "application/connect+json"
-    }
-    payload = {
-        "topic": topic,
-        "startOffset": "-1",
-        "startTimestamp": "-1",
-        "partitionId": -1,
-        "maxResults": 1,
-        "includeOriginalRawPayload": False,
-        "keyDeserializer": "PAYLOAD_ENCODING_UNSPECIFIED",
-        "valueDeserializer": "PAYLOAD_ENCODING_UNSPECIFIED"
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-
-        # 多段 protobuf 响应体的 JSON 拆分
-        raw_data = response.content
-
-        # 分割出完整 JSON 数据段
-        json_objects = [x for x in raw_data.split(b"\x00\x00\x00") if b"originalPayload" in x]
-
-        if not json_objects:
-            logging.warning("未获取到有效数据")
-            return None
-
-        # 找到包含 originalPayload 的字段
-        msg = json.loads(json_objects[-1].decode("utf-8", errors="ignore"))
-        return msg.get("timestamp")  # Kafka 消息的时间戳，单位是毫秒
-
-    except requests.RequestException as e:
-        logging.error(f"请求或解析失败: {e}")
         return None
 
 def check_sqlserver2kafka_sync(ds, max_retries=3):
