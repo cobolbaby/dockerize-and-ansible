@@ -159,8 +159,8 @@ def get_debezium_sqlserver_connectors():
             driver == "io.debezium.connector.postgresql.PostgresConnector":
             
             config = {k: resolve_placeholders(v) for k, v in config.items()}
-            # fix: 兼容 Debezium 2.x 版本的配置
-            dbname = config.get("database.dbname") if config.get("database.dbname") else config.get("database.names")
+            # fix: 兼容 Debezium 1.x 版本的配置
+            dbname = config.get("database.names") or config.get("database.dbname")
 
             db_key = (dbname, config.get("database.hostname"), config.get("database.port", 1433))
             if db_key not in db_dict:
@@ -222,12 +222,14 @@ def get_kafka_connect_all_topics(connector_config):
     topics = set()
 
     # 1. topic.prefix 本身对应一个 topic（Debezium 会记录 schema 变更）
-    topic_prefix = connector_config.get("topic.prefix")
+    # fix: 兼容 Debezium 1.x 版本的配置
+    topic_prefix = connector_config.get("topic.prefix") or connector_config.get("database.server.name")
     if topic_prefix:
         topics.add(topic_prefix)
-
+    
     # 2. schema.history.internal.kafka.topic
-    schema_topic = connector_config.get("schema.history.internal.kafka.topic")
+    # fix: 兼容 Debezium 1.x 版本的配置
+    schema_topic = connector_config.get("schema.history.internal.kafka.topic") or connector_config.get("database.history.kafka.topic")
     if schema_topic:
         topics.add(schema_topic)
 
@@ -242,11 +244,18 @@ def get_kafka_connect_all_topics(connector_config):
         replacement = connector_config.get("transforms.Reroute.topic.replacement")
         # Java -> Python regex replacement compatibility
         replacement_py = replacement.replace("$1", r"\1").replace("$2", r"\2")
-        dbname = connector_config.get("database.names")
+
         if regex and replacement_py:
             # 模拟 Reroute 的正则替换逻辑
             for table in tables:
-                raw_topic = f"{topic_prefix}.{dbname}.{table}"
+
+                dbname = connector_config.get("database.names")
+                if dbname:
+                    raw_topic = f"{topic_prefix}.{dbname}.{table}"
+                else:
+                    # fix: 兼容 Debezium 1.x 版本的配置
+                    raw_topic = f"{topic_prefix}.{table}"
+
                 transformed_topic = re.sub(regex, replacement_py, raw_topic)
                 topics.add(transformed_topic)
     else:
