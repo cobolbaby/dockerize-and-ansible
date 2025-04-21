@@ -86,6 +86,7 @@ def parse_tsms(ts_value):
 
 def get_tsms_via_s3select(object_name):
     try:
+        # https://github.com/minio/minio-py/blob/master/examples/select_object_content.py
         with client.select_object_content(
             BUCKET_NAME,
             object_name,
@@ -99,11 +100,15 @@ def get_tsms_via_s3select(object_name):
             for data in result.stream():
                 line = data.decode().strip()
                 if line:
-                    min_tsms_str, max_tsms_str = line.split(',')
-                    return parse_tsms(min_tsms_str), parse_tsms(max_tsms_str)
+                    min_tsms, max_tsms = line.split(',')
+                    
+                    return datetime.fromtimestamp(int(min_tsms) / 1000.0, tz=timezone.utc), \
+                            datetime.fromtimestamp(int(max_tsms) / 1000.0, tz=timezone.utc)
     except Exception as e:
         print(f"[!] S3 Select failed for {object_name}: {e}")
         raise e
+    
+    return None, None
 
 def is_within_time_range_by_name(obj_name: str) -> bool:
     dt = get_tsms_from_filename(obj_name)
