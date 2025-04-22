@@ -259,7 +259,7 @@ def get_kafka_connect_all_topics(connector_config):
                 transformed_topic = re.sub(regex, replacement_py, raw_topic)
                 topics.add(transformed_topic)
     else:
-        logging.warning(f"未启用 transform，将使用默认格式拼接 Topic，请检查配置")
+        logging.warning(f"{connector_config['name']} 未启用 transform，将使用默认格式拼接 Topic，请检查配置")
         
         # 如果没有启用 transform，按默认格式拼接
         for table in tables:
@@ -551,6 +551,8 @@ def check_kafka_connect_failed_tasks(trace):
         if error in trace:
             logging.warning(f"Skipping restart due to critical error: {error}")
             return False
+        
+    return True
 
 def check_and_restart_kafka_connect_failed_tasks():
     # 获取所有 Connector 状态信息
