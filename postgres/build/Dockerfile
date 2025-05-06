@@ -169,11 +169,11 @@ RUN apt-get update \
     && make install \
     && rm -rf /tmp/pg_ivm-1.9* \
 \
-    # pg_analytics
-    && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.2.4/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
-    && dpkg -i /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
-    && rm -rf /tmp/postgresql-16-pg-analytics_0.2.4-1PARADEDB-bookworm_amd64.deb \
-    # https://github.com/paradedb/paradedb/blob/dev/docker/Dockerfile
+    # 会对 pg_dump 产生干扰，且社区不在维护，不在支持该扩展
+    # # pg_analytics
+    # && curl -sSL -o /tmp/postgresql-16-pg-analytics_0.3.7-1PARADEDB-bookworm_amd64.deb https://github.com/paradedb/pg_analytics/releases/download/v0.2.4/postgresql-16-pg-analytics_0.3.7-1PARADEDB-bookworm_amd64.deb \
+    # && dpkg -i /tmp/postgresql-16-pg-analytics_0.3.7-1PARADEDB-bookworm_amd64.deb \
+    # && rm -rf /tmp/postgresql-16-pg-analytics_0.3.7-1PARADEDB-bookworm_amd64.deb \
 \
     # pgcopydb
     && apt-get install -y pgcopydb \
