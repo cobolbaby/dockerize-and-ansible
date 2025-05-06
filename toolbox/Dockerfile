@@ -2,8 +2,10 @@ FROM registry.inventec/proxy/ubuntu:22.04
 
 RUN apt-get update -y && \
     apt-get install -y \
+        # DNS
+        dnsutils \
         # 测网络连通性，测返回结果
-        curl jq \
+        curl jq wget \
         # 测 TCP 连接数
         net-tools \
         # 测流量
@@ -13,19 +15,41 @@ RUN apt-get update -y && \
         # iperf3 测网络性能，是否有丢包
         iperf3 \
         # 压测工具，压 CPU
-        stress && \
-    # psql, pg_dump, pg_restore
-    # PG https://www.postgresql.org/download/linux/ubuntu/
-    apt-get install -y wget gnupg lsb-release && \
-    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
-    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update && \
-    apt-get -y install postgresql-client-16
+        stress \
+        # 查看系统版本
+        lsb-release \
+        # 压测工具
+        unzip
+
+# psql, pg_dump, pg_restore
+# PG https://www.postgresql.org/download/linux/ubuntu/
+RUN apt-get install -y gnupg postgresql-common && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y postgresql-client-16
 
 # Golang 程序性能分析
 ARG GO_VERSION
-RUN curl -sSL -o go${GO_VERSION}.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
-    rm -rf /usr/local/go && tar -C /usr/local -xzf go${GO_VERSION}.tar.gz && \
-    rm go${GO_VERSION}.tar.gz
+# RUN curl -sSL -o go${GO_VERSION}.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+#     rm -rf /usr/local/go && tar -C /usr/local -xzf go${GO_VERSION}.tar.gz && \
+#     rm go${GO_VERSION}.tar.gz
+ADD pkgs/go${GO_VERSION}.linux-amd64.tar.gz /usr/local/
 ENV PATH=${PATH}:/usr/local/go/bin
 RUN apt-get install -y graphviz
+
+# Java 堆内存分析，https://eclipse.dev/mat/download/
+RUN apt-get install -y openjdk-17-jdk
+ARG MAT_VERSION
+COPY pkgs/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip /tmp/
+RUN unzip /tmp/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip -d /opt/ && \
+    rm /tmp/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip
+
+# smartctl 查询磁盘状态
+RUN apt-get install -y smartmontools && \
+    # https://gist.github.com/mrpeardotnet/a9ce41da99936c0175600f484fa20d03
+    echo "deb http://downloads.linux.hpe.com/SDR/repo/mcp stretch/current non-free" > /etc/apt/sources.list.d/hp-mcp.list && \
+    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey1024.pub | apt-key add - && \
+    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey2048.pub | apt-key add - && \
+    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub | apt-key add - && \
+    wget -q -O - http://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub | apt-key add - && \
+    apt update && \
+    apt install ssacli
