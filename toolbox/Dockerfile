@@ -18,7 +18,7 @@ RUN apt-get update -y && \
         stress \
         # 查看系统版本
         lsb-release \
-        # 压测工具
+        # 压缩工具
         unzip
 
 # psql, pg_dump, pg_restore
@@ -45,11 +45,10 @@ RUN unzip /tmp/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip -d /opt/ && \
 
 # smartctl 查询磁盘状态
 RUN apt-get install -y smartmontools && \
-    # https://gist.github.com/mrpeardotnet/a9ce41da99936c0175600f484fa20d03
-    echo "deb http://downloads.linux.hpe.com/SDR/repo/mcp stretch/current non-free" > /etc/apt/sources.list.d/hp-mcp.list && \
-    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey1024.pub | apt-key add - && \
-    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey2048.pub | apt-key add - && \
-    wget -q -O - http://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub | apt-key add - && \
-    wget -q -O - http://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub | apt-key add - && \
-    apt update && \
-    apt install ssacli
+    # https://downloads.linux.hpe.com/SDR/project/mcp/
+    echo "deb [signed-by=/usr/share/keyrings/hpePublicKey.gpg] https://downloads.linux.hpe.com/SDR/repo/mcp jammy/current non-free" > /etc/apt/sources.list.d/mcp.list && \
+    curl https://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub | gpg --dearmor | tee -a /usr/share/keyrings/hpePublicKey.gpg > /dev/null && \
+    curl https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub | gpg --dearmor | tee -a /usr/share/keyrings/hpePublicKey.gpg > /dev/null && \
+    curl https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key2.pub | gpg --dearmor | tee -a /usr/share/keyrings/hpePublicKey.gpg > /dev/null && \
+    apt-get update && \
+    apt-get install -y ssacli ssaducli

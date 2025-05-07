@@ -13,8 +13,3 @@ docker build --rm -f Dockerfile \
             --build-arg GO_VERSION=${GO_VERSION} \
             --build-arg MAT_VERSION=${MAT_VERSION} \
             .
-
-# docker run -it --rm --net host registry.inventec/infra/debugger /bin/bash
-# go tool pprof -http :??? http://localhost:6060/debug/pprof/heap
-
-# docker run -it --rm registry.inventec/infra/debugger pg_dump --version
