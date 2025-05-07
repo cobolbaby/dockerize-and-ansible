@@ -22,5 +22,5 @@ docker run -it --rm -v $(pwd):/dump registry.inventec/infra/debugger \
 - smartctl
 
 ```bash
-docker run -it --rm registry.inventec/infra/debugger smartctl --scan-open
+docker run -it --rm -v /dev:/dev --privileged registry.inventec/infra/debugger smartctl --scan-open
 ```
