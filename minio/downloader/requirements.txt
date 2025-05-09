@@ -1,0 +1,2 @@
+minio
+psycopg2-binary
