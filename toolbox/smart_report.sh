@@ -1,24 +1,23 @@
 #!/bin/bash
 
-# 获取 ssacli 输出
-output=$(ssacli ctrl slot=3 ld all show detail)
+# 获取所有控制器的 Slot 编号
+slots=$(ssacli ctrl all show | awk '/Slot [0-9]+/ { for (i=1; i<=NF; i++) if ($i == "Slot") print $(i+1) }')
 
-echo "收集 S.M.A.R.T 信息..."
-echo "------------------------------------------------------------"
+# 遍历每个 Slot
+for slot in $slots; do
+    echo ">> 分析 Controller Slot: $slot"
+    output=$(ssacli ctrl slot=$slot ld all show detail)
 
-# 提取并循环 Logical Drive 和对应的 /dev/sdX 设备名
-echo "$output" | awk '
-BEGIN {
-    drive=""; disk="";
-}
-/^ *Logical Drive:/ {
-    drive = $3
-}
-/^ *Disk Name:/ {
-    disk = $3
-    printf("%s %s\n", drive, disk);
-}' | while read -r ld device; do
-    echo ">>> Logical Drive: $ld, Device: $device"
-    smartctl -d cciss,"$ld" -a "$device" | grep -A 3 'ID# ATTRIBUTE_NAME.*RAW_VALUE'
-    echo "------------------------------------------------------------"
+    echo "$output" | awk -v slot="$slot" '
+    /^ *Logical Drive:/ {
+        drive = $3
+    }
+    /^ *Disk Name:/ {
+        disk = $3
+        printf("%s %s %s\n", slot, drive, disk);
+    }' | while read -r slot drive device; do
+        echo ">>> Slot: $slot, Logical Drive: $drive, Device: $device"
+        smartctl -d cciss,"$drive" -a "$device" | grep -A 2 'ID# ATTRIBUTE_NAME.*RAW_VALUE'
+        echo "------------------------------------------------------------"
+    done
 done
