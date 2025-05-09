@@ -22,9 +22,5 @@ docker run -it --rm -v $(pwd):/dump registry.inventec/infra/debugger \
 - smartctl
 
 ```bash
-docker run -it --rm -v /dev:/dev --privileged registry.inventec/infra/debugger smartctl --scan-open
+docker run -it --rm -v /dev:/dev --privileged registry.inventec/infra/debugger /smart_report.sh
 ```
-
-- ssacli
-
-https://gist.github.com/mrpeardotnet/a9ce41da99936c0175600f484fa20d03

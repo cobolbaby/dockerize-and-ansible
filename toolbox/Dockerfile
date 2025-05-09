@@ -52,3 +52,5 @@ RUN apt-get install -y smartmontools && \
     curl https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key2.pub | gpg --dearmor | tee -a /usr/share/keyrings/hpePublicKey.gpg > /dev/null && \
     apt-get update && \
     apt-get install -y ssacli ssaducli
+COPY smart_report.sh /
+RUN chmod +x /smart_report.sh
