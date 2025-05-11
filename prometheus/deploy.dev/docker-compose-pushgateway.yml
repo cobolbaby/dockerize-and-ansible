@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  pushgateway:
+    image: registry.inventec/proxy/prom/pushgateway:latest
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+    command:
+      - "--web.enable-admin-api"      # 可选：启用删除指标等 API
+    volumes:
+      - pushgateway_data:/data        # 可选：数据持久化
+    networks:
+      - monitoring
+
+volumes:
+  pushgateway_data:
+
+networks:
+  monitoring:
+    driver: bridge
