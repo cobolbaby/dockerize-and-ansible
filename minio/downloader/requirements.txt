@@ -1,2 +1,2 @@
-minio
+minio==7.2.15
 psycopg2-binary

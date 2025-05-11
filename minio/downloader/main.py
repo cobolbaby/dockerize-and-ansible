@@ -1,9 +1,11 @@
 import os
-from threading import Lock
-from minio import Minio
-from concurrent.futures import ThreadPoolExecutor
-import psycopg2
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
+
+import psycopg2
+
+from minio import Minio
 
 # 配置参数
 MINIO_CONFIG = {
@@ -61,7 +63,9 @@ def download_object(client, bucket, object_name, target_dir):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     
     try:
-        client.fget_object(bucket, object_name, file_path)
+        client.fget_object(bucket, object_name, file_path, {
+            "x-minio-extract": "true",
+        })
         print(f"✅ Downloaded: {object_name}")
         with counter_lock:
             success_count += 1
