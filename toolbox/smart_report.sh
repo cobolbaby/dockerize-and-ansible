@@ -17,7 +17,7 @@ for slot in $slots; do
         printf("%s %s %s\n", slot, drive, disk);
     }' | while read -r slot drive device; do
         echo ">>> Slot: $slot, Logical Drive: $drive, Device: $device"
-        smartctl -d cciss,"$drive" -a "$device" | grep -A 2 'ID# ATTRIBUTE_NAME.*RAW_VALUE'
+        smartctl -d cciss,"$drive" -a "$device" | grep -A 10 'ID# ATTRIBUTE_NAME.*RAW_VALUE'
         echo "------------------------------------------------------------"
     done
 done
