@@ -9,11 +9,11 @@ docker run -d --name pgadmin8 \
     -p 443:443 \
     -v /data/pgadmin4/pgadmin8:/var/lib/pgadmin \
     -v /data/pgadmin4/certs:/certs \
+    -e "PGADMIN_ENABLE_TLS=True" \
     -e "PGADMIN_DEFAULT_EMAIL=cobolbaby@qq.com" \
     -e "PGADMIN_DEFAULT_PASSWORD=123456" \
     -e "GUNICORN_THREADS=50" \
-    -e "MAX_LOGIN_ATTEMPTS=10" \
-    -e "PGADMIN_ENABLE_TLS=True" \
+    -e "PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=10" \
     --restart always \
     registry.inventec/infra/dpage/pgadmin4:8.14
 
@@ -27,7 +27,7 @@ docker run -d --name pgadmin8 \
     -e "PGADMIN_DEFAULT_EMAIL=cobolbaby@qq.com" \
     -e "PGADMIN_DEFAULT_PASSWORD=123456" \
     -e "GUNICORN_THREADS=50" \
-    -e "MAX_LOGIN_ATTEMPTS=10" \
+    -e "PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=10" \
     --restart always \
     registry.inventec/proxy/dpage/pgadmin4:8.14
 
@@ -37,7 +37,7 @@ docker run -d --name pgadmin8 \
     -e "PGADMIN_DEFAULT_EMAIL=cobolbaby@qq.com" \
     -e "PGADMIN_DEFAULT_PASSWORD=123456" \
     -e "GUNICORN_THREADS=50" \
-    -e "MAX_LOGIN_ATTEMPTS=10" \
+    -e "PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS=10" \
     --restart always \
     registry.inventec/infra/dpage/pgadmin4:8.14
 
