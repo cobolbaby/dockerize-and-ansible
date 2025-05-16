@@ -33,20 +33,20 @@ uplinks:
   npmjs:
     url: https://registry.npmjs.org/
     maxage: 1d
-    max_fails: 10
+    max_fails: 2
     timeout: 120s
 
   cnpmjs:
     url: https://registry.npmmirror.com/
     maxage: 1d
-    max_fails: 10
-    timeout: 120s
+    max_fails: 2
+    timeout: 60s
 
   yarnpkg:
     url: https://registry.yarnpkg.com/
     maxage: 1d
-    max_fails: 10
-    timeout: 60s
+    max_fails: 2
+    timeout: 120s
 
 packages:
   '@itc-*/*':

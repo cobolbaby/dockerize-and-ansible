@@ -2,7 +2,7 @@ version: '3'
 services:
 
   verdaccio:
-    image: verdaccio/verdaccio:5.30.3
+    image: verdaccio/verdaccio:5.33.0
     container_name: verdaccio
     hostname: verdaccio
     volumes:
@@ -13,13 +13,13 @@ services:
       VERDACCIO_PUBLIC_URL: "https://npm.itc.inventec.net"
 
   nexus3:
-    image: sonatype/nexus3:3.68.1
+    image: sonatype/nexus3:3.69.0
     container_name: nexus3
     hostname: nexus3
     volumes:
       - "/data/nexus-data:/nexus-data"
     environment:
-      INSTALL4J_ADD_VM_PARAMS: "-Xms2703m -Xmx2703m -XX:MaxDirectMemorySize=2703m -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+      INSTALL4J_ADD_VM_PARAMS: "-Xms1024m -Xmx2703m -XX:MaxDirectMemorySize=2703m -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
     restart: always
   
   nginx:
