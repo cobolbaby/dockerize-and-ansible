@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pgadmin8:
+    image: registry.inventec/infra/dpage/pgadmin4:8.14
+    container_name: pgadmin8
+    ports:
+      - "443:443"
+    volumes:
+      - /data/pgadmin4/pgadmin8:/var/lib/pgadmin
+      - /data/pgadmin4/certs:/certs
+    environment:
+      PGADMIN_ENABLE_TLS: "True"
+      PGADMIN_DEFAULT_EMAIL: "cobolbaby@qq.com"
+      PGADMIN_DEFAULT_PASSWORD: "123456"
+      GUNICORN_THREADS: "50"
+      PGADMIN_CONFIG_MAX_LOGIN_ATTEMPTS: "10"
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: "False"
+      PGADMIN_CONFIG_WTF_CSRF_ENABLED: "False"
+    restart: always
