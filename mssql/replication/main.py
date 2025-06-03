@@ -33,16 +33,16 @@ def connect_sql_server(config):
 
         try:
             conn = pymssql.connect(
-                server=f"{server}",
+                server=server,
                 user=user,
                 password=password,
                 database=database,
                 login_timeout=5
             )
-            logging.info(f"Connected to {server} using user {user}")
+            logging.info(f"Connected to {server}\{database} using user {user}")
             return conn
         except Exception as e:
-            error_message = f"Failed to connect to SQL Server {server}: {e}"
+            error_message = f"Failed to connect to {server}\{database} using user {user}: {e}"
             logging.error(error_message)
             continue
         
@@ -99,11 +99,11 @@ def get_replication_info(conn):
                     ELSE 'unknown'
                 END AS SyncStatus
             FROM
-                MSpublications AS pub
+                distribution.dbo.MSpublications AS pub
             JOIN
-                MSarticles AS art ON pub.publication_id = art.publication_id
+                distribution.dbo.MSarticles AS art ON pub.publication_id = art.publication_id
             JOIN
-                MSsubscriptions AS sub ON art.article_id = sub.article_id AND art.publication_id = sub.publication_id
+                distribution.dbo.MSsubscriptions AS sub ON art.article_id = sub.article_id AND art.publication_id = sub.publication_id
             JOIN
                 master.dbo.sysservers AS s ON sub.subscriber_id = s.srvid
             JOIN
@@ -204,7 +204,7 @@ def traverse_lineage(server_name, config, graph, visited_servers):
             return
         
         config['server'] = distributor
-        config['database'] = 'distribution'
+        # config['database'] = 'distribution'
         dist_conn_or_error = connect_sql_server(config)
         
         if isinstance(dist_conn_or_error, str):
@@ -232,8 +232,13 @@ def traverse_lineage(server_name, config, graph, visited_servers):
             ]
             publisher_server = group.iloc[0]["PublisherServer"]  # 👈 从行中提取真实 Publisher
             
+            # 统计各状态的数量
+            status_counts = group["SyncStatus"].value_counts().to_dict()
+
+            # 构造 extra 字典，平铺 status 统计
             extra = {
-                "tables": json.dumps(table_status_list)
+                "tables": json.dumps(table_status_list),
+                **status_counts
             }
             graph.create_lineage(
                 publisher_server, src_db,
