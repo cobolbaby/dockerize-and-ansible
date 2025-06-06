@@ -1,6 +1,8 @@
 import os
+
 import yaml
 from smb.SMBConnection import SMBConnection
+
 
 def load_config(path='config.yaml'):
     with open(path, 'r', encoding='utf-8') as f:
@@ -18,9 +20,8 @@ def download_file_optimized(conn, share_name, remote_path, file_name, chunk_size
         while offset < file_size:
             remaining = file_size - offset
             read_size = min(chunk_size, remaining)
-            data = conn.retrieveFileFromOffset(share_name, remote_file_path, offset, read_size)
-            f.write(data.read())
-            offset += read_size
+            _, written_bytes = conn.retrieveFileFromOffset(share_name, remote_file_path, f, offset, read_size)
+            offset += written_bytes
             print(f"   ⬇ 已下载 {offset}/{file_size} 字节", end='\r')
     
     print(f"\n✅ 下载完成：{file_name}")
