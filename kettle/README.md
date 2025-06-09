@@ -1,6 +1,8 @@
 # 坑
 
-## Build Error
+## Build
+
+### v9.5 BUILD FAILURE
 
 ```bash
 [INFO] ------------------------------------------------------------------------
@@ -25,3 +27,7 @@
 [ERROR]   mvn <args> -rf :kettle-core
 The command '/bin/sh -c git clone --depth 1 --branch ${KETTLE_BRANCH} https://github.com/pentaho/pentaho-kettle.git &&     cd pentaho-kettle &&     mvn clean package -DskipTests' returned a non-zero code: 1
 ```
+
+### v9.4 BUILD FAILURE
+
+依赖包还是下载不全，个别包没有上推到公共仓库
