@@ -1,5 +1,7 @@
 FROM registry.inventec/proxy/flink:1.18.1-scala_2.12-java17
 
+COPY docker-entrypoint.sh /
+
 ARG SEATUNNEL_VERSION
 
 ENV SEATUNNEL_HOME="/opt/seatunnel"

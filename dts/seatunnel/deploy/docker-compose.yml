@@ -2,13 +2,12 @@ services:
   seatunnel:
     image: registry.inventec/infra/seatunnel:2.3.9
     container_name: seatunnel
-    entrypoint: /bin/bash
     volumes:
-      - ./seatunnel/examples:/opt/tasks
-      # TODO:修改 entrypoint 脚本，在启动时自动将 flink-config.yaml 中的 rest.address 替换为 flink 的 rest 地址
-      - ./flink/conf/flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
-    tty: true
-    stdin_open: true
+      - ./examples:/opt/tasks
+    environment:
+      FLINK_REST_ADDRESS: 10.191.7.13
+      FLINK_REST_PORT: 30651
+    command: tail -f /dev/null
     restart: always
 
 networks:
