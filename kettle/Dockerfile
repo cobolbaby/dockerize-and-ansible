@@ -13,12 +13,21 @@ WORKDIR /workspace
 
 ARG KETTLE_BRANCH=9.5
 
-# clone parent-poms 并构建
+# build maven-parent-poms
 RUN git clone --depth 1 --branch ${KETTLE_BRANCH} https://github.com/pentaho/maven-parent-poms.git && \
     cd maven-parent-poms && \
     mvn clean install -DskipTests
 
-# clone kettle
+# fix: 额外的依赖
+# build https://github.com/pentaho/metastore.git
+RUN git clone --depth 1 --branch ${KETTLE_BRANCH} https://github.com/pentaho/metastore.git && \
+    cd metastore && \
+    mvn clean install -DskipTests
+
+# fix: 额外的依赖，真不知道 kettle 怎么 build 出来的
+# ???
+
+# build kettle
 RUN git clone --depth 1 --branch ${KETTLE_BRANCH} https://github.com/pentaho/pentaho-kettle.git && \
     cd pentaho-kettle && \
     mvn clean package -DskipTests
