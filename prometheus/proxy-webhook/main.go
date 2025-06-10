@@ -62,6 +62,7 @@ var (
 type multiFlag []string
 
 func (m *multiFlag) String() string { return fmt.Sprintf("%v", *m) }
+
 func (m *multiFlag) Set(value string) error {
 	*m = append(*m, value)
 	return nil
@@ -202,15 +203,21 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 			ls[model.LabelName(k)] = model.LabelValue(v)
 		}
 
-		// 篡改 Fingerprint
+		// 告警唯一标识，类似于 SQL 的 hash 值
+		fp1 := ls.Fingerprint()
+
+		// 获取此告警最近一次的开始时间 StartsAt
+		alert.StartsAt = store.SetIfAbsent(fp1, alert.StartsAt)
+
+		// Labels 添加 StartsAt，作为此次事件的 ID，问题可能重复发生，但时间不一样就是不同的事件
+		ls[model.LabelName("startsAt")] = model.LabelValue(alert.StartsAt.String())
+
 		fp := ls.Fingerprint()
 		alert.Fingerprint = fp.String()
 
+		// 清理已解决的告警
 		if model.AlertStatus(alert.Status) == model.AlertResolved {
-			store.Delete(fp)
-		} else {
-			// 修正 StartsAt
-			alert.StartsAt = store.SetIfAbsent(fp, alert.StartsAt)
+			store.Delete(fp1)
 		}
 
 	}
@@ -247,6 +254,7 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
+
 func main() {
 	parseFlags()
 
