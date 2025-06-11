@@ -84,20 +84,32 @@ def get_replication_info(conn):
     try:
         query = """
             SELECT
-                pub.publisher_db AS SourceDatabase,
-                pub.publication AS Publication,
-                pub.description AS Description,
-                art.article AS SourceTable,
-                art.destination_object AS TargetTable,
-                sub.subscriber_db AS TargetDatabase,
-                s.srvname AS SubscriberServer,
-                ss.srvname AS PublisherServer,
+				ss.srvname AS publisher,
+				pub.publisher_db,
+                pub.publication,
+                CASE 
+                    WHEN pub.publication_type = 2 THEN 'merge'
+                    WHEN pub.publication_type = 1 THEN 'snapshot'
+                    WHEN pub.publication_type = 0 THEN 'transactional'
+                    ELSE 'unknown'
+                END AS publication_type,
+				pub.description,
+                art.article AS src_table,
+                s.srvname AS subscriber,
+                sub.subscriber_db,
+                CASE 
+                    WHEN sub.subscription_type = 2 THEN 'anonymous'
+                    WHEN sub.subscription_type = 1 THEN 'pull'
+                    WHEN sub.subscription_type = 0 THEN 'push'
+                    ELSE 'unknown'
+                END AS subscription_type,
+                art.destination_object AS dst_table,
                 CASE 
                     WHEN sub.status = 2 THEN 'active'
                     WHEN sub.status = 1 THEN 'subscribed'
                     WHEN sub.status = 0 THEN 'inactive'
                     ELSE 'unknown'
-                END AS SyncStatus
+                END AS sync_status
             FROM
                 distribution.dbo.MSpublications AS pub
             JOIN
@@ -108,6 +120,46 @@ def get_replication_info(conn):
                 master.dbo.sysservers AS s ON sub.subscriber_id = s.srvid
             JOIN
                 master.dbo.sysservers AS ss ON pub.publisher_id = ss.srvid
+
+            union all
+
+
+              SELECT
+				sub.publisher AS publisher,
+				pub.publisher_db,
+                pub.publication,
+                CASE 
+                    WHEN pub.publication_type = 2 THEN 'merge'
+                    WHEN pub.publication_type = 1 THEN 'snapshot'
+                    WHEN pub.publication_type = 0 THEN 'transactional'
+                    ELSE 'unknown'
+                END AS publication_type,
+				pub.description,
+                --art.article AS src_table,
+                '' AS src_table,
+				sub.subscriber,
+                sub.subscriber_db,
+                CASE 
+                    WHEN sub.subscription_type = 2 THEN 'anonymous'
+                    WHEN sub.subscription_type = 1 THEN 'pull'
+                    WHEN sub.subscription_type = 0 THEN 'push'
+                    ELSE 'unknown'
+                END AS subscription_type,
+                --art.destination_object AS dst_table,
+                '' AS dst_table,
+                CASE 
+                    WHEN sub.status = 2 THEN 'deleted'
+                    WHEN sub.status = 1 THEN 'active'
+                    WHEN sub.status = 0 THEN 'inactive'
+                    ELSE 'unknown'
+                END AS sync_status
+            FROM
+                distribution.dbo.MSpublications AS pub
+            LEFT JOIN
+                distribution.dbo.MSarticles AS art ON pub.publication_id = art.publication_id
+            JOIN
+                distribution.dbo.MSmerge_subscriptions AS sub ON pub.publication_id = sub.publication_id -- art.article_id = sub.article_id AND 
+
         """
         return pd.read_sql(query, conn)
     except Exception as e:
@@ -218,34 +270,27 @@ def traverse_lineage(server_name, config, graph, visited_servers):
         if df.empty:
             return
         
-        grouped = df.groupby(["SourceDatabase", "SubscriberServer", "TargetDatabase"])
-        for (src_db, tgt_srv, tgt_db), group in grouped:
-            table_status_list = [
-                {
-                    "source": row["SourceTable"],
-                    "target": row["TargetTable"],
-                    "status": row["SyncStatus"],
-                    "publication": row["Publication"], 
-                    "description": row["Description"],
-                }
-                for _, row in group.iterrows()
-            ]
-            publisher_server = group.iloc[0]["PublisherServer"]  # 👈 从行中提取真实 Publisher
+        grouped = df.groupby(["publisher", "publisher_db", "subscriber", "subscriber_db"])
+        for (publisher, publisher_db, subscriber, subscriber_db), group in grouped:
+            # 同步涉及的表
+            table_status_list = group.to_dict(orient="records")
             
             # 统计各状态的数量
-            status_counts = group["SyncStatus"].value_counts().to_dict()
+            status_counts = group["sync_status"].value_counts().to_dict()
 
             # 构造 extra 字典，平铺 status 统计
             extra = {
                 "tables": json.dumps(table_status_list),
                 **status_counts
             }
+
             graph.create_lineage(
-                publisher_server, src_db,
-                tgt_srv, tgt_db,
+                publisher, publisher_db,
+                subscriber, subscriber_db,
                 "replication", extra
             )
-            traverse_lineage(tgt_srv, config.copy(), graph, visited_servers)
+
+            traverse_lineage(subscriber, config.copy(), graph, visited_servers)
 
     except Exception as e:
         logging.error(f"Traversal error at server {server_name}: {e}")
