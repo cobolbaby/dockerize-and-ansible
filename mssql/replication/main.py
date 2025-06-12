@@ -194,6 +194,7 @@ def drop_inactive_subscription(sub, config):
         # config['database'] = publisher_db
         conn = connect_sql_server(config)
 
+        # https://github.com/MicrosoftDocs/sql-docs/blob/live/docs/relational-databases/replication/delete-a-push-subscription.md
         with conn.cursor() as cursor:
             sql = f"""
                 USE [{publisher_db}];
@@ -201,10 +202,28 @@ def drop_inactive_subscription(sub, config):
                     @publication = N'{publication}', 
                     @subscriber = N'{subscriber}', 
                     @destination_db = N'{subscriber_db}'
+                    -- @ignore_distributor = 1
                 ;
             """
             logging.info(f"Executing SQL:\n{sql}")
+            cursor.execute(sql)
 
+        conn.commit()
+
+        config['server'] = subscriber
+        # config['database'] = subscriber_db
+        conn = connect_sql_server(config)
+
+        with conn.cursor() as cursor:
+            sql = f"""
+                USE [{subscriber_db}];
+                EXEC sp_subscription_cleanup 
+                    @publication = N'{publication}', 
+                    @publisher = N'{publisher}', 
+                    @publisher_db = N'{publisher_db}'
+                ;
+            """
+            logging.info(f"Executing SQL:\n{sql}")
             cursor.execute(sql)
 
         conn.commit()
