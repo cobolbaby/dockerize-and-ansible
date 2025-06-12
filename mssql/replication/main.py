@@ -124,9 +124,9 @@ def get_replication_info(conn):
             JOIN
                 distribution.dbo.MSsubscriptions AS sub ON art.article_id = sub.article_id AND art.publication_id = sub.publication_id
             JOIN
-                master.dbo.sysservers AS s ON sub.subscriber_id = s.srvid
+                distribution.dbo.MSreplservers AS s ON sub.subscriber_id = s.srvid
             JOIN
-                master.dbo.sysservers AS ss ON pub.publisher_id = ss.srvid
+                distribution.dbo.MSreplservers AS ss ON pub.publisher_id = ss.srvid
 
             union all
 
