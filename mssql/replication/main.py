@@ -6,8 +6,10 @@ import pymssql
 import yaml
 from neo4j import GraphDatabase
 
-# 初始化日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# 优化连接建立时间
+CONNECTION_POOL = {}
 
 # 加载配置
 def load_config(path="config.yml"):
@@ -18,12 +20,15 @@ def load_config(path="config.yml"):
         logging.error(f"Failed to load config file: {e}")
         raise
 
-# 建立 SQL Server 连接
 def connect_sql_server(config):
     server = config["server"]
-    # port = config.get("port", "1433")
     database = config["database"]
     credientials = config.get("credientials", [])
+
+    signature = (server, database)
+    if signature in CONNECTION_POOL:
+        logging.info(f"Using cached connection for {server}\\{database}")
+        return CONNECTION_POOL[signature]
 
     error_message = ""
 
@@ -39,14 +44,16 @@ def connect_sql_server(config):
                 database=database,
                 login_timeout=5
             )
-            logging.info(f"Connected to {server}\{database} using user {user}")
+            logging.info(f"Connected to {server}\\{database} using user {user}")
+            CONNECTION_POOL[signature] = conn  # 存入缓存
             return conn
         except Exception as e:
-            error_message = f"Failed to connect to {server}\{database} using user {user}: {e}"
+            error_message = f"Failed to connect to {server}\\{database} using user {user}: {e}"
             logging.error(error_message)
             continue
-        
-    return error_message
+
+    # 所有认证方式都失败后，抛出异常
+    raise ConnectionError(error_message)
 
 # 获取 Distributor 名称
 def get_sql_server_distributor(conn):
@@ -166,6 +173,48 @@ def get_replication_info(conn):
         logging.warning(f"Could not retrieve replication info: {e}")
         return pd.DataFrame()
 
+def drop_inactive_subscription(sub, config):
+    """
+    删除 inactive 状态的 replication（仅当 subscriber 在黑名单中）
+    """
+    publication = sub["publication"]
+    publisher = sub["publisher"]
+    publisher_db = sub["publisher_db"]
+    subscriber = sub["subscriber"]
+    subscriber_db = sub["subscriber_db"]
+
+    if subscriber not in config["blacklist"]:
+        return  # 不在黑名单，跳过
+
+    logging.warning(
+        f"Deleting inactive publication {publication} from {publisher}/{publisher_db} to subscriber {subscriber}/{subscriber_db}"
+    )
+    try:
+        config['server'] = publisher
+        # config['database'] = publisher_db
+        conn = connect_sql_server(config)
+
+        with conn.cursor() as cursor:
+            sql = f"""
+                USE [{publisher_db}];
+                EXEC sp_dropsubscription 
+                    @publication = N'{publication}', 
+                    @subscriber = N'{subscriber}', 
+                    @destination_db = N'{subscriber_db}'
+                ;
+            """
+            logging.info(f"Executing SQL:\n{sql}")
+
+            cursor.execute(sql)
+
+        conn.commit()
+
+        logging.info(f"Deleted subscription {subscriber}/{subscriber_db} successfully.")
+    except ConnectionError as e:
+        logging.error(f"Failed to connect to {publisher}: {e}")
+    except Exception as e:
+        logging.error(f"Failed to delete subscription for {subscriber}/{subscriber_db}: {e}")
+
 class LineageGraph:
     def __init__(self, uri, user, password):
         try:
@@ -225,18 +274,12 @@ def traverse_lineage(server_name, config, graph, visited_servers):
         logging.info(f"Already visited: {server_name}")
         return
 
-    config['server'] = server_name
-    conn_or_error = connect_sql_server(config)
-
-    if isinstance(conn_or_error, str):
-        visited_servers[server_name] = conn_or_error
-        logging.error(f"Cannot connect to {server_name}: {conn_or_error}")
-        return
-
-    conn = conn_or_error
-    visited_servers[server_name] = conn
-
     try:
+        config['server'] = server_name
+        conn = connect_sql_server(config)
+
+        visited_servers[server_name] = conn
+        
         # Log shipping
         log_shipping_df = get_log_shipping_info(conn)
         for _, row in log_shipping_df.iterrows():
@@ -257,18 +300,19 @@ def traverse_lineage(server_name, config, graph, visited_servers):
         
         config['server'] = distributor
         # config['database'] = 'distribution'
-        dist_conn_or_error = connect_sql_server(config)
+        conn = connect_sql_server(config)
         
-        if isinstance(dist_conn_or_error, str):
-            visited_servers[distributor] = dist_conn_or_error
-            logging.error(f"Cannot connect to distributor {distributor}: {dist_conn_or_error}")
-            return
-        
-        visited_servers[distributor] = dist_conn_or_error
-        df = get_replication_info(dist_conn_or_error)
+        visited_servers[distributor] = conn
+
+        df = get_replication_info(conn)
 
         if df.empty:
             return
+        
+        # 筛选其中 inactive 状态的 replication，且判断 subscriber 是否在黑名单中，如果存在，只直接删除
+        inactive_df = df[df["sync_status"] == "inactive"]
+        for _, sub in inactive_df.iterrows():
+            drop_inactive_subscription(sub, config)
         
         grouped = df.groupby(["publisher", "publisher_db", "subscriber", "subscriber_db"])
         for (publisher, publisher_db, subscriber, subscriber_db), group in grouped:
@@ -292,6 +336,10 @@ def traverse_lineage(server_name, config, graph, visited_servers):
 
             traverse_lineage(subscriber, config.copy(), graph, visited_servers)
 
+    except ConnectionError as e:
+        visited_servers[server_name] = e
+
+        logging.error(f"Failed to connect to {e}")
     except Exception as e:
         logging.error(f"Traversal error at server {server_name}: {e}")
 
@@ -311,7 +359,7 @@ def main():
         unreachable = []
 
         for srv, result in visited.items():
-            if isinstance(result, str):
+            if isinstance(result, ConnectionError):
                 unreachable.append((srv, result))
             else:
                 logging.info(f"{srv} processed successfully.")
