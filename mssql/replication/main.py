@@ -276,9 +276,9 @@ class LineageGraph:
         """
 
         params = {
-            "s_server": s_server,
+            "s_server": s_server.upper(),
             "s_db": s_db,
-            "t_server": t_server,
+            "t_server": t_server.upper(),
             "t_db": t_db,
             "ltype": ltype,
             **extra_props  # flatten into query parameters
@@ -329,9 +329,10 @@ def traverse_lineage(server_name, config, graph, visited_servers):
             return
         
         # 筛选其中 inactive 状态的 replication，且判断 subscriber 是否在黑名单中，如果存在，只直接删除
-        inactive_df = df[df["sync_status"] == "inactive"]
-        for _, sub in inactive_df.iterrows():
-            drop_inactive_subscription(sub, config)
+        if config["blacklist"] is not None:
+            inactive_df = df[df["sync_status"] == "inactive"]
+            for _, sub in inactive_df.iterrows():
+                drop_inactive_subscription(sub, config)
         
         grouped = df.groupby(["publisher", "publisher_db", "subscriber", "subscriber_db"])
         for (publisher, publisher_db, subscriber, subscriber_db), group in grouped:
