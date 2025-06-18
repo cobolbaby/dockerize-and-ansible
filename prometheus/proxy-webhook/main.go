@@ -95,9 +95,9 @@ func printRequest(r *http.Request) {
 		log.Println("请求打印失败:", err)
 		return
 	}
-	log.Println("======= HTTP 请求开始 =======")
+	log.Println("======= HTTP 请求体 - 开始 =======")
 	log.Println(string(dump))
-	log.Println("======= HTTP 请求结束 =======")
+	log.Println("======= HTTP 请求体 - 结束 =======")
 }
 
 func getNextTarget() *url.URL {
@@ -241,6 +241,7 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
+		log.Printf("代理请求失败：%v", err)
 		http.Error(w, "下游请求失败："+err.Error(), http.StatusBadGateway)
 		return
 	}
