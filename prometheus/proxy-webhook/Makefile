@@ -1,10 +1,12 @@
-# Makefile for Go HTTP Proxy
+# Makefile for Go HTTP Proxy with Docker build/push
 
 APP_NAME := proxy-webhook
 BUILD_DIR := bin
 SRC := main.go
+DOCKER_IMAGE := registry.inventec/infra/$(APP_NAME)
+TAG ?= latest
 
-.PHONY: all build run clean
+.PHONY: all build run clean docker-build docker-push
 
 all: build
 
@@ -22,3 +24,11 @@ clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
 	@echo "Clean complete."
+
+docker-build: build
+	@echo "Building Docker image $(DOCKER_IMAGE):$(TAG)..."
+	@docker build -t $(DOCKER_IMAGE):$(TAG) .
+
+docker-push: docker-build
+	@echo "Pushing Docker image $(DOCKER_IMAGE):$(TAG)..."
+	@docker push $(DOCKER_IMAGE):$(TAG)

@@ -110,16 +110,14 @@ func getNextTarget() *url.URL {
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
-	printRequest(r)
+	// printRequest(r)
 
-	target := getNextTarget()
-	if target == nil {
+	proxyURL := getNextTarget()
+	if proxyURL == nil {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("未配置下游地址，仅打印请求\n"))
 		return
 	}
-
-	proxyURL := target.ResolveReference(r.URL)
 
 	/*
 	   2025/05/28 10:28:53 ======= HTTP 请求开始 =======
@@ -178,14 +176,15 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Printf("读取请求体失败: %v", err)
 		http.Error(w, "读取请求体失败", http.StatusBadRequest)
 		return
 	}
 	r.Body.Close()
 
-	// 解析 JSON 为 template.Data
 	var data template.Data
 	if err := json.Unmarshal(bodyBytes, &data); err != nil {
+		log.Printf("解析 JSON 失败: %v", err)
 		http.Error(w, "解析 JSON 失败："+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -222,15 +221,16 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// 重编码
 	newBody, err := json.Marshal(data)
 	if err != nil {
+		log.Printf("重新编码请求体失败: %v", err)
 		http.Error(w, "重新编码请求体失败", http.StatusInternalServerError)
 		return
 	}
 
 	proxyReq, err := http.NewRequest(r.Method, proxyURL.String(), bytes.NewBuffer(newBody))
 	if err != nil {
+		log.Printf("构造代理请求失败: %v", err)
 		http.Error(w, "构造请求失败", http.StatusInternalServerError)
 		return
 	}
@@ -241,7 +241,7 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		log.Printf("代理请求失败：%v", err)
+		log.Printf("代理请求失败: %v", err)
 		http.Error(w, "下游请求失败："+err.Error(), http.StatusBadGateway)
 		return
 	}
@@ -253,7 +253,10 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("响应写入失败: %v", err)
+	}
+
 }
 
 func main() {
