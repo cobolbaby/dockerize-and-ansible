@@ -5,7 +5,7 @@ RUN apt-get update -y && \
         # DNS
         dnsutils \
         # 测网络连通性，测返回结果
-        curl jq wget \
+        curl jq wget netcat \
         # 测 TCP 连接数
         net-tools \
         # 测流量
