@@ -24,3 +24,11 @@ docker run -it --rm -v $(pwd):/dump registry.inventec/infra/debugger \
 ```bash
 docker run -it --rm -v /dev:/dev --privileged registry.inventec/infra/debugger /smart_report.sh
 ```
+
+- telnet
+
+> 如果线上容器并没有打包一些常见的网络测试工具
+
+```bash
+docker run -it --rm --net container:容器名或者id registry.inventec/infra/debugger /bin/bash
+```
