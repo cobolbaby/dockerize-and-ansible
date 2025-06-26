@@ -142,7 +142,7 @@ RUN apt-get update \
     # && apt-get install -y libtinfo5 build-essential pkg-config libstdc++-10-dev cmake git \
     # && export PLV8_BRANCH=r3.2 \
     # && export PLV8_VERSION=3.2.2 \
-    # && cd /tmp/ && git clone --branch ${PLV8_BRANCH} --single-branch --depth 1 https://github.com/plv8/plv8 \
+    # && cd /tmp/ && git clone --depth 1 --branch ${PLV8_BRANCH} https://github.com/plv8/plv8 \
     # && cd plv8 \
     # && make install \
     # && strip /usr/lib/postgresql/${PG_MAJOR}/lib/plv8-${PLV8_VERSION}.so \
