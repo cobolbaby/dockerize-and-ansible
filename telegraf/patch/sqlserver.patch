@@ -1,0 +1,298 @@
+diff --git a/plugins/inputs/sqlserver/sqlserver.go b/plugins/inputs/sqlserver/sqlserver.go
+index 031b2ce34..ea0dacfb2 100644
+--- a/plugins/inputs/sqlserver/sqlserver.go
++++ b/plugins/inputs/sqlserver/sqlserver.go
+@@ -13,6 +13,7 @@ import (
+ 
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
++
+ 	// Legacy ADAL package - kept for backward compatibility
+ 	"github.com/Azure/go-autorest/autorest/adal"
+ 	mssql "github.com/microsoft/go-mssqldb"
+@@ -295,6 +296,7 @@ func (s *SQLServer) initQueries() error {
+ 		queries["SQLServerRecentBackups"] = query{ScriptName: "SQLServerRecentBackups", Script: sqlServerRecentBackups, ResultByRow: false}
+ 		queries["SQLServerPersistentVersionStore"] =
+ 			query{ScriptName: "SQLServerPersistentVersionStore", Script: sqlServerPersistentVersionStore, ResultByRow: false}
++		queries["SQLServerConnections"] = query{ScriptName: "SQLServerConnections", Script: sqlServerConnections, ResultByRow: false}
+ 	} else {
+ 		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
+ 			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
+diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
+index 71b152462..850d39f15 100644
+--- a/plugins/inputs/sqlserver/sqlserverqueries.go
++++ b/plugins/inputs/sqlserver/sqlserverqueries.go
+@@ -212,45 +212,18 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
+ 	END AS [hardware_type]'
+ 
+ SET @SqlStatement = '
+-DECLARE @ForceEncryption INT
+-DECLARE @DynamicportNo NVARCHAR(50);
+-DECLARE @StaticportNo NVARCHAR(50);
+-
+-EXEC [xp_instance_regread]
+-	 @rootkey = ''HKEY_LOCAL_MACHINE''
+-	,@key = ''SOFTWARE\Microsoft\Microsoft SQL Server\MSSQLServer\SuperSocketNetLib''
+-	,@value_name = ''ForceEncryption''
+-	,@value = @ForceEncryption OUTPUT;
+-
+-EXEC [xp_instance_regread]
+-	 @rootkey = ''HKEY_LOCAL_MACHINE''
+-	,@key = ''Software\Microsoft\Microsoft SQL Server\MSSQLServer\SuperSocketNetLib\Tcp\IpAll''
+-	,@value_name = ''TcpDynamicPorts''
+-	,@value = @DynamicportNo OUTPUT
+-
+-EXEC [xp_instance_regread]
+-	  @rootkey = ''HKEY_LOCAL_MACHINE''
+-     ,@key = ''Software\Microsoft\Microsoft SQL Server\MSSQLServer\SuperSocketNetLib\Tcp\IpAll''
+-     ,@value_name = ''TcpPort''
+-     ,@value = @StaticportNo OUTPUT
+-
+ SELECT
+ 	 ''sqlserver_server_properties'' AS [measurement]
+ 	,REPLACE(@@SERVERNAME,''\'','':'') AS [sql_instance]
+-	,@@SERVICENAME AS [service_name]
+ 	,si.[cpu_count]
+ 	,(SELECT [total_physical_memory_kb] FROM sys.[dm_os_sys_memory]) AS [server_memory]
+ 	,(SELECT [available_physical_memory_kb] FROM sys.[dm_os_sys_memory]) AS [available_server_memory]
+ 	,SERVERPROPERTY(''Edition'') AS [sku]
+-	,CAST(SERVERPROPERTY(''EngineEdition'') AS int) AS [engine_edition]
+ 	,DATEDIFF(MINUTE,si.[sqlserver_start_time],GETDATE()) AS [uptime]
+ 	,SERVERPROPERTY(''ProductVersion'') AS [sql_version]
+ 	,SERVERPROPERTY(''IsClustered'') AS [instance_type]
+ 	,SERVERPROPERTY(''IsHadrEnabled'') AS [is_hadr_enabled]
+ 	,LEFT(@@VERSION,CHARINDEX('' - '',@@VERSION)) AS [sql_version_desc]
+-	,@ForceEncryption AS [ForceEncryption]
+-	,COALESCE(@DynamicportNo,@StaticportNo) AS [Port]
+-	,IIF(@DynamicportNo IS NULL, ''Static'', ''Dynamic'') AS [PortType]
+ 	,dbs.[db_online]
+ 	,dbs.[db_restoring]
+ 	,dbs.[db_recovering]
+@@ -264,7 +237,7 @@ SELECT
+ 			 SUM(CASE WHEN [state] = 0 THEN 1 ELSE 0 END) AS [db_online]
+ 			,SUM(CASE WHEN [state] = 1 THEN 1 ELSE 0 END) AS [db_restoring]
+ 			,SUM(CASE WHEN [state] = 2 THEN 1 ELSE 0 END) AS [db_recovering]
+-			,SUM(CASE WHEN [state] = 3 THEN 1 ELSE 0 END) AS [db_recoveryPending]
++			,SUM(CASE WHEN [state] = 3 THEN 1 ELSE 0 END) AS [db_recovery_pending]
+ 			,SUM(CASE WHEN [state] = 4 THEN 1 ELSE 0 END) AS [db_suspect]
+ 			,SUM(CASE WHEN [state] IN (6,10) THEN 1 ELSE 0 END) AS [db_offline]
+ 		FROM sys.databases
+@@ -1079,51 +1052,41 @@ DECLARE
+ 	 @SqlStatement AS nvarchar(max)
+ 	,@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int) * 100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
+ 	,@Columns AS nvarchar(max) = ''
++	,@MinElapsedTime AS int = 3000
+ 
+ IF @MajorMinorVersion >= 1200 BEGIN
+ 	SET @Columns = '
+-	,DB_NAME(COALESCE(r.[database_id], s.[database_id])) AS [session_db_name]
+-	,COALESCE(r.[open_transaction_count], s.[open_transaction_count]) AS [open_transaction]'
++	,DB_NAME(COALESCE(r.[database_id], s.[database_id])) AS [session_db_name]'
+ END
+ ELSE BEGIN
+ 	SET @Columns = '
+-	,DB_NAME(r.[database_id]) AS [session_db_name]
+-	,r.[open_transaction_count] AS [open_transaction]'
++	,DB_NAME(r.[database_id]) AS [session_db_name]'
+ END
+ 
+ SET @SqlStatement = N'
+ SELECT
+-	 [measurement],[sql_instance],[session_id]
+-	,ISNULL([request_id],0) AS [request_id]
+-	,[blocking_session_id],[status],[cpu_time_ms]
+-	,[total_elapsed_time_ms],[logical_reads],[writes]
+-	,[command],[wait_time_ms],[wait_type]
+-	,[wait_resource],[program_name]
+-	,[host_name],[nt_user_name],[login_name]
+-	,[transaction_isolation_level],[granted_query_memory_pages],[percent_complete]
+-	,[statement_text],[objectid],[stmt_object_name]
+-	,[stmt_db_name],[query_hash],[query_plan_hash]
+-	,[session_db_name],[open_transaction]
++	[measurement],[sql_instance]
++	,[host_name],[program_name],[client_version],[login_name]
++	,[session_id],[transaction_isolation_level],[status],[blocking_session_id]
++	,[total_elapsed_time_ms],[cpu_time_ms],[wait_time_ms],[wait_type],[wait_resource]
++	,[percent_complete]
++	,[logical_reads],[writes]
++	,[command],[statement_text],[query_hash],[query_plan_hash]
++	,[stmt_object_name],[stmt_db_name]
++	,[session_db_name]
+ FROM (
+ 	SELECT
+-		 ''sqlserver_requests'' AS [measurement]
++		''sqlserver_requests'' AS [measurement]
+ 		,REPLACE(@@SERVERNAME,''\'','':'') AS [sql_instance]
+-		,s.[session_id]
+-		,r.[request_id]
+-		,COALESCE(r.[status], s.[status]) AS [status]
+-		,COALESCE(r.[cpu_time], s.[cpu_time]) AS [cpu_time_ms]
+-		,COALESCE(r.[total_elapsed_time], s.total_elapsed_time) AS [total_elapsed_time_ms]
+-		,COALESCE(r.[logical_reads], s.[logical_reads]) AS [logical_reads]
+-		,COALESCE(r.[writes], s.[writes]) AS [writes]
+-		,r.[command]
+-		,r.[wait_time] AS [wait_time_ms]
+-		,r.[wait_type]
+-		,r.[wait_resource]
+-		,NULLIF(r.[blocking_session_id],0) AS [blocking_session_id]
+-		,s.[program_name]
+ 		,s.[host_name]
+-		,s.[nt_user_name]
++		,CASE
++			WHEN s.[program_name] LIKE ''%Microsoft SQL Server Management Studio%'' THEN ''SSMS''
++			-- WHEN s.[program_name] LIKE ''%SQLAgent%'' THEN ''SQLAgent''
++			ELSE s.[program_name]
++		END AS program_name
++		,s.[client_version]
+ 		,s.[login_name]
++		,s.[session_id]
+ 		,LEFT (CASE COALESCE(r.[transaction_isolation_level], s.[transaction_isolation_level])
+ 			WHEN 0 THEN ''0-Read Committed''
+ 			WHEN 1 THEN ''1-Read Uncommitted (NOLOCK)''
+@@ -1133,8 +1096,17 @@ FROM (
+ 			WHEN 5 THEN ''5-Snapshot''
+ 			ELSE CONVERT (varchar(30), r.[transaction_isolation_level]) + ''-UNKNOWN''
+ 		END, 30) AS [transaction_isolation_level]
+-		,r.[granted_query_memory] AS [granted_query_memory_pages]
++		,r.[status]
++		,NULLIF(r.[blocking_session_id],0) AS [blocking_session_id]
++		,r.[total_elapsed_time] AS [total_elapsed_time_ms]
++		,r.[cpu_time] AS [cpu_time_ms]
++		,r.[wait_time] AS [wait_time_ms]
++		,r.[wait_type]
++		,r.[wait_resource]
+ 		,r.[percent_complete]
++		,r.[logical_reads]
++		,r.[writes]
++		,r.[command]
+ 		,SUBSTRING(
+ 			qt.[text],
+ 			r.[statement_start_offset] / 2 + 1,
+@@ -1143,30 +1115,21 @@ FROM (
+ 				ELSE r.[statement_end_offset]
+ 			END - r.[statement_start_offset]) / 2 + 1
+ 		) AS [statement_text]
+-		,qt.[objectid]
+-		,QUOTENAME(OBJECT_SCHEMA_NAME(qt.[objectid], qt.[dbid])) + ''.'' +  QUOTENAME(OBJECT_NAME(qt.[objectid], qt.[dbid])) AS [stmt_object_name]
+-		,DB_NAME(qt.dbid) AS [stmt_db_name]
+ 		,CONVERT(varchar(20),r.[query_hash],1) AS [query_hash]
+ 		,CONVERT(varchar(20),r.[query_plan_hash],1) AS [query_plan_hash]
+-		,s.[is_user_process]
+-		,[blocking_or_blocked] = COUNT(*) OVER(PARTITION BY ISNULL(NULLIF(r.[blocking_session_id], 0),s.[session_id]))'
++		,QUOTENAME(OBJECT_SCHEMA_NAME(qt.[objectid], qt.[dbid])) + ''.'' +  QUOTENAME(OBJECT_NAME(qt.[objectid], qt.[dbid])) AS [stmt_object_name]
++		,DB_NAME(qt.dbid) AS [stmt_db_name]'
+ 		+ @Columns + N'
+ 	FROM sys.dm_exec_sessions AS s
+-	LEFT OUTER JOIN sys.dm_exec_requests AS r
++	INNER JOIN sys.dm_exec_requests AS r
+ 		ON s.[session_id] = r.[session_id]
+ 	OUTER APPLY sys.dm_exec_sql_text(r.[sql_handle]) AS qt
+ ) AS data
+ WHERE
+-	   [blocking_or_blocked] > 1 --Always include blocking or blocked sessions/requests
+-	OR [open_transaction] >= 1   --Always include sessions with open transactions
+-	OR (
+-		[request_id] IS NOT NULL	--A request must exists
+-		AND (	--Always fetch user process (in any state), fetch system process only if active
+-			[is_user_process] = 1
+-			OR [status] COLLATE Latin1_General_BIN NOT IN (''background'', ''sleeping'')
+-		)
+-		AND [session_id] <> @@SPID  --Exclude current SPID
+-	)
++	[status] NOT IN (''background'', ''sleeping'')
++	AND [wait_type] NOT IN (''WAITFOR'', ''SP_SERVER_DIAGNOSTICS_SLEEP'', ''BROKER_RECEIVE_WAITFOR'')
++	AND [session_id] <> @@SPID  --Exclude current SPID
++	AND [total_elapsed_time_ms] > ' + CAST(@MinElapsedTime AS nvarchar) + N'
+ OPTION(MAXDOP 1)'
+ 
+ BEGIN TRY
+@@ -1182,6 +1145,42 @@ BEGIN CATCH
+ END CATCH
+ `
+ 
++const sqlServerConnections string = `
++SET DEADLOCK_PRIORITY -10;
++IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
++	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
++	RAISERROR (@ErrorMessage,11,1)
++	RETURN
++END
++
++SELECT
++	'sqlserver_connections' AS [measurement],
++	REPLACE(@@SERVERNAME,'\',':') AS [sql_instance],
++	s.host_name,
++	CASE
++		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
++		WHEN s.program_name LIKE '%SQLAgent%' THEN 'SQLAgent'
++		ELSE s.program_name
++	END AS program_name,
++	s.login_name,
++	-- s.database_id,
++	DB_NAME(s.database_id) AS database_name,
++	s.status,
++	COUNT(*) AS count
++FROM
++	sys.dm_exec_sessions s
++GROUP BY
++	s.host_name,
++	CASE
++		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
++		WHEN s.program_name LIKE '%SQLAgent%' THEN 'SQLAgent'
++		ELSE s.program_name
++	END,
++	s.login_name,
++	s.database_id,
++	s.status
++`
++
+ const sqlServerVolumeSpace string = `
+ SET DEADLOCK_PRIORITY -10;
+ IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
+@@ -1245,11 +1244,6 @@ WITH utilization_cte AS
+ 			) AS y
+ 		ORDER BY [record_id] DESC
+ 	) AS z
+-),
+-processor_Info_cte AS
+-(
+-	SELECT ([cpu_count] / [hyperthread_ratio]) as [number_of_physical_cpus]
+-	FROM sys.dm_os_sys_info
+ )
+ SELECT
+ 	'sqlserver_cpu' AS [measurement]
+@@ -1257,16 +1251,7 @@ SELECT
+ 	,[sqlserver_process_cpu]
+ 	,[system_idle_cpu]
+ 	,100 - [system_idle_cpu] - [sqlserver_process_cpu] AS [other_process_cpu]
+-FROM (
+-	SELECT
+-		(CASE
+-			WHEN u.[other_process_cpu] < 0 THEN u.[sqlserver_process_cpu] / p.[number_of_physical_cpus]
+-			ELSE u.[sqlserver_process_cpu]
+-		END) AS [sqlserver_process_cpu]
+-		,u.[system_idle_cpu]
+-	FROM utilization_cte AS u
+-		CROSS APPLY processor_Info_cte AS p
+-	) AS b
++FROM utilization_cte
+ `
+ 
+ // Collects availability replica state information from `sys.dm_hadr_availability_replica_states` for a High Availability / Disaster Recovery (HADR) setup
+@@ -1436,11 +1421,11 @@ SELECT
+ 	d.state_desc AS [state],
+ 	d.recovery_model_desc AS [recovery_model],
+ 	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bf.LastBackupTime)) AS [last_full_backup_time],
+-    	bf.backup_size AS [full_backup_size_bytes],
+-    	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bd.LastBackupTime)) AS [last_differential_backup_time],
+-    	bd.backup_size AS [differential_backup_size_bytes],
+-    	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bt.LastBackupTime)) AS [last_transaction_log_backup_time],
+-    	bt.backup_size AS [transaction_log_backup_size_bytes]
++	bf.backup_size AS [full_backup_size_bytes],
++	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bd.LastBackupTime)) AS [last_differential_backup_time],
++	bd.backup_size AS [differential_backup_size_bytes],
++	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bt.LastBackupTime)) AS [last_transaction_log_backup_time],
++	bt.backup_size AS [transaction_log_backup_size_bytes]
+ FROM sys.databases d
+ LEFT JOIN BackupsWithSize bf ON (d.name = bf.[Database] AND (bf.Type = 'Full' OR bf.Type IS NULL))
+ LEFT JOIN BackupsWithSize bd ON (d.name = bd.[Database] AND (bd.Type = 'Differential' OR bd.Type IS NULL))
