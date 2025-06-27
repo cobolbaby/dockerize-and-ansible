@@ -19,10 +19,10 @@ index 031b2ce34..ea0dacfb2 100644
  		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
  			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
 diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
-index 71b152462..850d39f15 100644
+index 71b152462..79e9ab9a0 100644
 --- a/plugins/inputs/sqlserver/sqlserverqueries.go
 +++ b/plugins/inputs/sqlserver/sqlserverqueries.go
-@@ -212,45 +212,18 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
+@@ -212,49 +212,22 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
  	END AS [hardware_type]'
  
  SET @SqlStatement = '
@@ -68,6 +68,11 @@ index 71b152462..850d39f15 100644
  	,dbs.[db_online]
  	,dbs.[db_restoring]
  	,dbs.[db_recovering]
+-	,dbs.[db_recoveryPending]
++	,dbs.[db_recovery_pending]
+ 	,dbs.[db_suspect]
+ 	,dbs.[db_offline]'
+ 	+ @Columns + N'
 @@ -264,7 +237,7 @@ SELECT
  			 SUM(CASE WHEN [state] = 0 THEN 1 ELSE 0 END) AS [db_online]
  			,SUM(CASE WHEN [state] = 1 THEN 1 ELSE 0 END) AS [db_restoring]
@@ -77,7 +82,16 @@ index 71b152462..850d39f15 100644
  			,SUM(CASE WHEN [state] = 4 THEN 1 ELSE 0 END) AS [db_suspect]
  			,SUM(CASE WHEN [state] IN (6,10) THEN 1 ELSE 0 END) AS [db_offline]
  		FROM sys.databases
-@@ -1079,51 +1052,41 @@ DECLARE
+@@ -483,7 +456,7 @@ SELECT
+ 	,REPLACE(@@SERVERNAME,'\',':') AS [sql_instance]
+ 	,pc.[object_name] AS [object]
+ 	,pc.[counter_name] AS [counter]
+-	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance]
++	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance_name]
+ 	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [value]
+ 	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
+ FROM @PCounters AS pc
+@@ -1079,51 +1052,42 @@ DECLARE
  	 @SqlStatement AS nvarchar(max)
  	,@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int) * 100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
  	,@Columns AS nvarchar(max) = ''
@@ -110,7 +124,7 @@ index 71b152462..850d39f15 100644
 -	,[stmt_db_name],[query_hash],[query_plan_hash]
 -	,[session_db_name],[open_transaction]
 +	[measurement],[sql_instance]
-+	,[host_name],[program_name],[client_version],[login_name]
++	,[host_name],[client_net_address],[program_name],[login_name]
 +	,[session_id],[transaction_isolation_level],[status],[blocking_session_id]
 +	,[total_elapsed_time_ms],[cpu_time_ms],[wait_time_ms],[wait_type],[wait_resource]
 +	,[percent_complete]
@@ -138,6 +152,7 @@ index 71b152462..850d39f15 100644
 -		,s.[program_name]
  		,s.[host_name]
 -		,s.[nt_user_name]
++		,c.[client_net_address]
 +		,CASE
 +			WHEN s.[program_name] LIKE ''%Microsoft SQL Server Management Studio%'' THEN ''SSMS''
 +			-- WHEN s.[program_name] LIKE ''%SQLAgent%'' THEN ''SQLAgent''
@@ -149,7 +164,7 @@ index 71b152462..850d39f15 100644
  		,LEFT (CASE COALESCE(r.[transaction_isolation_level], s.[transaction_isolation_level])
  			WHEN 0 THEN ''0-Read Committed''
  			WHEN 1 THEN ''1-Read Uncommitted (NOLOCK)''
-@@ -1133,8 +1096,17 @@ FROM (
+@@ -1133,8 +1097,17 @@ FROM (
  			WHEN 5 THEN ''5-Snapshot''
  			ELSE CONVERT (varchar(30), r.[transaction_isolation_level]) + ''-UNKNOWN''
  		END, 30) AS [transaction_isolation_level]
@@ -168,7 +183,7 @@ index 71b152462..850d39f15 100644
  		,SUBSTRING(
  			qt.[text],
  			r.[statement_start_offset] / 2 + 1,
-@@ -1143,30 +1115,21 @@ FROM (
+@@ -1143,30 +1116,23 @@ FROM (
  				ELSE r.[statement_end_offset]
  			END - r.[statement_start_offset]) / 2 + 1
  		) AS [statement_text]
@@ -184,6 +199,8 @@ index 71b152462..850d39f15 100644
  		+ @Columns + N'
  	FROM sys.dm_exec_sessions AS s
 -	LEFT OUTER JOIN sys.dm_exec_requests AS r
++	INNER JOIN sys.dm_exec_connections AS c
++		ON s.[session_id] = c.[session_id]
 +	INNER JOIN sys.dm_exec_requests AS r
  		ON s.[session_id] = r.[session_id]
  	OUTER APPLY sys.dm_exec_sql_text(r.[sql_handle]) AS qt
@@ -206,7 +223,7 @@ index 71b152462..850d39f15 100644
  OPTION(MAXDOP 1)'
  
  BEGIN TRY
-@@ -1182,6 +1145,42 @@ BEGIN CATCH
+@@ -1182,6 +1148,46 @@ BEGIN CATCH
  END CATCH
  `
  
@@ -221,6 +238,7 @@ index 71b152462..850d39f15 100644
 +SELECT
 +	'sqlserver_connections' AS [measurement],
 +	REPLACE(@@SERVERNAME,'\',':') AS [sql_instance],
++	c.client_net_address,
 +	s.host_name,
 +	CASE
 +		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
@@ -234,7 +252,10 @@ index 71b152462..850d39f15 100644
 +	COUNT(*) AS count
 +FROM
 +	sys.dm_exec_sessions s
++	INNER JOIN sys.dm_exec_connections AS c
++		ON s.[session_id] = c.[session_id]
 +GROUP BY
++	c.client_net_address,
 +	s.host_name,
 +	CASE
 +		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
@@ -249,7 +270,7 @@ index 71b152462..850d39f15 100644
  const sqlServerVolumeSpace string = `
  SET DEADLOCK_PRIORITY -10;
  IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-@@ -1245,11 +1244,6 @@ WITH utilization_cte AS
+@@ -1245,11 +1251,6 @@ WITH utilization_cte AS
  			) AS y
  		ORDER BY [record_id] DESC
  	) AS z
@@ -261,7 +282,7 @@ index 71b152462..850d39f15 100644
  )
  SELECT
  	'sqlserver_cpu' AS [measurement]
-@@ -1257,16 +1251,7 @@ SELECT
+@@ -1257,16 +1258,7 @@ SELECT
  	,[sqlserver_process_cpu]
  	,[system_idle_cpu]
  	,100 - [system_idle_cpu] - [sqlserver_process_cpu] AS [other_process_cpu]
@@ -279,7 +300,7 @@ index 71b152462..850d39f15 100644
  `
  
  // Collects availability replica state information from `sys.dm_hadr_availability_replica_states` for a High Availability / Disaster Recovery (HADR) setup
-@@ -1436,11 +1421,11 @@ SELECT
+@@ -1436,11 +1428,11 @@ SELECT
  	d.state_desc AS [state],
  	d.recovery_model_desc AS [recovery_model],
  	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bf.LastBackupTime)) AS [last_full_backup_time],
