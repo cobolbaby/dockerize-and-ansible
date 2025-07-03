@@ -1,16 +1,14 @@
 version: '3.8'
 
 services:
-  pgadmin8:
-    image: registry.inventec/infra/dpage/pgadmin4:8.14
-    container_name: pgadmin8
+  pgadmin9:
+    image: registry.inventec/infra/dpage/pgadmin4:9.4
+    container_name: pgadmin9
     ports:
       - "80:80"
     volumes:
-      - /data/pgadmin4/pgadmin8:/var/lib/pgadmin
-      # - /data/pgadmin4/certs:/certs
+      - /data/pgadmin4/pgadmin9:/var/lib/pgadmin
     environment:
-      # PGADMIN_ENABLE_TLS: "True"
       PGADMIN_DEFAULT_EMAIL: "cobolbaby@qq.com"
       PGADMIN_DEFAULT_PASSWORD: "123456"
       GUNICORN_THREADS: "50"
