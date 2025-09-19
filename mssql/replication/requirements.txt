@@ -1,1 +1,4 @@
+neo4j
+pandas
+pymssql
 pyyaml
