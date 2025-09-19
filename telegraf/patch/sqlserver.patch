@@ -19,7 +19,7 @@ index 031b2ce34..ea0dacfb2 100644
  		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
  			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
 diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
-index 71b152462..79e9ab9a0 100644
+index 71b152462..a21354bb0 100644
 --- a/plugins/inputs/sqlserver/sqlserverqueries.go
 +++ b/plugins/inputs/sqlserver/sqlserverqueries.go
 @@ -212,49 +212,22 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
@@ -217,7 +217,7 @@ index 71b152462..79e9ab9a0 100644
 -		AND [session_id] <> @@SPID  --Exclude current SPID
 -	)
 +	[status] NOT IN (''background'', ''sleeping'')
-+	AND [wait_type] NOT IN (''WAITFOR'', ''SP_SERVER_DIAGNOSTICS_SLEEP'', ''BROKER_RECEIVE_WAITFOR'')
++	AND ([wait_type] NOT IN (''WAITFOR'', ''SP_SERVER_DIAGNOSTICS_SLEEP'', ''BROKER_RECEIVE_WAITFOR'') or [wait_type] is NULL)
 +	AND [session_id] <> @@SPID  --Exclude current SPID
 +	AND [total_elapsed_time_ms] > ' + CAST(@MinElapsedTime AS nvarchar) + N'
  OPTION(MAXDOP 1)'
