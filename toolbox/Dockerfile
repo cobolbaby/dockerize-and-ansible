@@ -54,3 +54,8 @@ RUN apt-get install -y smartmontools && \
     apt-get install -y ssacli ssaducli
 COPY smart_report.sh /
 RUN chmod +x /smart_report.sh
+
+# 添加S3备份所需必要的命令 - mc
+# https://docs.min.io/docs/minio-client-quickstart-guide.html
+RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc \
+    && chmod +x /usr/local/bin/mc
