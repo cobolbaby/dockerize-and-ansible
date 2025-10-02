@@ -543,8 +543,9 @@ def check_kafka_connect_failed_tasks(trace):
     # 定义不可重启的错误关键字
     non_restartable_errors = [
         "configured with 'delete.enabled=false' and 'pk.mode=none' and therefore requires records with a non-null Struct value and non-null Struct schema", # 主键为空 -- 源头加主键
-        "You will need to rewrite or cast the expression", # 字段类型问题 -- 最好源头修正
-        "io.confluent.connect.jdbc.sink.TableAlterOrCreateException", # 上游新增字段，下游未同步增加 -- 下游跟进
+        "You will need to rewrite or cast the expression", # 字段类型问题 -- 具体情况具体分析
+        "io.confluent.connect.jdbc.sink.TableAlterOrCreateException", # 新增字段 -- 下游跟进
+        "org.postgresql.util.PSQLException: ERROR: value too long for type character varying", # 字符串长度问题 -- 下游跟进
     ]
     
     for error in non_restartable_errors:
