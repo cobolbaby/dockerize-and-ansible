@@ -3,9 +3,10 @@ set -e
 cd `dirname $0`
 
 export PGDATA_DEFAULT_TABLESPACE=/data/hdd/pg # itc pg
-export PGDATA_DEFAULT_TABLESPACE=/data/hdd1/postgres # f3 pg
-export PGDATA_DEFAULT_TABLESPACE=/data/ssd2/postgres # f6 pg
-export PGDATA_DEFAULT_TABLESPACE=/data/ssd5/postgres-dev # tao pg
+export PGDATA_DEFAULT_TABLESPACE=/data/hdd1/postgres # f3 pg dev
+export PGDATA_DEFAULT_TABLESPACE=/data/ssd2/postgres # f6 pg dev
+export PGDATA_DEFAULT_TABLESPACE=/data/ssd5/postgres-dev # tao pg dev
+export PGDATA_DEFAULT_TABLESPACE=/data/ssd1/postgres # f6 ame pg dev
 
 env | grep PGDATA
 
@@ -195,6 +196,9 @@ docker run -d --rm --name pg1602 \
 # TODO:如果是单点服务，需修改 $PGDATA/pg_hba.conf，添加 host all all all md5
 
 # TODO:重建 PG HA 集群
+
+# 刷新数据库的 collation，否则 psql 执行会有一堆提示
+docker exec -ti pg1602 psql -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
 
 # 执行全库analyse
 docker exec -ti pg1602 vacuumdb --all --analyze-in-stages
