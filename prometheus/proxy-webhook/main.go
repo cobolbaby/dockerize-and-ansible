@@ -208,11 +208,12 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 		// 获取此告警最近一次的开始时间 StartsAt
 		alert.StartsAt = store.SetIfAbsent(fp1, alert.StartsAt)
 
-		// Labels 添加 StartsAt，作为此次事件的 ID，问题可能重复发生，但时间不一样就是不同的事件
-		ls[model.LabelName("startsAt")] = model.LabelValue(alert.StartsAt.String())
+		// // Labels 添加 StartsAt，作为此次事件的 ID，问题可能重复发生，但时间不一样就是不同的事件
+		// ls[model.LabelName("startsAt")] = model.LabelValue(alert.StartsAt.String())
 
-		fp := ls.Fingerprint()
-		alert.Fingerprint = fp.String()
+		// fp := ls.Fingerprint()
+		// alert.Fingerprint = fp.String()
+		alert.Fingerprint = fp1.String()
 
 		// 清理已解决的告警
 		if model.AlertStatus(alert.Status) == model.AlertResolved {
