@@ -19,7 +19,7 @@ index 031b2ce34..ea0dacfb2 100644
  		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
  			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
 diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
-index 71b152462..0f6093388 100644
+index 71b152462..0b39aba11 100644
 --- a/plugins/inputs/sqlserver/sqlserverqueries.go
 +++ b/plugins/inputs/sqlserver/sqlserverqueries.go
 @@ -212,49 +212,22 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
@@ -163,7 +163,7 @@ index 71b152462..0f6093388 100644
  		,s.[login_name]
 +		,s.[session_id]
 +		,s.[open_transaction_count]
-+		,DATEDIFF(MILLISECOND, t.transaction_begin_time, GETDATE()) AS tx_duration_ms
++		,DATEDIFF_BIG(MILLISECOND, t.transaction_begin_time, GETDATE()) AS tx_duration_ms
  		,LEFT (CASE COALESCE(r.[transaction_isolation_level], s.[transaction_isolation_level])
  			WHEN 0 THEN ''0-Read Committed''
  			WHEN 1 THEN ''1-Read Uncommitted (NOLOCK)''
