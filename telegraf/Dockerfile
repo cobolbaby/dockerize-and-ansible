@@ -1,7 +1,7 @@
-ARG GOLANG_VERSION
-ARG TELEGRAF_VERSION
+ARG GOLANG_VERSION=1.24.4
+ARG TELEGRAF_VERSION=1.35.4
 
-FROM registry.inventec/proxy/golang:${GOLANG_VERSION} as builder
+FROM registry.inventec/proxy/golang:${GOLANG_VERSION} AS builder
 
 ENV GOPROXY=http://nexus.itc.inventec.net/repository/go-proxy/,https://goproxy.cn,https://goproxy.io,direct
 

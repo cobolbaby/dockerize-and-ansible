@@ -19,7 +19,7 @@ index 031b2ce34..ea0dacfb2 100644
  		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
  			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
 diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
-index 71b152462..a21354bb0 100644
+index 71b152462..0f6093388 100644
 --- a/plugins/inputs/sqlserver/sqlserverqueries.go
 +++ b/plugins/inputs/sqlserver/sqlserverqueries.go
 @@ -212,49 +212,22 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
@@ -57,7 +57,8 @@ index 71b152462..a21354bb0 100644
  	,(SELECT [available_physical_memory_kb] FROM sys.[dm_os_sys_memory]) AS [available_server_memory]
  	,SERVERPROPERTY(''Edition'') AS [sku]
 -	,CAST(SERVERPROPERTY(''EngineEdition'') AS int) AS [engine_edition]
- 	,DATEDIFF(MINUTE,si.[sqlserver_start_time],GETDATE()) AS [uptime]
+-	,DATEDIFF(MINUTE,si.[sqlserver_start_time],GETDATE()) AS [uptime]
++	,DATEDIFF(MINUTE, si.[sqlserver_start_time], GETDATE()) AS [uptime]
  	,SERVERPROPERTY(''ProductVersion'') AS [sql_version]
  	,SERVERPROPERTY(''IsClustered'') AS [instance_type]
  	,SERVERPROPERTY(''IsHadrEnabled'') AS [is_hadr_enabled]
@@ -91,7 +92,7 @@ index 71b152462..a21354bb0 100644
  	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [value]
  	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
  FROM @PCounters AS pc
-@@ -1079,51 +1052,42 @@ DECLARE
+@@ -1079,51 +1052,44 @@ DECLARE
  	 @SqlStatement AS nvarchar(max)
  	,@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int) * 100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
  	,@Columns AS nvarchar(max) = ''
@@ -123,11 +124,11 @@ index 71b152462..a21354bb0 100644
 -	,[statement_text],[objectid],[stmt_object_name]
 -	,[stmt_db_name],[query_hash],[query_plan_hash]
 -	,[session_db_name],[open_transaction]
-+	[measurement],[sql_instance]
++	 [measurement],[sql_instance]
 +	,[host_name],[client_net_address],[program_name],[login_name]
-+	,[session_id],[transaction_isolation_level],[status],[blocking_session_id]
++	,[session_id],[tx_duration_ms],[transaction_isolation_level],[status],[blocking_session_id]
 +	,[total_elapsed_time_ms],[cpu_time_ms],[wait_time_ms],[wait_type],[wait_resource]
-+	,[percent_complete]
++	,[granted_query_memory_pages]
 +	,[logical_reads],[writes]
 +	,[command],[statement_text],[query_hash],[query_plan_hash]
 +	,[stmt_object_name],[stmt_db_name]
@@ -161,29 +162,31 @@ index 71b152462..a21354bb0 100644
 +		,s.[client_version]
  		,s.[login_name]
 +		,s.[session_id]
++		,s.[open_transaction_count]
++		,DATEDIFF(MILLISECOND, t.transaction_begin_time, GETDATE()) AS tx_duration_ms
  		,LEFT (CASE COALESCE(r.[transaction_isolation_level], s.[transaction_isolation_level])
  			WHEN 0 THEN ''0-Read Committed''
  			WHEN 1 THEN ''1-Read Uncommitted (NOLOCK)''
-@@ -1133,8 +1097,17 @@ FROM (
+@@ -1133,8 +1099,17 @@ FROM (
  			WHEN 5 THEN ''5-Snapshot''
  			ELSE CONVERT (varchar(30), r.[transaction_isolation_level]) + ''-UNKNOWN''
  		END, 30) AS [transaction_isolation_level]
--		,r.[granted_query_memory] AS [granted_query_memory_pages]
-+		,r.[status]
-+		,NULLIF(r.[blocking_session_id],0) AS [blocking_session_id]
++		,COALESCE(r.[status], s.[status]) AS [status]
++		,NULLIF(r.[blocking_session_id], 0) AS [blocking_session_id]
 +		,r.[total_elapsed_time] AS [total_elapsed_time_ms]
 +		,r.[cpu_time] AS [cpu_time_ms]
 +		,r.[wait_time] AS [wait_time_ms]
 +		,r.[wait_type]
 +		,r.[wait_resource]
- 		,r.[percent_complete]
+ 		,r.[granted_query_memory] AS [granted_query_memory_pages]
+-		,r.[percent_complete]
 +		,r.[logical_reads]
 +		,r.[writes]
 +		,r.[command]
  		,SUBSTRING(
  			qt.[text],
  			r.[statement_start_offset] / 2 + 1,
-@@ -1143,30 +1116,23 @@ FROM (
+@@ -1143,30 +1118,28 @@ FROM (
  				ELSE r.[statement_end_offset]
  			END - r.[statement_start_offset]) / 2 + 1
  		) AS [statement_text]
@@ -198,10 +201,13 @@ index 71b152462..a21354bb0 100644
 +		,DB_NAME(qt.dbid) AS [stmt_db_name]'
  		+ @Columns + N'
  	FROM sys.dm_exec_sessions AS s
--	LEFT OUTER JOIN sys.dm_exec_requests AS r
 +	INNER JOIN sys.dm_exec_connections AS c
-+		ON s.[session_id] = c.[session_id]
-+	INNER JOIN sys.dm_exec_requests AS r
++		ON s.[session_id] = c.[session_id] AND c.parent_connection_id is NULL
++	INNER JOIN sys.dm_tran_session_transactions st 
++		ON s.[session_id] = st.[session_id]
++	LEFT JOIN sys.dm_tran_active_transactions t 
++		ON st.[transaction_id] = t.[transaction_id]
+ 	LEFT OUTER JOIN sys.dm_exec_requests AS r
  		ON s.[session_id] = r.[session_id]
  	OUTER APPLY sys.dm_exec_sql_text(r.[sql_handle]) AS qt
  ) AS data
@@ -216,14 +222,15 @@ index 71b152462..a21354bb0 100644
 -		)
 -		AND [session_id] <> @@SPID  --Exclude current SPID
 -	)
-+	[status] NOT IN (''background'', ''sleeping'')
-+	AND ([wait_type] NOT IN (''WAITFOR'', ''SP_SERVER_DIAGNOSTICS_SLEEP'', ''BROKER_RECEIVE_WAITFOR'') or [wait_type] is NULL)
++	open_transaction_count > 0
++	AND ([wait_type] NOT IN (''BROKER_RECEIVE_WAITFOR'') or [wait_type] is NULL)
 +	AND [session_id] <> @@SPID  --Exclude current SPID
-+	AND [total_elapsed_time_ms] > ' + CAST(@MinElapsedTime AS nvarchar) + N'
++	-- total_elapsed_time_ms 为空说明没有 request 执行，但事务还没有提交，如果为不空，则说明有慢 SQL
++	AND ([total_elapsed_time_ms] is NULL or [total_elapsed_time_ms] > ' + CAST(@MinElapsedTime AS nvarchar) + N')
  OPTION(MAXDOP 1)'
  
  BEGIN TRY
-@@ -1182,6 +1148,46 @@ BEGIN CATCH
+@@ -1182,6 +1155,46 @@ BEGIN CATCH
  END CATCH
  `
  
@@ -238,8 +245,8 @@ index 71b152462..a21354bb0 100644
 +SELECT
 +	'sqlserver_connections' AS [measurement],
 +	REPLACE(@@SERVERNAME,'\',':') AS [sql_instance],
-+	c.client_net_address,
 +	s.host_name,
++	c.client_net_address,
 +	CASE
 +		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
 +		WHEN s.program_name LIKE '%SQLAgent%' THEN 'SQLAgent'
@@ -253,10 +260,10 @@ index 71b152462..a21354bb0 100644
 +FROM
 +	sys.dm_exec_sessions s
 +	INNER JOIN sys.dm_exec_connections AS c
-+		ON s.[session_id] = c.[session_id]
++		ON s.[session_id] = c.[session_id] AND c.parent_connection_id is NULL
 +GROUP BY
-+	c.client_net_address,
 +	s.host_name,
++	c.client_net_address,
 +	CASE
 +		WHEN s.program_name LIKE '%Microsoft SQL Server Management Studio%' THEN 'SSMS'
 +		WHEN s.program_name LIKE '%SQLAgent%' THEN 'SQLAgent'
@@ -270,7 +277,7 @@ index 71b152462..a21354bb0 100644
  const sqlServerVolumeSpace string = `
  SET DEADLOCK_PRIORITY -10;
  IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-@@ -1245,11 +1251,6 @@ WITH utilization_cte AS
+@@ -1245,11 +1258,6 @@ WITH utilization_cte AS
  			) AS y
  		ORDER BY [record_id] DESC
  	) AS z
@@ -282,7 +289,7 @@ index 71b152462..a21354bb0 100644
  )
  SELECT
  	'sqlserver_cpu' AS [measurement]
-@@ -1257,16 +1258,7 @@ SELECT
+@@ -1257,16 +1265,7 @@ SELECT
  	,[sqlserver_process_cpu]
  	,[system_idle_cpu]
  	,100 - [system_idle_cpu] - [sqlserver_process_cpu] AS [other_process_cpu]
@@ -300,7 +307,7 @@ index 71b152462..a21354bb0 100644
  `
  
  // Collects availability replica state information from `sys.dm_hadr_availability_replica_states` for a High Availability / Disaster Recovery (HADR) setup
-@@ -1436,11 +1428,11 @@ SELECT
+@@ -1436,11 +1435,11 @@ SELECT
  	d.state_desc AS [state],
  	d.recovery_model_desc AS [recovery_model],
  	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bf.LastBackupTime)) AS [last_full_backup_time],

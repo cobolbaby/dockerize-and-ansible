@@ -1,7 +1,7 @@
 # Image and version configuration
 IMAGE_NAME=registry.inventec/infra/telegraf
 GOLANG_VERSION=1.24.4
-TELEGRAF_VERSION=1.35.1
+TELEGRAF_VERSION=1.35.4
 
 # Proxy settings
 HTTP_PROXY=http://10.190.81.209:3389
