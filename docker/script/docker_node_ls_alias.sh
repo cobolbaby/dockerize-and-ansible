@@ -1,13 +1,21 @@
 #!/bin/bash
 
-# 获取节点列表
+# 获取所有节点的主机名
 nodes=$(docker node ls --format "{{.Hostname}}")
 
-# 循环遍历节点
+# 遍历每个节点
 for node in $nodes; do
-    # 执行 docker inspect node 命令获取节点的alias
-    alias=$(docker inspect --format "{{.Spec.Labels.alias}}" $node)
-    
-    # 输出节点的alias
-    echo "Node ID: $node, Alias: $alias"
+    echo "---------------------------"
+    echo "Node: $node"
+    echo "Labels:"
+
+    # 获取该节点的所有 labels（格式为 key=value，每行一个）
+    labels=$(docker inspect --format '{{ range $k, $v := .Spec.Labels }}{{ $k }}={{ $v }}{{ "\n" }}{{ end }}' "$node")
+
+    if [ -z "$labels" ]; then
+        echo "  (No labels)"
+    else
+        # 缩进输出
+        echo "$labels" | sed 's/^/  /'
+    fi
 done
