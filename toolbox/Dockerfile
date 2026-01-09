@@ -1,11 +1,11 @@
-FROM registry.inventec/proxy/ubuntu:22.04
+FROM registry.inventec/proxy/ubuntu:24.04
 
 RUN apt-get update -y && \
     apt-get install -y \
         # DNS
         dnsutils \
         # 测网络连通性，测返回结果
-        curl jq wget netcat \
+        curl jq wget netcat-traditional \
         # 测 TCP 连接数
         net-tools \
         # 测流量
