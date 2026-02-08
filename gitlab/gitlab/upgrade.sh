@@ -72,3 +72,54 @@ sed -i "s/proxy\/gitlab\/gitlab-ce:16.7.10-ce.0/infra\/gitlab\/gitlab-ce:16.11.1
 diff docker-compose_16_7_10.yml docker-compose_16_11_10.yml
 
 docker-compose -f docker-compose_16_11_10.yml up -d
+
+cp docker-compose_16_11_10.yml docker-compose_17_1_8.yml
+sed -i "s/infra\/gitlab\/gitlab-ce:16.11.10-ce.0/proxy\/gitlab\/gitlab-ce:17.1.8-ce.0/" docker-compose_17_1_8.yml
+diff docker-compose_16_11_10.yml docker-compose_17_1_8.yml
+
+docker-compose -f docker-compose_17_1_8.yml up -d
+
+cp docker-compose_17_1_8.yml docker-compose_17_3_7.yml
+sed -i "s/17.1.8-ce.0/17.3.7-ce.0/" docker-compose_17_3_7.yml
+diff docker-compose_17_1_8.yml docker-compose_17_3_7.yml
+
+docker-compose -f docker-compose_17_3_7.yml up -d
+
+cp docker-compose_17_3_7.yml docker-compose_17_5_5.yml
+sed -i "s/17.3.7-ce.0/17.5.5-ce.0/" docker-compose_17_5_5.yml
+diff docker-compose_17_3_7.yml docker-compose_17_5_5.yml
+
+docker-compose -f docker-compose_17_5_5.yml up -d
+
+cp docker-compose_17_5_5.yml docker-compose_17_8_7.yml
+sed -i "s/17.5.5-ce.0/17.8.7-ce.0/" docker-compose_17_8_7.yml
+diff docker-compose_17_5_5.yml docker-compose_17_8_7.yml
+
+docker-compose -f docker-compose_17_8_7.yml up -d
+
+cp docker-compose_17_8_7.yml docker-compose_17_11_7.yml
+sed -i "s/17.8.7-ce.0/17.11.7-ce.0/" docker-compose_17_11_7.yml
+diff docker-compose_17_8_7.yml docker-compose_17_11_7.yml
+
+docker-compose -f docker-compose_17_11_7.yml up -d
+
+# 讨论是否要升级到 18.x 非 LTS 版本
+# ...
+
+cp docker-compose_17_11_7.yml docker-compose_18_2_8.yml
+sed -i "s/17.11.7-ce.0/18.2.8-ce.0/" docker-compose_18_2_8.yml
+diff docker-compose_17_11_7.yml docker-compose_18_2_8.yml
+
+docker-compose -f docker-compose_18_2_8.yml up -d
+
+cp docker-compose_18_2_8.yml docker-compose_18_5_5.yml
+sed -i "s/18.2.8-ce.0/18.5.5-ce.0/" docker-compose_18_5_5.yml
+diff docker-compose_18_2_8.yml docker-compose_18_5_5.yml
+
+docker-compose -f docker-compose_18_5_5.yml up -d
+
+cp docker-compose_18_5_5.yml docker-compose_18_8_3.yml
+sed -i "s/proxy\/gitlab\/gitlab-ce:18.5.5-ce.0/infra\/gitlab\/gitlab-ce:18.8.3-ce.0/" docker-compose_18_8_3.yml
+diff docker-compose_18_5_5.yml docker-compose_18_8_3.yml
+
+docker-compose -f docker-compose_18_8_3.yml up -d
