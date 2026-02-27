@@ -10,6 +10,7 @@ VERSION=15.11.13-ce.0
 VERSION=16.11.10-ce.0
 VERSION=17.11.7-ce.0
 VERSION=18.8.3-ce.0
+VERSION=18.8.4-ce.0
 
 # diff -urNa ${VERSION} ${VERSION}-fixed > patch/gitlab-${VERSION}.patch
 
