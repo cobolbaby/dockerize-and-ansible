@@ -19,7 +19,7 @@ index 031b2ce34..ea0dacfb2 100644
  		return fmt.Errorf("unsupported database_type: %s. Supported types are: %s, %s, %s, %s, %s",
  			s.DatabaseType, typeAzureSQLDB, typeAzureSQLManagedInstance, typeAzureSQLPool, typeAzureArcSQLManagedInstance, typeSQLServer)
 diff --git a/plugins/inputs/sqlserver/sqlserverqueries.go b/plugins/inputs/sqlserver/sqlserverqueries.go
-index 71b152462..0b39aba11 100644
+index 71b152462..5097d1463 100644
 --- a/plugins/inputs/sqlserver/sqlserverqueries.go
 +++ b/plugins/inputs/sqlserver/sqlserverqueries.go
 @@ -212,49 +212,22 @@ IF CAST(SERVERPROPERTY('ProductVersion') AS varchar(50)) >= '10.50.2500.0'
@@ -92,7 +92,7 @@ index 71b152462..0b39aba11 100644
  	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [value]
  	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
  FROM @PCounters AS pc
-@@ -1079,51 +1052,44 @@ DECLARE
+@@ -1079,51 +1052,45 @@ DECLARE
  	 @SqlStatement AS nvarchar(max)
  	,@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int) * 100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
  	,@Columns AS nvarchar(max) = ''
@@ -126,7 +126,8 @@ index 71b152462..0b39aba11 100644
 -	,[session_db_name],[open_transaction]
 +	 [measurement],[sql_instance]
 +	,[host_name],[client_net_address],[program_name],[login_name]
-+	,[session_id],[tx_duration_ms],[transaction_isolation_level],[status],[blocking_session_id]
++	,CAST([session_id] AS VARCHAR) as [session_id]
++	,[tx_duration_ms],[transaction_isolation_level],[status],[blocking_session_id]
 +	,[total_elapsed_time_ms],[cpu_time_ms],[wait_time_ms],[wait_type],[wait_resource]
 +	,[granted_query_memory_pages]
 +	,[logical_reads],[writes]
@@ -167,7 +168,7 @@ index 71b152462..0b39aba11 100644
  		,LEFT (CASE COALESCE(r.[transaction_isolation_level], s.[transaction_isolation_level])
  			WHEN 0 THEN ''0-Read Committed''
  			WHEN 1 THEN ''1-Read Uncommitted (NOLOCK)''
-@@ -1133,8 +1099,17 @@ FROM (
+@@ -1133,8 +1100,17 @@ FROM (
  			WHEN 5 THEN ''5-Snapshot''
  			ELSE CONVERT (varchar(30), r.[transaction_isolation_level]) + ''-UNKNOWN''
  		END, 30) AS [transaction_isolation_level]
@@ -186,7 +187,7 @@ index 71b152462..0b39aba11 100644
  		,SUBSTRING(
  			qt.[text],
  			r.[statement_start_offset] / 2 + 1,
-@@ -1143,30 +1118,28 @@ FROM (
+@@ -1143,30 +1119,28 @@ FROM (
  				ELSE r.[statement_end_offset]
  			END - r.[statement_start_offset]) / 2 + 1
  		) AS [statement_text]
@@ -230,7 +231,7 @@ index 71b152462..0b39aba11 100644
  OPTION(MAXDOP 1)'
  
  BEGIN TRY
-@@ -1182,6 +1155,46 @@ BEGIN CATCH
+@@ -1182,6 +1156,46 @@ BEGIN CATCH
  END CATCH
  `
  
@@ -277,7 +278,7 @@ index 71b152462..0b39aba11 100644
  const sqlServerVolumeSpace string = `
  SET DEADLOCK_PRIORITY -10;
  IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-@@ -1245,11 +1258,6 @@ WITH utilization_cte AS
+@@ -1245,11 +1259,6 @@ WITH utilization_cte AS
  			) AS y
  		ORDER BY [record_id] DESC
  	) AS z
@@ -289,7 +290,7 @@ index 71b152462..0b39aba11 100644
  )
  SELECT
  	'sqlserver_cpu' AS [measurement]
-@@ -1257,16 +1265,7 @@ SELECT
+@@ -1257,16 +1266,7 @@ SELECT
  	,[sqlserver_process_cpu]
  	,[system_idle_cpu]
  	,100 - [system_idle_cpu] - [sqlserver_process_cpu] AS [other_process_cpu]
@@ -307,7 +308,7 @@ index 71b152462..0b39aba11 100644
  `
  
  // Collects availability replica state information from `sys.dm_hadr_availability_replica_states` for a High Availability / Disaster Recovery (HADR) setup
-@@ -1436,11 +1435,11 @@ SELECT
+@@ -1436,11 +1436,11 @@ SELECT
  	d.state_desc AS [state],
  	d.recovery_model_desc AS [recovery_model],
  	DATEDIFF(SECOND, {d '1970-01-01'}, DATEADD(MINUTE, -@TimeZoneOffset, bf.LastBackupTime)) AS [last_full_backup_time],
