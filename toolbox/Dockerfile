@@ -37,7 +37,7 @@ ENV PATH=${PATH}:/usr/local/go/bin
 RUN apt-get install -y graphviz
 
 # Java 堆内存分析，https://eclipse.dev/mat/download/
-RUN apt-get install -y openjdk-17-jdk
+RUN apt-get install -y openjdk-21-jdk maven
 ARG MAT_VERSION
 COPY pkgs/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip /tmp/
 RUN unzip /tmp/MemoryAnalyzer-${MAT_VERSION}-linux.gtk.x86_64.zip -d /opt/ && \
@@ -59,3 +59,9 @@ RUN chmod +x /smart_report.sh
 # https://docs.min.io/docs/minio-client-quickstart-guide.html
 RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc \
     && chmod +x /usr/local/bin/mc
+
+# sqlcmd & bcp
+RUN curl -sSL -O https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    apt-get update && ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+ENV PATH=${PATH}:/opt/mssql-tools18/bin
